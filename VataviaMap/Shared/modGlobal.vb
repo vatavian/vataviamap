@@ -44,6 +44,9 @@ Module modGlobal
     ' URL of server to upload points to
     Public g_UploadURL As String = "http://vatavia.net/cgi-bin/gps?u=unknown&y=#Lat#&x=#Lon#&e=#Alt#&s=#Speed#&h=#Heading#&t=#Time#&l=#Label#&c=#CellID#"
 
+    ' URL of server to download buddy location from
+    Public g_BuddyURL As String = ""
+
     Public g_DegreeFormat As EnumDegreeFormat = EnumDegreeFormat.DegreesDecimalMinutes
 
     Public g_WaypointIcons As New Generic.Dictionary(Of String, Drawing.Bitmap)

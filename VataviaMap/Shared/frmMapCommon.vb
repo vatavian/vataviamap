@@ -174,6 +174,7 @@ Partial Class frmMap
                     'TileCacheFolder gets set earlier
                     g_TileServerName = .GetValue("TileServer", g_TileServerName)
                     g_UploadURL = .GetValue("UploadURL", g_UploadURL)
+                    g_BuddyURL = .GetValue("BuddyURL", g_BuddyURL)
 
                     'Dim lCacheDays As Integer = 7
                     'lCacheDays = .GetValue("TileCacheDays", lCacheDays)
@@ -690,7 +691,11 @@ Partial Class frmMap
     End Sub
 
     Private Sub RequestBuddyPoint(ByVal o As Object)
-        pDownloader.Enqueue("http://vatavia.net/cgi-bin/points?u=rachel", IO.Path.GetTempPath & "rachel", 0, True)
+        If g_BuddyURL Is Nothing OrElse g_BuddyURL.Length = 0 Then
+            MsgBox("Buddy URL is not set in HKEY_CURRENT_USER\Software\VataviaMap\BuddyURL", MsgBoxStyle.OkOnly, "Buddy Not Found")
+        Else
+            pDownloader.Enqueue(g_BuddyURL, IO.Path.GetTempPath & "buddy", 0, True)
+        End If
     End Sub
 
     Public Sub DownloadedPoint(ByVal aFilename As String) Implements IQueueListener.DownloadedPoint
