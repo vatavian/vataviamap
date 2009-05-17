@@ -1,0 +1,14 @@
+= VataviaMapDesktop =
+The desktop application developed on Windows
+
+= VataviaMapMobile =
+The Windows Mobile application
+
+= [GPS_API] =
+The C# library used by VataviaMapMobile to get GPS and cell tower ID
+
+= BackTracker =
+A related Windows Mobile application that runs in the background
+
+= DataMessage =
+A message display and sending application for Windows Mobile
