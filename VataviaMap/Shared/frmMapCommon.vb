@@ -67,6 +67,7 @@ Partial Class frmMap
     Private pBuddyAlarmLat As Double = 0
     Private pBuddyAlarmLon As Double = 0
     Private pBuddyAlarmMeters As Double = 0 'Must be greater than zero to get buddy alerts
+    Private pBuddies As New Generic.Dictionary(Of String, clsBuddy)
 
     Delegate Sub OpenCallback(ByVal aFilename As String, ByVal aInsertAt As Integer)
     Private pOpenGPXCallback As New OpenCallback(AddressOf OpenGPX)
@@ -164,17 +165,34 @@ Partial Class frmMap
             If lAppKey IsNot Nothing Then
                 With lAppKey
                     On Error Resume Next 'Maybe a registry setting is not numeric but needs to be, skip bad settings
-                    For lServerIndex As Integer = 1 To 30
-                        Dim lServerNameUrl() As String = CStr(.GetValue("TileServer" & lServerIndex, "")).Split("|")
+
+                    Dim lKeyIndex As Integer = 1
+                    Do
+                        Dim lServerNameUrl() As String = CStr(.GetValue("TileServer" & lKeyIndex, "")).Split("|")
                         If lServerNameUrl.Length = 2 Then
                             pTileServers.Add(lServerNameUrl(0), lServerNameUrl(1))
+                            lKeyIndex += 1
+                        Else
+                            Exit Do
                         End If
-                    Next
+                    Loop
+                    lKeyIndex = 1
+                    Do
+                        Dim lBuddyNameUrl() As String = CStr(.GetValue("Buddy" & lKeyIndex, "")).Split("|")
+                        If lBuddyNameUrl.Length = 2 Then
+                            Dim lNewBuddy As New clsBuddy
+                            lNewBuddy.Label = lBuddyNameUrl(0)
+                            lNewBuddy.URL = lBuddyNameUrl(1)
+                            pBuddies.Add(lNewBuddy.Label, lNewBuddy)
+                            lKeyIndex += 1
+                        Else
+                            Exit Do
+                        End If
+                    Loop
 
                     'TileCacheFolder gets set earlier
                     g_TileServerName = .GetValue("TileServer", g_TileServerName)
                     g_UploadURL = .GetValue("UploadURL", g_UploadURL)
-                    g_BuddyURL = .GetValue("BuddyURL", g_BuddyURL)
 
                     'Dim lCacheDays As Integer = 7
                     'lCacheDays = .GetValue("TileCacheDays", lCacheDays)
@@ -262,10 +280,15 @@ Partial Class frmMap
                 With lAppKey
                     'TODO: .SetValue("TileCacheDays", lCacheDays)
 
-                    Dim lServerIndex As Integer = 0
+                    Dim lKeyIndex As Integer = 1
                     For Each lName As String In pTileServers.Keys
-                        lServerIndex += 1
-                        .SetValue("TileServer" & lServerIndex, lName & "|" & pTileServers.Item(lName))
+                        .SetValue("TileServer" & lKeyIndex, lName & "|" & pTileServers.Item(lName))
+                        lKeyIndex += 1
+                    Next
+                    lKeyIndex = 1
+                    For Each lName As String In pBuddies.Keys
+                        .SetValue("Buddy" & lKeyIndex, lName & "|" & pBuddies.Item(lName).URL)
+                        lKeyIndex += 1
                     Next
 
                     .SetValue("TileCacheFolder", pTileCacheFolder)
@@ -691,61 +714,82 @@ Partial Class frmMap
     End Sub
 
     Private Sub RequestBuddyPoint(ByVal o As Object)
-        If g_BuddyURL Is Nothing OrElse g_BuddyURL.Length = 0 Then
-            MsgBox("Buddy URL is not set in HKEY_CURRENT_USER\Software\VataviaMap\BuddyURL", MsgBoxStyle.OkOnly, "Buddy Not Found")
+        If pBuddies Is Nothing OrElse pBuddies.Count = 0 Then
+            MsgBox("No Buddies Configured", MsgBoxStyle.OkOnly, "No Buddy Found")
         Else
-            pDownloader.Enqueue(g_BuddyURL, IO.Path.GetTempPath & "buddy", 0, True)
+            For Each lBuddy As clsBuddy In pBuddies.Values
+                If lBuddy.Selected Then pDownloader.Enqueue(lBuddy.URL, IO.Path.GetTempPath & SafeFilename(lBuddy.Label), 0, True)
+            Next
         End If
     End Sub
 
     Public Sub DownloadedPoint(ByVal aFilename As String) Implements IQueueListener.DownloadedPoint
-        Dim lGPXstring As New System.Text.StringBuilder
+        Try
+            Dim lGPXstring As New System.Text.StringBuilder
+            Dim lFileNameOnly As String = IO.Path.GetFileNameWithoutExtension(aFilename)
+            Dim lReader As IO.StreamReader = IO.File.OpenText(aFilename)
+            Dim lFileContents As String = lReader.ReadToEnd
 
-        Dim lReader As IO.StreamReader = IO.File.OpenText(aFilename)
-        Dim lPointLines() As String = lReader.ReadToEnd().Replace(vbCrLf, vbLf).Replace(vbCr, vbLf).Split(vbLf)
-        For Each lLine As String In lPointLines
-            Dim lFields() As String = lLine.Split(","c)
-            If lFields.Length > 4 AndAlso lFields(0).Length > 0 Then
-                Try
-                    Dim lLat As Double = lFields(3)
-                    Dim lLon As Double = lFields(4)
-                    Dim lTimeSince As TimeSpan = Now.Subtract(Date.Parse(lFields(0) & " " & lFields(1)))
-                    Dim lTimeSinceString As String = " "
-                    If lTimeSince.TotalDays >= 1 Then lTimeSinceString &= lTimeSince.Days & "d "
-                    If lTimeSince.TotalHours >= 1 Then lTimeSinceString &= lTimeSince.Hours & "h "
-                    If lTimeSince.TotalMinutes > 1 Then lTimeSinceString &= lTimeSince.Minutes & "m "
-
-                    lGPXstring.Append("<trkpt lat=""" & lFields(3) & """ lon=""" & lFields(4) & """>" & vbLf)
-                    lGPXstring.Append("<name>" & IO.Path.GetFileNameWithoutExtension(aFilename) & " " & lTimeSinceString & "</name>" & vbLf)
-                    If lFields.Length > 7 AndAlso lFields(7).Length > 0 Then lGPXstring.Append("<ele>" & lFields(7) & "</ele>" & vbLf)
-                    If lFields.Length > 8 AndAlso lFields(8).Length > 0 Then lGPXstring.Append("<time>" & lFields(8) & "</time>" & vbLf)
-                    If lFields.Length > 5 AndAlso lFields(5).Length > 0 Then lGPXstring.Append("<speed>" & lFields(5) & "</speed>" & vbLf)
-                    If lFields.Length > 6 AndAlso lFields(6).Length > 0 Then lGPXstring.Append("<course>" & lFields(6) & "</course>" & vbLf)
-                    lGPXstring.Append("<sym>Flag, Blue</sym></trkpt>")
-
-                    If pBuddyAlarmEnabled AndAlso pBuddyAlarmMeters > 0 Then
-                        If MetersBetweenLatLon(pBuddyAlarmLat, pBuddyAlarmLon, lLat, lLon) < pBuddyAlarmMeters Then
-                            Windows.Forms.MessageBox.Show(IO.Path.GetFileNameWithoutExtension(aFilename) & " approaches", "Nearby Buddy", MessageBoxButtons.OK, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button1)
-                            pBuddyAlarmEnabled = False
+            For Each lBuddy As clsBuddy In pBuddies.Values
+                If lFileNameOnly.Equals(SafeFilename(lBuddy.Label)) Then
+                    If lFileContents.IndexOf("<?xml") = 0 Then
+                        If lBuddy.LoadKML(lFileContents) Then
+                            GoTo CheckLatLon
                         End If
+                        Exit Sub
+                    Else
+                        '    Dim lPointLines() As String = lReader.ReadToEnd().Replace(vbCrLf, vbLf).Replace(vbCr, vbLf).Split(vbLf)
+                        '    For Each lLine As String In lPointLines
+                        Dim lFields() As String = lFileContents.Split(","c)
+                        If lFields.Length > 4 AndAlso lFields(0).Length > 0 Then
+                            Dim lLat As Double = lFields(3)
+                            Dim lLon As Double = lFields(4)
+                            Dim lTimeSince As TimeSpan = Now.Subtract(Date.Parse(lFields(0) & " " & lFields(1)))
+                            Dim lTimeSinceString As String = " "
+                            If lTimeSince.TotalDays >= 1 Then lTimeSinceString &= lTimeSince.Days & "d "
+                            If lTimeSince.TotalHours >= 1 Then lTimeSinceString &= lTimeSince.Hours & "h "
+                            If lTimeSince.TotalMinutes > 1 Then lTimeSinceString &= lTimeSince.Minutes & "m "
+
+                            lBuddy.Waypoint = New clsGPXwaypoint("wpt", lLat, lLon)
+                            lBuddy.Waypoint.desc = lTimeSinceString
+
+                            'lGPXstring.Append("<trkpt lat=""" & lFields(3) & """ lon=""" & lFields(4) & """>" & vbLf)
+                            'lGPXstring.Append("<name>" & IO.Path.GetFileNameWithoutExtension(aFilename) & " " & lTimeSinceString & "</name>" & vbLf)
+                            'If lFields.Length > 7 AndAlso lFields(7).Length > 0 Then lGPXstring.Append("<ele>" & lFields(7) & "</ele>" & vbLf)
+                            'If lFields.Length > 8 AndAlso lFields(8).Length > 0 Then lGPXstring.Append("<time>" & lFields(8) & "</time>" & vbLf)
+                            'If lFields.Length > 5 AndAlso lFields(5).Length > 0 Then lGPXstring.Append("<speed>" & lFields(5) & "</speed>" & vbLf)
+                            'If lFields.Length > 6 AndAlso lFields(6).Length > 0 Then lGPXstring.Append("<course>" & lFields(6) & "</course>" & vbLf)
+                            'lGPXstring.Append("<sym>Flag, Blue</sym></trkpt>")
+
+CheckLatLon:
+                            Me.Invoke(pRedrawCallback)
+                            If pBuddyAlarmEnabled AndAlso pBuddyAlarmMeters > 0 Then
+                                If MetersBetweenLatLon(pBuddyAlarmLat, pBuddyAlarmLon, lBuddy.Waypoint.lat, lBuddy.Waypoint.lon) < pBuddyAlarmMeters Then
+                                    Windows.Forms.MessageBox.Show(lBuddy.Label & " approaches", "Nearby Buddy", MessageBoxButtons.OK, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button1)
+                                    pBuddyAlarmEnabled = False
+                                End If
+                            End If
+
+                        End If
+                        '    Next
+                        '    If lGPXstring.Length > 0 Then
+                        '        Dim lGPXfilename As String = aFilename & ".gpx"
+                        '        Dim lWriter As New IO.StreamWriter(lGPXfilename)
+                        '        lWriter.Write("<?xml version=""1.0"" encoding=""UTF-8""?>" & vbLf _
+                        '                    & "<gpx xmlns=""http://www.topografix.com/GPX/1/1"" version=""1.1"" creator=""" & g_AppName & """ xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xsi:schemaLocation=""http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.topografix.com/GPX/gpx_overlay/0/3 http://www.topografix.com/GPX/gpx_overlay/0/3/gpx_overlay.xsd http://www.topografix.com/GPX/gpx_modified/0/1 http://www.topografix.com/GPX/gpx_modified/0/1/gpx_modified.xsd"">" & vbLf _
+                        '                    & "<trk><name>" & Now.ToShortDateString & "</name><type>GPS Tracklog</type>" & vbLf _
+                        '                    & "<trkseg>" & vbLf _
+                        '                    & lGPXstring.ToString _
+                        '                    & "</trkseg></trk></gpx>")
+                        '        lWriter.Close()
+                        '        Me.Invoke(pOpenGPXCallback, lGPXfilename, -1)
+                        '    End If
                     End If
-                Catch ex As Exception 'Maybe we could not parse lat and lon?
-                    Debug.WriteLine(ex.Message)
-                End Try
-            End If
-        Next
-        If lGPXstring.Length > 0 Then
-            Dim lGPXfilename As String = aFilename & ".gpx"
-            Dim lWriter As New IO.StreamWriter(lGPXfilename)
-            lWriter.Write("<?xml version=""1.0"" encoding=""UTF-8""?>" & vbLf _
-                        & "<gpx xmlns=""http://www.topografix.com/GPX/1/1"" version=""1.1"" creator=""" & g_AppName & """ xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xsi:schemaLocation=""http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.topografix.com/GPX/gpx_overlay/0/3 http://www.topografix.com/GPX/gpx_overlay/0/3/gpx_overlay.xsd http://www.topografix.com/GPX/gpx_modified/0/1 http://www.topografix.com/GPX/gpx_modified/0/1/gpx_modified.xsd"">" & vbLf _
-                        & "<trk><name>" & Now.ToShortDateString & "</name><type>GPS Tracklog</type>" & vbLf _
-                        & "<trkseg>" & vbLf _
-                        & lGPXstring.ToString _
-                        & "</trkseg></trk></gpx>")
-            lWriter.Close()
-            Me.Invoke(pOpenGPXCallback, lGPXfilename, -1)
-        End If
+                End If
+            Next
+        Catch ex As Exception 'Maybe we could not parse lat and lon?
+            Debug.WriteLine("DownloadedPoint:Exception:" & ex.Message)
+        End Try
     End Sub
 
     Sub FinishedQueue(ByVal aQueueIndex As Integer) Implements IQueueListener.FinishedQueue
@@ -770,6 +814,16 @@ Partial Class frmMap
                 If pRedrawPending Then Exit Sub
                 lLayer.Render(g, aTopLeftTile, aOffsetToCenter)
             Next
+        End If
+        If pBuddies IsNot Nothing AndAlso pBuddies.Count > 0 Then
+            Dim lWaypoints As New Generic.List(Of clsGPXwaypoint)
+            For Each lBuddy As clsBuddy In pBuddies.Values
+                If lBuddy.Selected AndAlso lBuddy.Waypoint IsNot Nothing Then lWaypoints.Add(lBuddy.Waypoint)
+            Next
+            If lWaypoints.Count > 0 Then
+                Dim lLayer As New clsLayerGPX(lWaypoints, Me)
+                lLayer.Render(g, aTopLeftTile, aOffsetToCenter)
+            End If
         End If
     End Sub
 

@@ -29,9 +29,10 @@ Partial Class frmMap
         Me.FileToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.SaveAsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.AddLayerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
-        Me.RemoveAllLayersToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.LayersToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.RemoveAllLayersToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.OpenOSMWebsiteToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.OpenJOSMToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.ExitToolStripSeparator = New System.Windows.Forms.ToolStripSeparator
         Me.ExitToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.ViewToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
@@ -48,20 +49,20 @@ Partial Class frmMap
         Me.EditTileServerMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.DefaultsTileServerMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.MaplintTileServerMenuItem = New System.Windows.Forms.ToolStripMenuItem
-        Me.BuddyToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.BuddiesToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.FindBuddyToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.SetBuddyAlarmToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.RightClickMenu = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.RefreshFromServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.GetAllDescendantsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
-        Me.OpenJOSMToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.ListBuddiesToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.MenuStripMain.SuspendLayout()
         Me.RightClickMenu.SuspendLayout()
         Me.SuspendLayout()
         '
         'MenuStripMain
         '
-        Me.MenuStripMain.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FileToolStripMenuItem, Me.ViewToolStripMenuItem, Me.ZoomToolStripMenuItem, Me.TileServerToolStripMenuItem, Me.BuddyToolStripMenuItem})
+        Me.MenuStripMain.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FileToolStripMenuItem, Me.ViewToolStripMenuItem, Me.ZoomToolStripMenuItem, Me.TileServerToolStripMenuItem, Me.BuddiesToolStripMenuItem})
         Me.MenuStripMain.Location = New System.Drawing.Point(0, 0)
         Me.MenuStripMain.Name = "MenuStripMain"
         Me.MenuStripMain.Size = New System.Drawing.Size(497, 27)
@@ -87,6 +88,12 @@ Partial Class frmMap
         Me.AddLayerToolStripMenuItem.Size = New System.Drawing.Size(257, 24)
         Me.AddLayerToolStripMenuItem.Text = "Add Layer..."
         '
+        'LayersToolStripMenuItem
+        '
+        Me.LayersToolStripMenuItem.Name = "LayersToolStripMenuItem"
+        Me.LayersToolStripMenuItem.Size = New System.Drawing.Size(257, 24)
+        Me.LayersToolStripMenuItem.Text = "Layers..."
+        '
         'RemoveAllLayersToolStripMenuItem
         '
         Me.RemoveAllLayersToolStripMenuItem.Name = "RemoveAllLayersToolStripMenuItem"
@@ -94,17 +101,17 @@ Partial Class frmMap
         Me.RemoveAllLayersToolStripMenuItem.Size = New System.Drawing.Size(257, 24)
         Me.RemoveAllLayersToolStripMenuItem.Text = "Remove All Layers"
         '
-        'LayersToolStripMenuItem
-        '
-        Me.LayersToolStripMenuItem.Name = "LayersToolStripMenuItem"
-        Me.LayersToolStripMenuItem.Size = New System.Drawing.Size(257, 24)
-        Me.LayersToolStripMenuItem.Text = "Layers..."
-        '
         'OpenOSMWebsiteToolStripMenuItem
         '
         Me.OpenOSMWebsiteToolStripMenuItem.Name = "OpenOSMWebsiteToolStripMenuItem"
         Me.OpenOSMWebsiteToolStripMenuItem.Size = New System.Drawing.Size(257, 24)
         Me.OpenOSMWebsiteToolStripMenuItem.Text = "Open OSM Website"
+        '
+        'OpenJOSMToolStripMenuItem
+        '
+        Me.OpenJOSMToolStripMenuItem.Name = "OpenJOSMToolStripMenuItem"
+        Me.OpenJOSMToolStripMenuItem.Size = New System.Drawing.Size(257, 24)
+        Me.OpenJOSMToolStripMenuItem.Text = "Open JOSM"
         '
         'ExitToolStripSeparator
         '
@@ -207,24 +214,24 @@ Partial Class frmMap
         Me.MaplintTileServerMenuItem.Size = New System.Drawing.Size(213, 24)
         Me.MaplintTileServerMenuItem.Text = "Overlay Maplint"
         '
-        'BuddyToolStripMenuItem
+        'BuddiesToolStripMenuItem
         '
-        Me.BuddyToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FindBuddyToolStripMenuItem, Me.SetBuddyAlarmToolStripMenuItem})
-        Me.BuddyToolStripMenuItem.Name = "BuddyToolStripMenuItem"
-        Me.BuddyToolStripMenuItem.Size = New System.Drawing.Size(65, 23)
-        Me.BuddyToolStripMenuItem.Text = "Buddy"
+        Me.BuddiesToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FindBuddyToolStripMenuItem, Me.SetBuddyAlarmToolStripMenuItem, Me.ListBuddiesToolStripMenuItem})
+        Me.BuddiesToolStripMenuItem.Name = "BuddiesToolStripMenuItem"
+        Me.BuddiesToolStripMenuItem.Size = New System.Drawing.Size(76, 23)
+        Me.BuddiesToolStripMenuItem.Text = "Buddies"
         '
         'FindBuddyToolStripMenuItem
         '
         Me.FindBuddyToolStripMenuItem.Name = "FindBuddyToolStripMenuItem"
         Me.FindBuddyToolStripMenuItem.ShortcutKeys = CType((System.Windows.Forms.Keys.Control Or System.Windows.Forms.Keys.F), System.Windows.Forms.Keys)
-        Me.FindBuddyToolStripMenuItem.Size = New System.Drawing.Size(227, 24)
-        Me.FindBuddyToolStripMenuItem.Text = "Find Buddy"
+        Me.FindBuddyToolStripMenuItem.Size = New System.Drawing.Size(238, 24)
+        Me.FindBuddyToolStripMenuItem.Text = "Find Buddies"
         '
         'SetBuddyAlarmToolStripMenuItem
         '
         Me.SetBuddyAlarmToolStripMenuItem.Name = "SetBuddyAlarmToolStripMenuItem"
-        Me.SetBuddyAlarmToolStripMenuItem.Size = New System.Drawing.Size(227, 24)
+        Me.SetBuddyAlarmToolStripMenuItem.Size = New System.Drawing.Size(238, 24)
         Me.SetBuddyAlarmToolStripMenuItem.Text = "Set Buddy Alarm"
         '
         'RightClickMenu
@@ -245,11 +252,11 @@ Partial Class frmMap
         Me.GetAllDescendantsToolStripMenuItem.Size = New System.Drawing.Size(239, 24)
         Me.GetAllDescendantsToolStripMenuItem.Text = "Get All Descendants"
         '
-        'OpenJOSMToolStripMenuItem
+        'ListBuddiesToolStripMenuItem
         '
-        Me.OpenJOSMToolStripMenuItem.Name = "OpenJOSMToolStripMenuItem"
-        Me.OpenJOSMToolStripMenuItem.Size = New System.Drawing.Size(257, 24)
-        Me.OpenJOSMToolStripMenuItem.Text = "Open JOSM"
+        Me.ListBuddiesToolStripMenuItem.Name = "ListBuddiesToolStripMenuItem"
+        Me.ListBuddiesToolStripMenuItem.Size = New System.Drawing.Size(238, 24)
+        Me.ListBuddiesToolStripMenuItem.Text = "List"
         '
         'frmMap
         '
@@ -292,7 +299,7 @@ Partial Class frmMap
     Friend WithEvents ExitToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents ExitToolStripSeparator As System.Windows.Forms.ToolStripSeparator
     Friend WithEvents ZoomAllLayersToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents BuddyToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents BuddiesToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents FindBuddyToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents SetBuddyAlarmToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents AddTileServerMenuItem As System.Windows.Forms.ToolStripMenuItem
@@ -300,4 +307,5 @@ Partial Class frmMap
     Friend WithEvents DefaultsTileServerMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents MaplintTileServerMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents OpenJOSMToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents ListBuddiesToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
 End Class

@@ -34,6 +34,8 @@ Module modGlobal
     Public g_TileServerName As String = "Mapnik"
     Public g_TileServerURL As String = "http://tile.openstreetmap.org/mapnik/"
     Public g_TileCopyright As String = openStreetMapCopyright
+    Public g_TileServerExampleLabel As String = "URL of server is the part before the zoom/X/Y"
+    Public g_TileServerExampleFile As String = "http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Tiles"
 
     Public g_TileServerTransparentName As String = "Maplint"
     Public g_TileServerTransparentURL As String = "http://tah.openstreetmap.org/Tiles/maplint/"
@@ -43,9 +45,6 @@ Module modGlobal
 
     ' URL of server to upload points to
     Public g_UploadURL As String = "http://vatavia.net/cgi-bin/gps?u=unknown&y=#Lat#&x=#Lon#&e=#Alt#&s=#Speed#&h=#Heading#&t=#Time#&l=#Label#&c=#CellID#"
-
-    ' URL of server to download buddy location from
-    Public g_BuddyURL As String = ""
 
     Public g_DegreeFormat As EnumDegreeFormat = EnumDegreeFormat.DegreesDecimalMinutes
 
