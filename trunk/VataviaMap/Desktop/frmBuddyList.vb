@@ -8,7 +8,7 @@ Public Class frmBuddyList
     Public Sub AskUser(ByVal aBuddies As Generic.Dictionary(Of String, clsBuddy))
         pBuddies = New Generic.Dictionary(Of String, clsBuddy)
         For Each lBuddy As clsBuddy In aBuddies.Values
-            pBuddies.Add(lBuddy.Label, lBuddy)
+            pBuddies.Add(lBuddy.Name, lBuddy)
         Next
         PopulateList()
         Me.Show()
@@ -17,7 +17,7 @@ Public Class frmBuddyList
     Private Sub PopulateList()
         lstBuddies.Items.Clear()
         For Each lBuddy As clsBuddy In pBuddies.Values
-            lstBuddies.Items.Add(lBuddy.Label)
+            lstBuddies.Items.Add(lBuddy.Name)
             lstBuddies.SetItemChecked(lstBuddies.Items.Count - 1, lBuddy.Selected)
         Next
     End Sub
@@ -35,7 +35,7 @@ Public Class frmBuddyList
 
     Private Sub btnAdd_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnAdd.Click
         NewEditBuddyForm()
-        pEditBuddyForm.AskUser("Add Buddy", "Buddy Name", "http://www.google.com/latitude/apps/badge/api?user=BuddyBadgeNumber&type=kml", "Google Latitude kml URL", "http://www.google.com/latitude/apps/badge")
+        pEditBuddyForm.AskUser("Add Buddy", "Buddy Name", "http://www.google.com/latitude/apps/badge/api?user=BuddyBadgeNumber&type=json", "Buddy Location URL", "http://code.google.com/p/vataviamap/wiki/FindBuddies")
     End Sub
 
     Private Function SelectedBuddy() As clsBuddy
@@ -67,10 +67,10 @@ Public Class frmBuddyList
                 lBuddy = pBuddies(aName)
             Else
                 lBuddy = New clsBuddy
-                lBuddy.Label = aName
+                lBuddy.Name = aName
                 pBuddies.Add(aName, lBuddy)
             End If
-            lBuddy.URL = aURL
+            lBuddy.LocationURL = aURL
         Else
             pBuddies.Remove(aName)
         End If
@@ -83,14 +83,14 @@ Public Class frmBuddyList
             btnAdd_Click(sender, e)
         Else
             NewEditBuddyForm()
-            pEditBuddyForm.AskUser("Edit Buddy", lBuddy.Label, lBuddy.URL, "Google Latitude kml URL", "http://www.google.com/latitude/apps/badge")
+            pEditBuddyForm.AskUser("Edit Buddy", lBuddy.Name, lBuddy.LocationURL, "Google Latitude kml URL", "http://www.google.com/latitude/apps/badge")
         End If
     End Sub
 
     Private Sub btnRemove_Click(ByVal sender As Object, ByVal e As System.EventArgs) Handles btnRemove.Click
         If lstBuddies.SelectedIndex >= 0 Then
             Dim lBuddy As clsBuddy = SelectedBuddy()
-            pBuddies.Remove(lBuddy.Label)
+            pBuddies.Remove(lBuddy.Name)
             PopulateList()
         End If
     End Sub

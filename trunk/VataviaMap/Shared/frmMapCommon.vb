@@ -138,13 +138,7 @@ Partial Class frmMap
         pGPXFolder = "\My Documents\gps"
         GetSettings()
 
-        For Each lFilename As String In IO.Directory.GetFiles(pTileCacheFolder, "*.gif")
-            Try
-                Dim lBitmap As New Drawing.Bitmap(lFilename)
-                g_WaypointIcons.Add("Geocache|" & IO.Path.GetFileNameWithoutExtension(lFilename), lBitmap)
-            Catch
-            End Try
-        Next
+        LoadCachedIcons()
 
         ' The main form registers itself as a listener so Me.DownloadedTile will be called when each tile is finished.
         ' Me.FinishedQueue and Me.DownloadedPoint are also called when appropriate
@@ -155,6 +149,41 @@ Partial Class frmMap
         pUploader.Enabled = True
 
         pFormVisible = True
+    End Sub
+
+    Private Sub LoadCachedIcons()
+        Dim lIconFileExts() As String = {"gif", "png", "jpg", "bmp"}
+        Dim lCacheIconFolder As String = IO.Path.Combine(pTileCacheFolder, "Icons")
+        For Each lFolder As String In IO.Directory.GetDirectories(lCacheIconFolder)
+            Dim lFolderName As String = IO.Path.GetFileName(lFolder).ToLower
+            For Each lExt As String In lIconFileExts
+                For Each lFilename As String In IO.Directory.GetFiles(lFolder, "*." & lExt)
+                    Try
+                        Dim lBitmap As New Drawing.Bitmap(lFilename)
+                        g_WaypointIcons.Add(lFolderName & "|" & IO.Path.GetFileNameWithoutExtension(lFilename).ToLower, lBitmap)
+                    Catch
+                    End Try
+                Next
+            Next
+        Next
+        If Not g_WaypointIcons.ContainsKey("geocache|webcam cache") Then
+            'get geocaching icons from http://www.geocaching.com/about/cache_types.aspx
+            Dim lBaseURL As String = "http://www.geocaching.com/images/WptTypes/"
+            lCacheIconFolder &= g_PathChar & "Geocache" & g_PathChar
+            pDownloader.Enqueue(lBaseURL & "2.gif", lCacheIconFolder & "Traditional Cache.gif", QueueItemType.IconItem, 2, False)
+            pDownloader.Enqueue(lBaseURL & "3.gif", lCacheIconFolder & "Multi-cache.gif", QueueItemType.IconItem, 2, False)
+            pDownloader.Enqueue(lBaseURL & "8.gif", lCacheIconFolder & "Unknown Cache.gif", QueueItemType.IconItem, 2, False)
+            pDownloader.Enqueue(lBaseURL & "5.gif", lCacheIconFolder & "Letterbox Hybrid.gif", QueueItemType.IconItem, 2, False)
+            pDownloader.Enqueue(lBaseURL & "1858.gif", lCacheIconFolder & "Wherigo Cache.gif", QueueItemType.IconItem, 2, False)
+            pDownloader.Enqueue(lBaseURL & "6.gif", lCacheIconFolder & "Event Cache.gif", QueueItemType.IconItem, 2, False)
+            pDownloader.Enqueue(lBaseURL & "mega.gif", lCacheIconFolder & "Mega-Event Cache.gif", QueueItemType.IconItem, 2, False)
+            pDownloader.Enqueue(lBaseURL & "13.gif", lCacheIconFolder & "Cache In Trash Out Event.gif", QueueItemType.IconItem, 2, False)
+            pDownloader.Enqueue(lBaseURL & "earthcache.gif", lCacheIconFolder & "Earthcache.gif", QueueItemType.IconItem, 2, False)
+            pDownloader.Enqueue(lBaseURL & "4.gif", lCacheIconFolder & "Virtual Cache.gif", QueueItemType.IconItem, 2, False)
+            pDownloader.Enqueue(lBaseURL & "1304.gif", lCacheIconFolder & "GPS Adventures Exhibit.gif", QueueItemType.IconItem, 2, False)
+            pDownloader.Enqueue(lBaseURL & "9.gif", lCacheIconFolder & "Project APE Cache.gif", QueueItemType.IconItem, 2, False)
+            pDownloader.Enqueue(lBaseURL & "11.gif", lCacheIconFolder & "Webcam Cache.gif", QueueItemType.IconItem, 2, False)
+        End If
     End Sub
 
     Private Sub GetSettings()
@@ -181,9 +210,9 @@ Partial Class frmMap
                         Dim lBuddyNameUrl() As String = CStr(.GetValue("Buddy" & lKeyIndex, "")).Split("|")
                         If lBuddyNameUrl.Length = 2 Then
                             Dim lNewBuddy As New clsBuddy
-                            lNewBuddy.Label = lBuddyNameUrl(0)
-                            lNewBuddy.URL = lBuddyNameUrl(1)
-                            pBuddies.Add(lNewBuddy.Label, lNewBuddy)
+                            lNewBuddy.Name = lBuddyNameUrl(0)
+                            lNewBuddy.LocationURL = lBuddyNameUrl(1)
+                            pBuddies.Add(lNewBuddy.Name, lNewBuddy)
                             lKeyIndex += 1
                         Else
                             Exit Do
@@ -287,7 +316,7 @@ Partial Class frmMap
                     Next
                     lKeyIndex = 1
                     For Each lName As String In pBuddies.Keys
-                        .SetValue("Buddy" & lKeyIndex, lName & "|" & pBuddies.Item(lName).URL)
+                        .SetValue("Buddy" & lKeyIndex, lName & "|" & pBuddies.Item(lName).LocationURL)
                         lKeyIndex += 1
                     Next
 
@@ -366,7 +395,7 @@ Partial Class frmMap
         End Get
         Set(ByVal value As String)
 
-            pDownloader.ClearQueue()
+            pDownloader.ClearQueue(QueueItemType.TileItem, -1)
 
             If value.IndexOf(":/") < 0 Then 'Doesn't look like a URL, try setting by name instead
                 TileServerName = value
@@ -393,7 +422,7 @@ Partial Class frmMap
         End Get
         Set(ByVal value As Integer)
             If value <> pZoom Then
-                pDownloader.ClearQueue()
+                pDownloader.ClearQueue(QueueItemType.TileItem, -1)
                 If value > g_ZoomMax Then
                     pZoom = g_ZoomMax
                 ElseIf value < g_ZoomMin Then
@@ -715,81 +744,54 @@ Partial Class frmMap
 
     Private Sub RequestBuddyPoint(ByVal o As Object)
         If pBuddies Is Nothing OrElse pBuddies.Count = 0 Then
-            MsgBox("No Buddies Configured", MsgBoxStyle.OkOnly, "No Buddy Found")
+            MsgBox("Add Buddies Before Finding them", MsgBoxStyle.OkOnly, "No Buddies Found")
         Else
             For Each lBuddy As clsBuddy In pBuddies.Values
-                If lBuddy.Selected Then pDownloader.Enqueue(lBuddy.URL, IO.Path.GetTempPath & SafeFilename(lBuddy.Label), 0, True)
+                If lBuddy.Selected Then pDownloader.Enqueue(lBuddy.LocationURL, IO.Path.GetTempPath & SafeFilename(lBuddy.Name), QueueItemType.PointItem, 0, True, lBuddy)
             Next
         End If
     End Sub
 
-    Public Sub DownloadedPoint(ByVal aFilename As String) Implements IQueueListener.DownloadedPoint
-        Try
-            Dim lGPXstring As New System.Text.StringBuilder
-            Dim lFileNameOnly As String = IO.Path.GetFileNameWithoutExtension(aFilename)
-            Dim lReader As IO.StreamReader = IO.File.OpenText(aFilename)
-            Dim lFileContents As String = lReader.ReadToEnd
-
-            For Each lBuddy As clsBuddy In pBuddies.Values
-                If lFileNameOnly.Equals(SafeFilename(lBuddy.Label)) Then
-                    If lFileContents.IndexOf("<?xml") = 0 Then
-                        If lBuddy.LoadKML(lFileContents) Then
-                            GoTo CheckLatLon
-                        End If
-                        Exit Sub
-                    Else
-                        '    Dim lPointLines() As String = lReader.ReadToEnd().Replace(vbCrLf, vbLf).Replace(vbCr, vbLf).Split(vbLf)
-                        '    For Each lLine As String In lPointLines
-                        Dim lFields() As String = lFileContents.Split(","c)
-                        If lFields.Length > 4 AndAlso lFields(0).Length > 0 Then
-                            Dim lLat As Double = lFields(3)
-                            Dim lLon As Double = lFields(4)
-                            Dim lTimeSince As TimeSpan = Now.Subtract(Date.Parse(lFields(0) & " " & lFields(1)))
-                            Dim lTimeSinceString As String = " "
-                            If lTimeSince.TotalDays >= 1 Then lTimeSinceString &= lTimeSince.Days & "d "
-                            If lTimeSince.TotalHours >= 1 Then lTimeSinceString &= lTimeSince.Hours & "h "
-                            If lTimeSince.TotalMinutes > 1 Then lTimeSinceString &= lTimeSince.Minutes & "m "
-
-                            lBuddy.Waypoint = New clsGPXwaypoint("wpt", lLat, lLon)
-                            lBuddy.Waypoint.desc = lTimeSinceString
-
-                            'lGPXstring.Append("<trkpt lat=""" & lFields(3) & """ lon=""" & lFields(4) & """>" & vbLf)
-                            'lGPXstring.Append("<name>" & IO.Path.GetFileNameWithoutExtension(aFilename) & " " & lTimeSinceString & "</name>" & vbLf)
-                            'If lFields.Length > 7 AndAlso lFields(7).Length > 0 Then lGPXstring.Append("<ele>" & lFields(7) & "</ele>" & vbLf)
-                            'If lFields.Length > 8 AndAlso lFields(8).Length > 0 Then lGPXstring.Append("<time>" & lFields(8) & "</time>" & vbLf)
-                            'If lFields.Length > 5 AndAlso lFields(5).Length > 0 Then lGPXstring.Append("<speed>" & lFields(5) & "</speed>" & vbLf)
-                            'If lFields.Length > 6 AndAlso lFields(6).Length > 0 Then lGPXstring.Append("<course>" & lFields(6) & "</course>" & vbLf)
-                            'lGPXstring.Append("<sym>Flag, Blue</sym></trkpt>")
-
-CheckLatLon:
+    Public Sub DownloadedItem(ByVal aItem As clsQueueItem) Implements IQueueListener.DownloadedItem
+        Select Case aItem.ItemType
+            Case QueueItemType.IconItem
+                Dim lCacheIconFolder As String = IO.Path.Combine(pTileCacheFolder, "Icons").ToLower & g_PathChar
+                If aItem.Filename.ToLower.StartsWith(lCacheIconFolder) Then 'Geocache or other icon that lives in "Icons" folder in pTileCacheFolder
+                    Try
+                        Dim lBitmap As New Drawing.Bitmap(aItem.Filename)
+                        Dim lIconName As String = IO.Path.ChangeExtension(aItem.Filename, "").TrimEnd(".").Substring(lCacheIconFolder.Length).Replace(g_PathChar, "|")
+                        g_WaypointIcons.Add(lIconName, lBitmap)
+                    Catch e As Exception
+                    End Try
+                Else
+                    Try
+                        Dim lBitmap As New Drawing.Bitmap(aItem.Filename)
+                        g_WaypointIcons.Add(aItem.Filename.ToLower, lBitmap)
+                    Catch e As Exception
+                    End Try
+                End If
+            Case QueueItemType.PointItem
+                Try
+                    Dim lFileNameOnly As String = IO.Path.GetFileNameWithoutExtension(aItem.Filename)
+                    Dim lBuddy As clsBuddy = aItem.ItemObject
+                    If lBuddy IsNot Nothing Then
+                        If lBuddy.LoadFile(aItem.Filename) Then
+                            If lBuddy.IconFilename.Length > 0 AndAlso Not IO.File.Exists(lBuddy.IconFilename) AndAlso lBuddy.IconURL.Length > 0 Then
+                                pDownloader.Enqueue(lBuddy.IconURL, lBuddy.IconFilename, QueueItemType.IconItem, , False, lBuddy)
+                            End If
                             Me.Invoke(pRedrawCallback)
                             If pBuddyAlarmEnabled AndAlso pBuddyAlarmMeters > 0 Then
                                 If MetersBetweenLatLon(pBuddyAlarmLat, pBuddyAlarmLon, lBuddy.Waypoint.lat, lBuddy.Waypoint.lon) < pBuddyAlarmMeters Then
-                                    Windows.Forms.MessageBox.Show(lBuddy.Label & " approaches", "Nearby Buddy", MessageBoxButtons.OK, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button1)
+                                    Windows.Forms.MessageBox.Show(lBuddy.Name & " approaches", "Nearby Buddy", MessageBoxButtons.OK, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button1)
                                     pBuddyAlarmEnabled = False
                                 End If
                             End If
-
                         End If
-                        '    Next
-                        '    If lGPXstring.Length > 0 Then
-                        '        Dim lGPXfilename As String = aFilename & ".gpx"
-                        '        Dim lWriter As New IO.StreamWriter(lGPXfilename)
-                        '        lWriter.Write("<?xml version=""1.0"" encoding=""UTF-8""?>" & vbLf _
-                        '                    & "<gpx xmlns=""http://www.topografix.com/GPX/1/1"" version=""1.1"" creator=""" & g_AppName & """ xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xsi:schemaLocation=""http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.topografix.com/GPX/gpx_overlay/0/3 http://www.topografix.com/GPX/gpx_overlay/0/3/gpx_overlay.xsd http://www.topografix.com/GPX/gpx_modified/0/1 http://www.topografix.com/GPX/gpx_modified/0/1/gpx_modified.xsd"">" & vbLf _
-                        '                    & "<trk><name>" & Now.ToShortDateString & "</name><type>GPS Tracklog</type>" & vbLf _
-                        '                    & "<trkseg>" & vbLf _
-                        '                    & lGPXstring.ToString _
-                        '                    & "</trkseg></trk></gpx>")
-                        '        lWriter.Close()
-                        '        Me.Invoke(pOpenGPXCallback, lGPXfilename, -1)
-                        '    End If
                     End If
-                End If
-            Next
-        Catch ex As Exception 'Maybe we could not parse lat and lon?
-            Debug.WriteLine("DownloadedPoint:Exception:" & ex.Message)
-        End Try
+                Catch ex As Exception 'Maybe we could not parse lat and lon?
+                    Debug.WriteLine("DownloadedPoint:Exception:" & ex.Message)
+                End Try
+        End Select
     End Sub
 
     Sub FinishedQueue(ByVal aQueueIndex As Integer) Implements IQueueListener.FinishedQueue
@@ -822,7 +824,8 @@ CheckLatLon:
             Next
             If lWaypoints.Count > 0 Then
                 Dim lLayer As New clsLayerGPX(lWaypoints, Me)
-                lLayer.Render(g, aTopLeftTile, aOffsetToCenter)
+                lLayer.LabelField = "name"
+                lLayer.Render(g, aTopLeftTile, aOffsetToCenter)                
             End If
         End If
     End Sub

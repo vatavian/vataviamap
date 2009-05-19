@@ -44,7 +44,12 @@ Public Class frmMap
 
         pTileCacheFolder = GetAppSetting("TileCacheFolder", "\My Documents\tiles\")
         pGPXFolder = IO.Path.GetDirectoryName(pTileCacheFolder)
-        IO.Directory.CreateDirectory(pTileCacheFolder)
+        Try
+            IO.Directory.CreateDirectory(pTileCacheFolder)
+        Catch e As Exception
+            MsgBox("Could not create cache folder" & vbCrLf & pTileCacheFolder & vbCrLf & "Edit registry in CurrentUser\Software\" & g_AppName & "\TileCacheFolder to change", MsgBoxStyle.OkOnly, "TileCacheFolder Needed")
+            Exit Sub
+        End Try
         SharedNew()
 
         pCursorLayer = New clsLayerGPX("cursor", Me)
@@ -472,10 +477,7 @@ SetCenter:
                     End If
 
                     pUploader.ClearQueue(0)
-                    pUploader.Enqueue(lURL, 0)
-                    'Dim lReq As System.Net.WebRequest = System.Net.WebRequest.Create(lURL)
-                    'lReq.BeginGetResponse(Nothing, Nothing) 'asynchronous
-                    'lReq.GetResponse() 'synchronous
+                    pUploader.Enqueue(lURL, "", QueueItemType.PointItem, 0)
                     pUploadLastTime = DateTime.UtcNow
                     pPendingUploadStart = False
                 End If

@@ -38,7 +38,6 @@ Partial Class frmBuddyList
         Me.lstBuddies.FormattingEnabled = True
         Me.lstBuddies.IntegralHeight = False
         Me.lstBuddies.Location = New System.Drawing.Point(0, 1)
-        Me.lstBuddies.MultiColumn = True
         Me.lstBuddies.Name = "lstBuddies"
         Me.lstBuddies.Size = New System.Drawing.Size(407, 233)
         Me.lstBuddies.TabIndex = 1

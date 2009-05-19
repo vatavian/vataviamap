@@ -3,15 +3,17 @@
 ''' </summary>
 ''' <remarks></remarks>
 Public Interface IQueueListener
+    Sub DownloadedItem(ByVal aItem As clsQueueItem)
     Sub DownloadedTile(ByVal aTilePoint As Point, ByVal aZoom As Integer, ByVal aFilename As String)
-    Sub DownloadedPoint(ByVal aFilename As String)
     Sub FinishedQueue(ByVal aQueueIndex As Integer)
 End Interface
 
 Public Enum QueueItemType
-    TileItem
-    PointItem
+    AnyItem
     FileItem
+    IconItem
+    PointItem
+    TileItem
 End Enum
 
 ''' <summary>
@@ -24,6 +26,7 @@ Public Class clsQueueItem
     Public ReplaceExisting As Boolean = False
     Public URL As String
     Public Filename As String
+    Public ItemObject As Object
 
     Public Overrides Function ToString() As String
         If ItemType = QueueItemType.TileItem Then
@@ -126,9 +129,9 @@ NextUpload:
     End Sub
 
     Public Sub Enqueue(ByVal aTilePoint As Point, _
-                              ByVal aZoom As Integer, _
-                     Optional ByVal aPriority As Integer = 0, _
-                     Optional ByVal aReplaceExisting As Boolean = False)
+                       ByVal aZoom As Integer, _
+              Optional ByVal aPriority As Integer = 0, _
+              Optional ByVal aReplaceExisting As Boolean = False)
         If ValidTilePoint(aTilePoint, aZoom) Then
             Dim lFoundMatch As Boolean = False
             pQueueMutex.WaitOne()
@@ -162,17 +165,19 @@ NextUpload:
 
     Public Sub Enqueue(ByVal aURL As String, _
                        ByVal aFilename As String, _
+                       ByVal aItemType As QueueItemType, _
               Optional ByVal aPriority As Integer = 0, _
-              Optional ByVal aReplaceExisting As Boolean = True)
+              Optional ByVal aReplaceExisting As Boolean = True, _
+              Optional ByVal aObject As Object = Nothing)
         Dim lFoundMatch As Boolean = False
         pQueueMutex.WaitOne()
-        While aPriority >= pQueues.Count
+        While aPriority >= pQueues.Count 'Create any queues that do not yet exist at or above this priority
             pQueues.Add(New Generic.Queue(Of clsQueueItem))
         End While
         Dim lQueue As Generic.Queue(Of clsQueueItem) = pQueues(aPriority)
         For Each lQueuedArg As clsQueueItem In lQueue
             With lQueuedArg
-                If .ItemType = QueueItemType.PointItem AndAlso .URL = aURL Then
+                If .URL = aURL Then
                     'Debug.WriteLine("Not adding duplicate request to queue")
                     lFoundMatch = True
                     Exit For
@@ -182,10 +187,11 @@ NextUpload:
         If Not lFoundMatch Then
             Dim lQueueItem As New clsQueueItem
             With lQueueItem
-                .ItemType = QueueItemType.PointItem
+                .ItemType = aItemType
                 .URL = aURL
                 .Filename = aFilename
                 .ReplaceExisting = aReplaceExisting
+                .ItemObject = aObject
             End With
             'Debug.WriteLine("Enqueue " & lQueueItem.ToString)
             lQueue.Enqueue(lQueueItem)
@@ -196,22 +202,41 @@ NextUpload:
     ''' <summary>
     ''' Clear the queue of items at the given priority, or all queued items
     ''' </summary>
+    ''' <param name="aItemType">Type of items to clear from queue</param>
     ''' <param name="aPriority">Priority of queue to clear, -1 clears all queues</param>
-    Public Sub ClearQueue(Optional ByVal aPriority As Integer = -1)
+    Public Sub ClearQueue(Optional ByVal aItemType As QueueItemType = QueueItemType.AnyItem, Optional ByVal aPriority As Integer = -1)
         pQueueMutex.WaitOne()
         If pQueues IsNot Nothing Then
             If aPriority > -1 Then 'Clear requested queue
                 While aPriority >= pQueues.Count
                     pQueues.Add(New Generic.Queue(Of clsQueueItem))
                 End While
-                pQueues(aPriority).Clear()
+                ClearQueue(pQueues(aPriority), aItemType)
             Else 'Clear all queues
                 For Each lDownloadQueue As Generic.Queue(Of clsQueueItem) In pQueues
-                    lDownloadQueue.Clear()
+                    ClearQueue(lDownloadQueue, aItemType)
                 Next
                 pQueues.Clear()
             End If
         End If
         pQueueMutex.ReleaseMutex()
+    End Sub
+
+    Private Sub ClearQueue(ByVal aQueue As Generic.Queue(Of clsQueueItem), ByVal aItemType As QueueItemType)
+        If aItemType = QueueItemType.AnyItem Then
+            aQueue.Clear()
+        Else
+            Dim lItem As clsQueueItem
+            Dim lSaveThese As New Generic.List(Of clsQueueItem)
+            For Each lItem In aQueue
+                If lItem.ItemType <> aItemType Then
+                    lSaveThese.Add(lItem)
+                End If
+            Next
+            aQueue.Clear()
+            For Each lItem In lSaveThese
+                aQueue.Enqueue(lItem)
+            Next
+        End If
     End Sub
 End Class
