@@ -26,6 +26,42 @@ Public Class clsLayer
     End Sub
 End Class
 
+Public Class clsBuddy
+    Public Label As String
+    Public URL As String
+    Public Waypoint As clsGPXwaypoint
+    Public Selected As Boolean = True
+
+    Public Function LoadKML(ByVal aKML As String) As Boolean
+        Dim lcoords() As String = GetXmlTagContents(aKML, "coordinates").Split(",")
+        If lcoords.Length > 0 Then
+            Dim lLongitude As Double, lLatitude As Double
+            Try
+                lLongitude = Double.Parse(lcoords(0))
+                lLatitude = Double.Parse(lcoords(1))
+                Waypoint = New clsGPXwaypoint("wpt", lLatitude, lLongitude)
+                Waypoint.desc = GetXmlTagContents(aKML, "description")
+                Return True
+            Catch ex As Exception
+                Debug.WriteLine(ex.Message)
+            End Try
+        End If
+        Return False
+    End Function
+
+    Private Function GetXmlTagContents(ByVal aXML As String, ByVal aTag As String) As String
+        Dim lStartPos As Integer = aXML.IndexOf("<" & aTag & ">", StringComparison.CurrentCultureIgnoreCase)
+        If lStartPos < 0 Then Return ""
+        lStartPos += aTag.Length + 2
+        Dim lEndPos As Integer = aXML.IndexOf("</" & aTag & ">", lStartPos, StringComparison.CurrentCultureIgnoreCase)
+        If lEndPos < 0 Then
+            Return aXML.Substring(lStartPos)
+        Else
+            Return aXML.Substring(lStartPos, lEndPos - lStartPos)
+        End If
+    End Function
+End Class
+
 'Public Class clsLayerBuddy
 '    Inherits clsLayer
 
@@ -94,6 +130,12 @@ Public Class clsLayerGPX
         If IO.File.Exists(aFilename) Then
             GPX.LoadFile(aFilename)
         End If
+    End Sub
+
+    Public Sub New(ByVal aWaypoints As Generic.List(Of clsGPXwaypoint), ByVal aMapForm As frmMap)
+        MyBase.New("", aMapForm)
+        GPX = New clsGPX
+        GPX.wpt = aWaypoints
     End Sub
 
     Public Overrides Property Bounds() As clsGPXbounds
@@ -168,7 +210,7 @@ Public Class clsLayerGPX
                                   ByVal aTopLeftTile As Point, _
                                   ByVal aOffsetToCenter As Point) As Boolean
         With aWaypoint
-            If MapForm.LatLonInView(.lat, .lon) Then
+            If True Then 'MapForm.LatLonInView(.lat, .lon) Then
                 Dim lTileXY As Point 'Which tile this point belongs in
                 Dim lTileOffset As Point 'Offset within lTileXY in pixels
                 lTileXY = CalcTileXY(.lat, .lon, MapForm.Zoom, lTileOffset)

@@ -50,6 +50,12 @@
     <Import Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Desktop\frmBuddyList.Designer.vb">
+      <DependentUpon>frmBuddyList.vb</DependentUpon>
+    </Compile>
+    <Compile Include="Desktop\frmBuddyList.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Shared\clsDownloader.vb" />
     <Compile Include="Shared\clsGPX.vb" />
     <Compile Include="Shared\clsLayer.vb" />
@@ -76,10 +82,10 @@
     <Compile Include="Shared\frmMapCommon.vb">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Desktop\frmTileServer.Designer.vb">
-      <DependentUpon>frmTileServer.vb</DependentUpon>
+    <Compile Include="Desktop\frmEditNameURL.Designer.vb">
+      <DependentUpon>frmEditNameURL.vb</DependentUpon>
     </Compile>
-    <Compile Include="Desktop\frmTileServer.vb">
+    <Compile Include="Desktop\frmEditNameURL.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Shared\modGlobal.vb" />
@@ -100,6 +106,10 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Desktop\frmBuddyList.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>frmBuddyList.vb</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Desktop\frmBuddyAlarm.resx">
       <SubType>Designer</SubType>
       <DependentUpon>frmBuddyAlarm.vb</DependentUpon>
@@ -112,9 +122,9 @@
       <SubType>Designer</SubType>
       <DependentUpon>frmMap.vb</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Desktop\frmTileServer.resx">
+    <EmbeddedResource Include="Desktop\frmEditNameURL.resx">
       <SubType>Designer</SubType>
-      <DependentUpon>frmTileServer.vb</DependentUpon>
+      <DependentUpon>frmEditNameURL.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Desktop\My Project\Resources.resx">
       <Generator>VbMyResourcesResXFileCodeGenerator</Generator>

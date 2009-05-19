@@ -2,7 +2,8 @@ Public Class frmMap
 
     WithEvents pLayersForm As frmLayers
     WithEvents pBuddyAlarmForm As frmBuddyAlarm
-    WithEvents pTileServerForm As frmTileServer
+    WithEvents pBuddyListForm As frmBuddyList
+    WithEvents pTileServerForm As frmEditNameURL
 
     Public Sub New()
         InitializeComponent()
@@ -383,13 +384,13 @@ Public Class frmMap
             Catch
             End Try
         End If
-        pTileServerForm = New frmTileServer
+        pTileServerForm = New frmEditNameURL
     End Sub
 
     Private Sub AddTileServerMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles AddTileServerMenuItem.Click
         NewTileServerForm()
         pTileServerForm.Icon = Me.Icon
-        pTileServerForm.AskUser("Add New Tile Server", g_TileServerName, g_TileServerURL)
+        pTileServerForm.AskUser("Add New Tile Server", g_TileServerName, g_TileServerURL, g_TileServerExampleLabel, g_TileServerExampleFile)
         'http://opentiles.appspot.com/tile/get/ma/' 12/1242/1512.png
     End Sub
 
@@ -397,12 +398,13 @@ Public Class frmMap
         Dim lItemClicked As ToolStripMenuItem = sender
         NewTileServerForm()
         pTileServerForm.Icon = Me.Icon
-        pTileServerForm.AskUser("Edit Tile Server", lItemClicked.Text, pTileServers.Item(lItemClicked.Text))
+        pTileServerForm.AskUser("Edit Tile Server", lItemClicked.Text, pTileServers.Item(lItemClicked.Text), g_TileServerExampleLabel, g_TileServerExampleFile)
     End Sub
 
     Private Sub pTileServerForm_Ok(ByVal aName As String, ByVal aURL As String) Handles pTileServerForm.Ok
         pTileServers.Remove(aName)
         If aURL.Length > 0 Then
+            If aURL.Length > 0 AndAlso Not aURL.EndsWith("/") Then aURL &= "/"
             pTileServers.Add(aName, aURL)
             TileServerName = aName
         ElseIf g_TileServerName = aName AndAlso pTileServers.Count > 0 Then
@@ -602,5 +604,23 @@ Public Class frmMap
         pBuddyAlarmLon = aLongitude
         pBuddyAlarmMeters = aDistanceMeters
         pBuddyAlarmEnabled = aEnable
+    End Sub
+
+    Private Sub ListBuddiesToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles ListBuddiesToolStripMenuItem.Click
+        If pBuddyListForm IsNot Nothing Then
+            Try
+                pBuddyListForm.Close()
+            Catch
+            End Try
+        End If
+        pBuddyListForm = New frmBuddyList
+        pBuddyListForm.Icon = Me.Icon
+        pBuddyListForm.AskUser(pBuddies)
+    End Sub
+
+    Private Sub pBuddyListForm_Ok(ByVal aBuddies As System.Collections.Generic.Dictionary(Of String, clsBuddy)) Handles pBuddyListForm.Ok
+        pBuddies.Clear()
+        pBuddies = aBuddies
+        Redraw()
     End Sub
 End Class
