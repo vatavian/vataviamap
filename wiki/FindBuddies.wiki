@@ -2,8 +2,15 @@
 
 = Finding a Buddy =
 
-Your buddy must be locatable by retrieving a URL that results in:
-  * [http://www.google.com/latitude/apps/badge Google Latitude kml] point
+Your buddy must be locatable by retrieving a URL that results in one of the recognized formats:
+  * [http://www.instamapper.com/ InstaMapper API] normal or JSON (normal is preferred because it is smaller.) If you are logged in to InstaMapper, [http://www.instamapper.com/fe?page=api go here] to activate the API and get your API key. Sample URL:
+
+http://www.instamapper.com/api?action=getPositions&key=584014439054448247&num=1
+
+  * [http://www.google.com/latitude/apps/badge Google Latitude] KML or JSON point (JSON preferred because it gives more information.) Sample URL (substitute your own BuddyBadgeNumber):
+
+http://www.google.com/latitude/apps/badge/api?user=BuddyBadgeNumber&type=json
+
   * OpenDMTP csv point including at least !ServerDate,!ServerTime,Label,Latitude,Longitude.
 {{{
 Format of OpenDMTP csv point:
@@ -14,6 +21,7 @@ Example:
 
 = Letting your buddies find you =
 
-Two currently known choices:
-  * Run Google Latitude to send your location (no need to run !VataviaMap to upload this way)
+Options:
+  * Run InstaMapper to send your location
+  * Run Google Latitude to send your location
   * Use the upload option in !VataviaMap Mobile to send to a server that makes your points available in a supported format. TODO: Document how the development server accepts and publishes points.
