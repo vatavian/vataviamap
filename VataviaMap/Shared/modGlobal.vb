@@ -448,6 +448,19 @@ EndFound:
         End Try
     End Sub
 
+    Public Function EnsureDirForFile(ByVal aFilename As String) As Boolean
+        Dim lDirectory As String = IO.Path.GetDirectoryName(aFilename)
+        If lDirectory.Length > 1 Then
+            If Not IO.Directory.Exists(lDirectory) Then
+                IO.Directory.CreateDirectory(lDirectory)
+                If Not IO.Directory.Exists(lDirectory) Then
+                    Return False
+                End If
+            End If
+        End If
+        Return True
+    End Function
+
 #Region "GMap code from http://www.codeplex.com/gmap4dotnet"
 
     Private openStreetMapCopyright As String = "© OpenStreetMap"

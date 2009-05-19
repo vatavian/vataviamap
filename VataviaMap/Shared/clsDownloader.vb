@@ -25,8 +25,10 @@ Public Class clsDownloader
         Select Case aQueueItem.ItemType
             Case QueueItemType.TileItem
                 DownloadTile(aQueueItem.TilePoint, aQueueItem.Zoom, aQueueItem.ReplaceExisting)
-            Case QueueItemType.PointItem
-                DownloadPoint(aQueueItem.URL, aQueueItem.Filename, aQueueItem.ReplaceExisting)
+            Case QueueItemType.FileItem, QueueItemType.IconItem, QueueItemType.PointItem
+                If aQueueItem.ReplaceExisting OrElse Not IO.File.Exists(aQueueItem.Filename) Then
+                    DownloadItem(aQueueItem)
+                End If
         End Select
     End Sub
 
@@ -43,8 +45,7 @@ Public Class clsDownloader
 
         Dim lFileName As String = TileFilename(aTilePoint, aZoom, False)
         If lFileName.Length > 0 Then
-            IO.Directory.CreateDirectory(IO.Path.GetDirectoryName(lFileName))
-            If IO.Directory.Exists(IO.Path.GetDirectoryName(lFileName)) Then
+            If EnsureDirForFile(lFileName) Then
                 If aReplaceExisting OrElse Not IO.File.Exists(lFileName) Then
                     'Debug.WriteLine("Downloading Tile " & aZoom & "/" & aTilePoint.X & "/" & aTilePoint.Y)                    
                     If DownloadFile(MakeImageUrl(g_TileServerType, aTilePoint, aZoom), lFileName) Then
@@ -75,8 +76,7 @@ Public Class clsDownloader
 
         Dim lFileName As String = TileFilename(aTilePoint, aZoom, False)
         If lFileName.Length > 0 Then
-            IO.Directory.CreateDirectory(IO.Path.GetDirectoryName(lFileName))
-            If IO.Directory.Exists(IO.Path.GetDirectoryName(lFileName)) Then
+            If EnsureDirForFile(lFileName) Then
                 If Not IO.File.Exists(lFileName) OrElse IO.File.GetCreationTime(lFileName) < aOldest Then
                     'Debug.WriteLine("Downloading Tile " & aZoom & "/" & aTilePoint.X & "/" & aTilePoint.Y)                    
                     If DownloadFile(MakeImageUrl(g_TileServerType, aTilePoint, aZoom), lFileName) Then
@@ -119,96 +119,84 @@ Public Class clsDownloader
     End Function
 
     ''' <summary>
-    ''' Download a point
+    ''' Download a file, icon, or point
     ''' </summary>
-    ''' <param name="aURL">URL to get from</param>
-    ''' <param name="aReplaceExisting">True to download even if already cached</param>
-    ''' <returns>Filename of downloaded file containing point information or empty string if not downloaded</returns>
-    Public Function DownloadPoint(ByVal aURL As String, _
-                                  ByVal aFilename As String, _
-                         Optional ByVal aReplaceExisting As Boolean = False) As String
-
-        Dim lDirectory As String = IO.Path.GetDirectoryName(aFilename)
-        If lDirectory.Length > 1 Then
-            If Not IO.Directory.Exists(lDirectory) Then
-                IO.Directory.CreateDirectory(lDirectory)
-                If Not IO.Directory.Exists(lDirectory) Then
-                    Return ""
-                End If
-            End If
+    ''' <param name="aItem">Item to get</param>
+    ''' <returns>Filename of downloaded file or empty string if not downloaded</returns>
+    Private Function DownloadItem(ByVal aItem As clsQueueItem) As Boolean
+        If DownloadFile(aItem.URL, aItem.Filename) Then
+            For Each lListener As IQueueListener In Listeners
+                lListener.DownloadedItem(aItem)
+            Next
+            Return True
+        Else
+            Return False
         End If
-
-        If aReplaceExisting OrElse Not IO.File.Exists(aFilename) Then
-            'Debug.WriteLine("Downloading Point " & aURL & " to " & aFileName)                    
-            If DownloadFile(aURL, aFilename) Then
-                For Each lListener As IQueueListener In Listeners
-                    lListener.DownloadedPoint(aFilename)
-                Next
-            Else
-                Return ""
-            End If
-        End If
-        Return aFilename
     End Function
 
-    ' This function should not be used from outside this class for downloading tiles or points, those should use DownloadTile and DownloadPoint above
+    ' This function should not be used from outside this class for downloading tiles points, or icons, those should use DownloadTile and DownloadItem above
     Friend Function DownloadFile(ByVal strUrl As String, ByVal strFileName As String) As Boolean
-        Dim request As Net.WebRequest
-        Dim response As Net.WebResponse = Nothing
-        Dim input As IO.Stream = Nothing
-        Dim output As IO.FileStream = Nothing
-        Dim count As Long = 128 * 1024 ' 128k at a time
-        Dim buffer(count - 1) As Byte
-        'Debug.WriteLine(strUrl)
-        Try
-            request = Net.WebRequest.Create(strUrl)
-            If request IsNot Nothing Then
-                response = request.GetResponse()
-                If response IsNot Nothing Then
-                    input = response.GetResponseStream()
-                    If input IsNot Nothing Then
-                        'If response.ContentLength > 0 Then
-                        output = New IO.FileStream(strFileName & ".part", IO.FileMode.Create)
-                        If output IsNot Nothing Then
-                            Do
-                                count = input.Read(buffer, 0, count)
-                                If count = 0 Then Exit Do 'finished download
-                                output.Write(buffer, 0, count)
-                            Loop
+        If Not EnsureDirForFile(strFileName) Then
+            Return False
+        Else
+            Dim request As Net.WebRequest
+            Dim response As Net.WebResponse = Nothing
+            Dim input As IO.Stream = Nothing
+            Dim output As IO.FileStream = Nothing
+            Dim count As Long = 128 * 1024 ' 128k at a time
+            Dim buffer(count - 1) As Byte
+            'Debug.WriteLine(strUrl)
+
+            Try
+                request = Net.WebRequest.Create(strUrl)
+                If request IsNot Nothing Then
+                    response = request.GetResponse()
+                    If response IsNot Nothing Then
+                        input = response.GetResponseStream()
+                        If input IsNot Nothing Then
+                            'If response.ContentLength > 0 Then
+                            output = New IO.FileStream(strFileName & ".part", IO.FileMode.Create)
+                            If output IsNot Nothing Then
+                                Do
+                                    count = input.Read(buffer, 0, count)
+                                    If count = 0 Then Exit Do 'finished download
+                                    output.Write(buffer, 0, count)
+                                Loop
+                            End If
+                            'End If
                         End If
-                        'End If
                     End If
                 End If
-            End If
-        Catch ex As Exception
-            'MsgBox("Error downloading '" & strUrl & "'" & vbCrLf & ex.ToString, MsgBoxStyle.Critical)
-            Debug.WriteLine("Error downloading '" & strUrl & "' " & ex.Message)
-        End Try
-        If input IsNot Nothing Then input.Close()
-        If output IsNot Nothing Then output.Close()
-        If response IsNot Nothing Then response.Close()
-        If IO.File.Exists(strFileName & ".part") Then 'AndAlso FileLen(strFileName & ".part") > 0 Then
-            Dim lStartMoving As DateTime = DateTime.Now
-            While IO.File.Exists(strFileName)
-                Try
-                    DeleteTile(strFileName)
-                Catch
-                    If DateTime.Now.Subtract(lStartMoving).TotalSeconds > 2 Then
-                        Try 'target tile file busy too long, delete new version and report failure
-                            IO.File.Delete(strFileName & ".part")
-                        Catch
-                        End Try
-                        Return False
-                    End If
-                    Application.DoEvents()
-                End Try
-            End While
-            Try
-                IO.File.Move(strFileName & ".part", strFileName)
-                DownloadFile = True
-            Catch
-
+            Catch ex As Exception
+                'MsgBox("Error downloading '" & strUrl & "'" & vbCrLf & ex.ToString, MsgBoxStyle.Critical)
+                Debug.WriteLine("Error downloading '" & strUrl & "' " & ex.Message)
             End Try
+            If input IsNot Nothing Then input.Close()
+            If output IsNot Nothing Then output.Close()
+            If response IsNot Nothing Then response.Close()
+            If IO.File.Exists(strFileName & ".part") Then 'AndAlso FileLen(strFileName & ".part") > 0 Then
+                Dim lStartMoving As DateTime = DateTime.Now
+                While IO.File.Exists(strFileName)
+                    Try
+                        DeleteTile(strFileName)
+                    Catch
+                        If DateTime.Now.Subtract(lStartMoving).TotalSeconds > 2 Then
+                            Try 'target tile file busy too long, delete new version and report failure
+                                IO.File.Delete(strFileName & ".part")
+                            Catch
+                            End Try
+                            Return False
+                        End If
+                        Application.DoEvents()
+                    End Try
+                End While
+                Try
+                    IO.File.Move(strFileName & ".part", strFileName)
+                    DownloadFile = True
+                Catch
+
+                End Try
+            End If
         End If
     End Function
 End Class

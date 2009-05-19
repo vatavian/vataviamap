@@ -561,10 +561,6 @@ Public Class frmMap
         Redraw()
     End Sub
 
-    Private Sub InstaMapperToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs)
-        pDownloader.Enqueue("http://www.instamapper.com/api?action=getPositions&key=" & "&num=1", "instamapper.txt", 0, True)
-    End Sub
-
     Private Sub ExitToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles ExitToolStripMenuItem.Click
         Me.Close()
     End Sub
