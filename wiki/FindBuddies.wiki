@@ -7,7 +7,7 @@ Your buddy must be locatable by retrieving a URL that results in one of the reco
 
 http://www.instamapper.com/api?action=getPositions&key=584014439054448247&num=1
 
-  * [http://www.google.com/latitude/apps/badge Google Latitude] KML or JSON point (JSON preferred because it gives more information.) Sample URL (substitute your own Buddy Badge Number):
+  * [http://www.google.com/latitude/apps/badge Google Latitude] KML or JSON point (JSON preferred because it gives more information.) Sample URL (use your buddy's badge number):
 
 http://www.google.com/latitude/apps/badge/api?user=BuddyBadgeNumber&type=json
 
