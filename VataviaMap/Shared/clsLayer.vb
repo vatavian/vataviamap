@@ -34,7 +34,7 @@ Public Class clsBuddy
     Public Waypoint As clsGPXwaypoint
     Public Selected As Boolean = True
 
-    Public Function LoadFile(ByVal aFilename) As Boolean
+    Public Function LoadFile(ByVal aFilename As String) As Boolean
         Dim lReader As IO.StreamReader = IO.File.OpenText(aFilename)
         Dim lFileContents As String = lReader.ReadToEnd
         If lFileContents.IndexOf("<?xml") = 0 Then
@@ -258,6 +258,8 @@ Public Class clsLayerGPX
     Public SymbolSize As Integer
     Public SymbolPen As Drawing.Pen = PenTrack
 
+    Private pDistSinceArrow As Integer = 0
+
     Public Sub New(ByVal aFilename As String, ByVal aMapForm As frmMap)
         MyBase.New(aFilename, aMapForm)
         GPX = New clsGPX
@@ -454,16 +456,23 @@ Public Class clsLayerGPX
 
                 If aFromX <> -1 OrElse aFromY <> -1 Then
                     g.DrawLine(PenTrack, aFromX, aFromY, lX, lY)
+                    If ArrowSize > 0 Then pDistSinceArrow += Math.Sqrt((lX - aFromX) ^ 2 + (lY - aFromY) ^ 2)
                 End If
+
                 Select Case .sym
+                    Case Nothing
+                        If ArrowSize > 0 AndAlso pDistSinceArrow >= ArrowSize AndAlso .courseSpecified Then 'Draw arrow
+                            DrawArrow(g, PenTrack, lX, lY, DegToRad(.course), ArrowSize)
+                            pDistSinceArrow = 0
+                        End If
                     Case "cursor"
                         If SymbolSize > 0 AndAlso SymbolPen IsNot Nothing Then
-                            'If .course > 0 Then 'Draw arrow
-                            '    DrawArrow(g, lX, lY, DegToRad(.course), lRadius)
-                            'Else 'Draw an X
-                            g.DrawLine(SymbolPen, lX - SymbolSize, lY - SymbolSize, lX + SymbolSize, lY + SymbolSize)
-                            g.DrawLine(SymbolPen, lX - SymbolSize, lY + SymbolSize, lX + SymbolSize, lY - SymbolSize)
-                            'End If
+                            If .courseSpecified Then 'Draw arrow
+                                DrawArrow(g, SymbolPen, lX, lY, DegToRad(.course), SymbolSize)
+                            Else 'Draw an X
+                                g.DrawLine(SymbolPen, lX - SymbolSize, lY - SymbolSize, lX + SymbolSize, lY + SymbolSize)
+                                g.DrawLine(SymbolPen, lX - SymbolSize, lY + SymbolSize, lX + SymbolSize, lY - SymbolSize)
+                            End If
                         End If
                     Case "circle"
                         If SymbolSize > 0 Then

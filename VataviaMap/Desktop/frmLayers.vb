@@ -22,6 +22,7 @@ Public Class frmLayers
             Dim lGPX As clsLayerGPX = lLayer
             Dim lColor As Color = lGPX.PenTrack.Color
             txtOpacity.Text = lColor.ToArgb
+            txtArrowSize.Text = lGPX.ArrowSize
         End If
 
         RaiseChanged()
@@ -96,5 +97,4 @@ Public Class frmLayers
                  pRandom.Next(0, 255), _
                  pRandom.Next(0, 255))
     End Function
-
 End Class
