@@ -534,6 +534,10 @@ Public Class frmMap
         pLayersForm.Show()
     End Sub
 
+    Private Sub pLayersForm_Apply() Handles pLayersForm.Apply
+        Redraw()
+    End Sub
+
     Private Sub pLayersForm_CheckedItemsChanged(ByVal aSelectedLayers As ArrayList) Handles pLayersForm.CheckedItemsChanged
         'Change set of loaded/visible layers to match ones now checked
         Dim lFilename As String
