@@ -1,5 +1,3 @@
-Imports System.Globalization
-
 Module modGlobal
 
     Public Const g_AppName As String = "VataviaMap"
@@ -87,6 +85,13 @@ Module modGlobal
         aMinutesString = Format(lDoubleMinutes, "0.000")
     End Sub
 
+    ''' <summary>
+    ''' From given decimal degrees, populate strings with integer degrees and minutes and seconds rounded to one decimal place
+    ''' </summary>
+    ''' <param name="aDegrees">Decimal degrees</param>
+    ''' <param name="aDegreesString">Integer degrees as string</param>
+    ''' <param name="aMinutesString">Integer minutes as string</param>
+    ''' <param name="aSecondsString">Seconds as string, rounded to one decimal place</param>
     Public Sub DegreesMinutesSeconds(ByVal aDegrees As Double, ByRef aDegreesString As String, ByRef aMinutesString As String, ByRef aSecondsString As String)
         Dim lDegreesInt As Integer
         Dim lDoubleMinutes As Double
@@ -118,9 +123,14 @@ Module modGlobal
         Return 180 / Math.PI * Math.Atan((Math.Exp(aMercator) - Math.Exp(-aMercator)) / 2)
     End Function
 
-    Public Function MetersBetweenLatLon(ByVal aLatitude1, ByVal aLongitude1, ByVal aLatitude2, ByVal aLongitude2) As Double
-        Dim dy As Double = g_RadiusOfEarth * (DegToRad(aLatitude1) - DegToRad(aLatitude2))
-        Dim dx As Double = g_RadiusOfEarth * Math.Cos(DegToRad(aLatitude1)) * (DegToRad(aLongitude1) - DegToRad(aLongitude2))
+    ''' <summary>
+    ''' Compute approximate distance in meters between two points on the earth's surface given in decimal degrees
+    ''' </summary>
+    Public Function MetersBetweenLatLon(ByVal aLatitude1 As Double, ByVal aLongitude1 As Double, _
+                                        ByVal aLatitude2 As Double, ByVal aLongitude2 As Double) As Double
+        Dim Lat1rad As Double = DegToRad(aLatitude1)
+        Dim dy As Double = g_RadiusOfEarth * (Lat1rad - DegToRad(aLatitude2))
+        Dim dx As Double = g_RadiusOfEarth * Math.Cos(Lat1rad) * (DegToRad(aLongitude1) - DegToRad(aLongitude2))
         Return Math.Sqrt(dy * dy + dx * dx)
     End Function
 
@@ -128,19 +138,19 @@ Module modGlobal
         Return g_CircumferenceOfEarth / ((1 << aZoom) * g_TileSize)
     End Function
 
-    Public Function LatitudeToMeters(ByVal lat As Double) As Double
-        Dim sinLat As Double = Math.Sin(DegToRad(lat))
+    Public Function LatitudeToMeters(ByVal aLatitude As Double) As Double
+        Dim sinLat As Double = Math.Sin(DegToRad(aLatitude))
         Return g_RadiusOfEarth / 2 * Math.Log((1 + sinLat) / (1 - sinLat))
     End Function
 
-    Public Function LongitudeToMeters(ByVal lon As Double) As Double
-        Return g_RadiusOfEarth * DegToRad(lon)
+    Public Function LongitudeToMeters(ByVal aLongitude As Double) As Double
+        Return g_RadiusOfEarth * DegToRad(aLongitude)
     End Function
 
     'helper function - converts a latitude at a certain zoom into a y pixel
-    Private Function LatitudeToYAtZoom(ByVal lat As Double, ByVal zoom As Integer) As Integer
-        Dim arc As Double = g_CircumferenceOfEarth / ((1 << zoom) * 256)
-        Return CInt(Math.Round((g_HalfCircumferenceOfEarth - LatitudeToMeters(lat)) / arc))
+    Private Function LatitudeToYAtZoom(ByVal aLatitude As Double, ByVal aZoom As Integer) As Integer
+        Dim arc As Double = g_CircumferenceOfEarth / ((1 << aZoom) * 256)
+        Return CInt(Math.Round((g_HalfCircumferenceOfEarth - LatitudeToMeters(aLatitude)) / arc))
     End Function
 
     'helper function - converts a longitude at a certain zoom into a x pixel
@@ -461,6 +471,50 @@ EndFound:
         Return True
     End Function
 
+    Public Sub DrawArrow(ByVal g As Graphics, ByVal aPen As Pen, ByVal aXcenter As Integer, ByVal aYcenter As Integer, ByVal aRadians As Double, ByVal aRadius As Integer)
+        Dim ldx As Integer = Math.Sin(aRadians) * aRadius
+        Dim ldy As Integer = Math.Cos(aRadians) * aRadius
+        DrawArrow(g, aPen, aXcenter - ldx, aYcenter + ldy, aXcenter, aYcenter, aRadius)
+        'DrawArrow(g, aPen, aXcenter - ldx, aYcenter + ldy, aXcenter + ldx, aYcenter - ldy, aRadius)
+
+        'Dim lHalfDx As Integer = ldx / 2
+        'Dim lHalfDy As Integer = ldy / 2
+        'g.DrawLine(aPen, aXcenter - ldx, aYcenter + ldy, aXcenter + ldx, aYcenter - ldy)
+        'g.DrawLine(aPen, aXcenter - lHalfDy, aYcenter + lHalfDx, aXcenter + ldx, aYcenter - ldy)
+        'g.DrawLine(aPen, aXcenter + lHalfDy, aYcenter - lHalfDx, aXcenter + ldx, aYcenter - ldy)
+
+        'Dim lTailX As Integer = aXcenter - ldx
+        'Dim lTailY As Integer = aYcenter + ldy
+        'Dim lHeadX As Integer = aXcenter
+        'Dim lHeadY As Integer = aYcenter
+        'Dim psi1 As Double = aRadians + Math.PI / 10 'angle of one side of arrow head
+        'Dim psi2 As Double = aRadians - Math.PI / 10 'angle of other side of arrow head
+        'g.DrawLine(aPen, CInt(lHeadX + aRadius * Math.Sin(psi1)), CInt(lHeadY + aRadius * Math.Cos(psi1)), lHeadX, lHeadY)
+        'g.DrawLine(aPen, CInt(lHeadX + aRadius * Math.Sin(psi2)), CInt(lHeadY + aRadius * Math.Cos(psi2)), lHeadX, lHeadY)
+    End Sub
+
+    Public Sub DrawArrow(ByVal g As Graphics, ByVal aPen As Pen, _
+                         ByVal aTailX As Integer, ByVal aTailY As Integer, _
+                         ByVal aHeadX As Integer, ByVal aHeadY As Integer, ByVal aHeadLength As Double)
+        'main line of arrow is easy
+        'g.DrawLine(aPen, aTailX, aTailY, aHeadX, aHeadY)
+
+        Dim psi As Double 'the angle of the vector from the tip to the start
+        If aTailY = aHeadY Then
+            If aTailX > aHeadX Then
+                psi = Math.PI / 2
+            Else
+                psi = 3 * Math.PI / 2
+            End If
+        Else
+            psi = Math.Atan2(aTailX - aHeadX, aTailY - aHeadY)
+        End If
+        Dim psi1 As Double = psi + Math.PI / 10
+        Dim psi2 As Double = psi - Math.PI / 10
+        g.DrawLine(aPen, CInt(aHeadX + aHeadLength * Math.Sin(psi1)), CInt(aHeadY + aHeadLength * Math.Cos(psi1)), aHeadX, aHeadY)
+        g.DrawLine(aPen, CInt(aHeadX + aHeadLength * Math.Sin(psi2)), CInt(aHeadY + aHeadLength * Math.Cos(psi2)), aHeadX, aHeadY)
+    End Sub
+
 #Region "GMap code from http://www.codeplex.com/gmap4dotnet"
 
     Private openStreetMapCopyright As String = "© OpenStreetMap"
@@ -469,7 +523,7 @@ EndFound:
     Private virtualEarthCopyright As String = "© Microsoft Corporation © NAVTEQ"
     Private unknownCopyright As String = "© Unknown"
 
-    Public Function CopyrightFromMapType(ByVal aMapType As MapType)
+    Public Function CopyrightFromMapType(ByVal aMapType As MapType) As String
         Select Case aMapType
             'Case MapType.GoogleMap, MapType.GoogleSatellite, MapType.GoogleLabels, MapType.GoogleTerrain
             '    Return googleCopyright

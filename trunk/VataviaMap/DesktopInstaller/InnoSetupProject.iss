@@ -11,7 +11,7 @@ OutputBaseFilename=VataviaMapDesktopInstaller-2009-05-19
 ChangesAssociations=yes
 SetupIconFile=..\Images\osm.ico
 WizardSmallImageFile=..\Images\osm.bmp
-WizardImageFile=..\Images\osm135.bmp
+WizardImageFile=..\Images\osmWizardImage.bmp
 
 [Files]
 Source: "..\bin\Release\VataviaMapDesktop.exe"; DestDir: "{app}"

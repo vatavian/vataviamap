@@ -467,7 +467,7 @@ Partial Class frmMap
         End If
     End Sub
 
-    Private Function GetBitmapGraphics()
+    Private Function GetBitmapGraphics() As Graphics
         pBitmapMutex.WaitOne()
         If Not pBitmap Is Nothing Then
             Dim lGraphics As Graphics = Graphics.FromImage(pBitmap)
@@ -830,16 +830,6 @@ Partial Class frmMap
         End If
     End Sub
 
-    'Private Sub DrawArrow(ByVal g As Graphics, ByVal aXcenter As Integer, ByVal aYcenter As Integer, ByVal aRadians As Double, ByVal aRadius As Integer)
-    '    Dim ldx As Integer = Math.Sin(aRadians) * aRadius
-    '    Dim ldy As Integer = Math.Cos(aRadians) * aRadius
-    '    Dim lHalfDx As Integer = ldx / 2
-    '    Dim lHalfDy As Integer = ldy / 2
-    '    g.DrawLine(pPenCursor, aXcenter - ldx, aYcenter + ldy, aXcenter + ldx, aYcenter - ldy)
-    '    g.DrawLine(pPenCursor, aXcenter - lHalfDy, aYcenter + lHalfDx, aXcenter + ldx, aYcenter - ldy)
-    '    g.DrawLine(pPenCursor, aXcenter + lHalfDy, aYcenter - lHalfDx, aXcenter + ldx, aYcenter - ldy)
-    'End Sub
-
     ''' <summary>
     ''' Get the image bitmap from a tile file
     ''' </summary>
@@ -888,7 +878,7 @@ Partial Class frmMap
     ''' <param name="aOffset">distance from top left of Graphics to draw tile</param>
     ''' <returns>True if tile was drawn or did not need to be drawn, False if needed but not drawn</returns>
     ''' <remarks></remarks>
-    Private Function DrawTile(ByVal aTileFilename As String, ByVal g As Graphics, ByVal aOffset As Point) ', ByVal aImageRect As Rectangle) As Boolean
+    Private Function DrawTile(ByVal aTileFilename As String, ByVal g As Graphics, ByVal aOffset As Point) As Boolean
         Try
             Dim lDrewImage As Boolean = False
             If pShowTileImages Then
