@@ -258,6 +258,7 @@ Public Class clsLayerGPX
     Public SymbolSize As Integer
     Public SymbolPen As Drawing.Pen = PenTrack
 
+    Public ArrowSize As Integer = 0
     Private pDistSinceArrow As Integer = 0
 
     Public Sub New(ByVal aFilename As String, ByVal aMapForm As frmMap)
@@ -302,6 +303,7 @@ Public Class clsLayerGPX
                 End With
             End If
             If lDrawThisOne Then
+                pDistSinceArrow = 0
                 Dim lStartTime As Date = Date.Now
                 For Each lWaypoint As clsGPXwaypoint In GPX.wpt
                     DrawWaypoint(g, lWaypoint, aTopLeftTile, aOffsetToCenter)

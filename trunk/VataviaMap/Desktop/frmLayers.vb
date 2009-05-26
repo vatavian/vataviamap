@@ -1,6 +1,6 @@
 Public Class frmLayers
     Public Event CheckedItemsChanged(ByVal aCheckedItems As ArrayList)
-    Public Event ColorChanged()
+    Public Event Apply()
 
     Private pPopulating As Boolean = False
     Private pLayers As New Generic.List(Of clsLayer)
@@ -35,9 +35,9 @@ Public Class frmLayers
         Dim lHaveLayers As Boolean = aLayers IsNot Nothing AndAlso aLayers.Count > 0
         If lHaveLayers Then
             pLayers = aLayers
-            For Each lLayer As clsLayer In aLayers                
+            For Each lLayer As clsLayer In aLayers
                 lstLayers.Items.Add(lLayer.Filename)
-                lstLayers.SetItemChecked(lstLayers.Items.Count - 1, lLayer.Visible)                
+                lstLayers.SetItemChecked(lstLayers.Items.Count - 1, lLayer.Visible)
             Next
         ElseIf pLayers.Count > 0 Then
             pLayers = New Generic.List(Of clsLayer)
@@ -61,13 +61,13 @@ Public Class frmLayers
     End Sub
 
     Private Sub chkDifferentColors_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles chkDifferentColors.CheckedChanged
-        Dim lColor As Color
         Dim lGPX As clsLayerGPX
 
         Dim lAlpha As Integer = 255
         If IsNumeric(txtOpacity.Text) Then
             lAlpha = CInt(txtOpacity.Text) * 2.55
         End If
+        Dim lColor As Color = Color.FromArgb(lAlpha, 0, 255, 255)
 
         Dim lWidth As Integer = 1
         If IsNumeric(txtWidth.Text) Then
@@ -79,15 +79,11 @@ Public Class frmLayers
                 lGPX = lLayer
                 If chkDifferentColors.Checked Then
                     lColor = RandomRGBColor(lAlpha)
-                Else
-                    If lColor = Color.White Then
-                        lColor = lGPX.PenTrack.Color
-                    End If
                 End If
                 lGPX.PenTrack = New Pen(lColor, lWidth)
             End If
         Next
-        RaiseChanged()
+        RaiseEvent Apply()
     End Sub
 
     ' Return a random RGB color.
@@ -97,4 +93,49 @@ Public Class frmLayers
                  pRandom.Next(0, 255), _
                  pRandom.Next(0, 255))
     End Function
+
+    Private Sub txtWidth_TextChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles txtWidth.TextChanged
+        If IsNumeric(txtWidth.Text) Then
+            Dim lWidth As Integer = CInt(txtWidth.Text)
+            Dim lGPX As clsLayerGPX
+            For Each lLayer As clsLayer In pLayers
+                If lLayer.GetType.Name = "clsLayerGPX" Then
+                    lGPX = lLayer
+                    lGPX.PenTrack.Width = lWidth
+                End If
+            Next
+            RaiseEvent Apply()
+        End If
+    End Sub
+
+    Private Sub txtArrowSize_TextChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles txtArrowSize.TextChanged
+        If IsNumeric(txtArrowSize.Text) Then
+            Dim lArrowSize As Integer = CInt(txtArrowSize.Text)
+            Dim lGPX As clsLayerGPX
+            For Each lLayer As clsLayer In pLayers
+                If lLayer.GetType.Name = "clsLayerGPX" Then
+                    lGPX = lLayer
+                    lGPX.ArrowSize = lArrowSize
+                End If
+            Next
+            RaiseEvent Apply()
+        End If
+    End Sub
+
+    Private Sub txtOpacity_TextChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles txtOpacity.TextChanged
+        If IsNumeric(txtOpacity.Text) Then
+            Try
+                Dim lAlpha As Integer = CInt(txtOpacity.Text) * 2.55
+                Dim lGPX As clsLayerGPX
+                For Each lLayer As clsLayer In pLayers
+                    If lLayer.GetType.Name = "clsLayerGPX" Then
+                        lGPX = lLayer
+                        lGPX.PenTrack.Color = Color.FromArgb(lAlpha, lGPX.PenTrack.Color.R, lGPX.PenTrack.Color.G, lGPX.PenTrack.Color.B)
+                    End If
+                Next
+                RaiseEvent Apply()
+            Catch
+            End Try
+        End If
+    End Sub
 End Class
