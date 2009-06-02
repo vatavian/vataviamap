@@ -168,7 +168,7 @@ Public Class clsDownloader
                     End If
                 End If
             Catch ex As Exception
-                'MsgBox("Error downloading '" & strUrl & "'" & vbCrLf & ex.ToString, MsgBoxStyle.Critical)
+                'MsgBox("Error downloading '" & strUrl & "'" & vbLf & ex.ToString, MsgBoxStyle.Critical)
                 Debug.WriteLine("Error downloading '" & strUrl & "' " & ex.Message)
             End Try
             If input IsNot Nothing Then input.Close()

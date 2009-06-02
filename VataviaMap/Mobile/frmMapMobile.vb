@@ -47,7 +47,8 @@ Public Class frmMap
         Try
             IO.Directory.CreateDirectory(pTileCacheFolder)
         Catch e As Exception
-            MsgBox("Could not create cache folder" & vbCrLf & pTileCacheFolder & vbCrLf & "Edit registry in CurrentUser\Software\" & g_AppName & "\TileCacheFolder to change", MsgBoxStyle.OkOnly, "TileCacheFolder Needed")
+            'TODO: open frmDownloadMobile or let user choose this folder somehow rather than just error message
+            MsgBox("Could not create cache folder" & vbLf & pTileCacheFolder & vbLf & "Edit registry in CurrentUser\Software\" & g_AppName & "\TileCacheFolder to change", MsgBoxStyle.OkOnly, "TileCacheFolder Needed")
             Exit Sub
         End Try
         SharedNew()
@@ -169,12 +170,12 @@ RestartRedraw:
             End If
             Dim lAgeOfPosition As TimeSpan = DateTime.Now - lGPStime
             If (Math.Abs(lAgeOfPosition.TotalSeconds) > 5) Then
-                lDetails &= vbCrLf + " (" + lAgeOfPosition.ToString().TrimEnd("0"c) + " ago)"
+                lDetails &= vbLf + " (" + lAgeOfPosition.ToString().TrimEnd("0"c) + " ago)"
             End If
 
-            If Not pRecordTrack Then lDetails &= vbCrLf & "Logging Off"
+            If Not pRecordTrack Then lDetails &= vbLf & "Logging Off"
         End If
-        lDetails &= vbCrLf & GPS_API.RIL.GetCellTowerString
+        lDetails &= vbLf & GPS_API.RIL.GetCellTowerString
         'If pUsedCacheCount + pAddedCacheCount > 0 Then
         '    lDetails &= " Cache " & Format(pUsedCacheCount / (pUsedCacheCount + pAddedCacheCount), "0.0 %") & " " & pDownloader.TileRAMcacheLimit
         'End If
@@ -301,7 +302,7 @@ RestartRedraw:
             End Try
 
             Dim lFile As System.IO.StreamWriter = System.IO.File.AppendText(pTrackLogFilename)
-            lFile.Write("</trkseg>" & vbCrLf & "</trk>" & vbCrLf & "</gpx>" & vbCrLf)
+            lFile.Write("</trkseg>" & vbLf & "</trk>" & vbLf & "</gpx>" & vbLf)
             lFile.Close()
             pTrackLogFilename = ""
         End If
@@ -379,7 +380,7 @@ SetCenter:
                 End If
             End If
         Catch 'e As Exception
-            'MsgBox(e.Message & vbCrLf & e.StackTrace)
+            'MsgBox(e.Message & vbLf & e.StackTrace)
         End Try
     End Sub
 
@@ -424,7 +425,7 @@ SetCenter:
                             'if (lEndGPX > 0) str = str.Substring(0, lEndGPX - 1);
                             'if (!aNewTrackSeg) aNewTrackSeg = (str.IndexOf("<trkseg>") < 0);
                         Else
-                            lGPXheader = "<?xml version=""1.0"" encoding=""UTF-8""?>" & vbCrLf & "<gpx xmlns=""http://www.topografix.com/GPX/1/1"" version=""1.1"" creator=""EasyGPS 2.3.8"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xsi:schemaLocation=""http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.topografix.com/GPX/gpx_overlay/0/3 http://www.topografix.com/GPX/gpx_overlay/0/3/gpx_overlay.xsd http://www.topografix.com/GPX/gpx_modified/0/1 http://www.topografix.com/GPX/gpx_modified/0/1/gpx_modified.xsd"">" & vbCrLf & "<trk>" & vbCrLf & "<name>TrackMaker Log " & System.IO.Path.GetFileNameWithoutExtension(pTrackLogFilename) & " </name>" & vbCrLf & "<type>GPS Tracklog</type>" & vbCrLf & "<trkseg>" & vbCrLf
+                            lGPXheader = "<?xml version=""1.0"" encoding=""UTF-8""?>" & vbLf & "<gpx xmlns=""http://www.topografix.com/GPX/1/1"" version=""1.1"" creator=""" & g_AppName & """ xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xsi:schemaLocation=""http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.topografix.com/GPX/gpx_overlay/0/3 http://www.topografix.com/GPX/gpx_overlay/0/3/gpx_overlay.xsd http://www.topografix.com/GPX/gpx_modified/0/1 http://www.topografix.com/GPX/gpx_modified/0/1/gpx_modified.xsd"">" & vbLf & "<trk>" & vbLf & "<name>" & g_AppName & " Log " & System.IO.Path.GetFileNameWithoutExtension(pTrackLogFilename) & " </name>" & vbLf & "<type>GPS Tracklog</type>" & vbLf & "<trkseg>" & vbLf
                             IO.Directory.CreateDirectory(pGPXFolder)
                         End If
                         Dim lFile As System.IO.StreamWriter = System.IO.File.AppendText(pTrackLogFilename)
@@ -434,7 +435,7 @@ SetCenter:
                         lFile.Write(lTrackPoint.ToString)
                         lFile.Close()
                     Catch exRecordTrack As Exception
-                        Windows.Forms.MessageBox.Show("Could not save " & vbCrLf & pTrackLogFilename & vbCrLf & exRecordTrack.Message)
+                        Windows.Forms.MessageBox.Show("Could not save " & vbLf & pTrackLogFilename & vbLf & exRecordTrack.Message)
                     End Try
                     pTrackMutex.ReleaseMutex()
                 End If
@@ -537,50 +538,50 @@ SetCenter:
 
                 '    lText &= .name & " " _
                 '          & FormattedDegrees(.lat, g_DegreeFormat) & ", " _
-                '          & FormattedDegrees(.lon, g_DegreeFormat) & vbCrLf
+                '          & FormattedDegrees(.lon, g_DegreeFormat) & vbLf
 
                 '    If .desc IsNot Nothing AndAlso .desc.Length > 0 Then
-                '        lText &= .desc & vbCrLf
+                '        lText &= .desc & vbLf
                 '    ElseIf .urlname IsNot Nothing AndAlso .urlname.Length > 0 Then
                 '        lText &= .urlname
                 '        If .cache IsNot Nothing Then
                 '            lText &= " (" & Format(.cache.difficulty, "#.#") & "/" _
                 '                          & Format(.cache.terrain, "#.#") & ")"
                 '        End If
-                '        lText &= vbCrLf
+                '        lText &= vbLf
                 '    End If
 
-                '    If .cmt IsNot Nothing AndAlso .cmt.Length > 0 Then lText &= "comment: " & .cmt & vbCrLf
+                '    If .cmt IsNot Nothing AndAlso .cmt.Length > 0 Then lText &= "comment: " & .cmt & vbLf
 
                 '    If .cache IsNot Nothing AndAlso .cache.container IsNot Nothing AndAlso .cache.container.Length > 0 Then lText &= .cache.container & ", "
                 '    If .type IsNot Nothing AndAlso .type.Length > 0 Then
                 '        If .type.StartsWith("Geocache|") Then
-                '            lText &= "type: " & .type.Substring(9) & vbCrLf
+                '            lText &= "type: " & .type.Substring(9) & vbLf
                 '        Else
-                '            lText &= "type: " & .type & vbCrLf
+                '            lText &= "type: " & .type & vbLf
                 '        End If
                 '    ElseIf .cache IsNot Nothing AndAlso .cache.cachetype IsNot Nothing AndAlso .cache.cachetype.Length > 0 Then
-                '        lText &= "type: " & .type & vbCrLf
+                '        lText &= "type: " & .type & vbLf
                 '    End If
 
                 '    If .cache IsNot Nothing Then
-                '        If .cache.archived Then lText &= "ARCHIVED" & vbCrLf
+                '        If .cache.archived Then lText &= "ARCHIVED" & vbLf
 
                 '        If .cache.short_description IsNot Nothing AndAlso .cache.short_description.Length > 0 Then
-                '            lText &= .cache.short_description.Replace("<br>", vbCrLf) & vbCrLf
+                '            lText &= .cache.short_description.Replace("<br>", vbLf) & vbLf
                 '        End If
                 '        If .cache.long_description IsNot Nothing AndAlso .cache.long_description.Length > 0 Then
-                '            lText &= .cache.long_description.Replace("<br>", vbCrLf) & vbCrLf
+                '            lText &= .cache.long_description.Replace("<br>", vbLf) & vbLf
                 '        End If
 
                 '        If .cache.encoded_hints IsNot Nothing AndAlso .cache.encoded_hints.Length > 0 Then
-                '            lText &= "Hint: " & .cache.encoded_hints & vbCrLf
+                '            lText &= "Hint: " & .cache.encoded_hints & vbLf
                 '        End If
 
-                '        If .cache.logs IsNot Nothing AndAlso .cache.logs.Length > 0 Then lText &= "Logs: " & .cache.logs & vbCrLf
-                '        If .cache.placed_by IsNot Nothing AndAlso .cache.placed_by.Length > 0 Then lText &= "Placed by: " & .cache.placed_by & vbCrLf
-                '        If .cache.owner IsNot Nothing AndAlso .cache.owner.Length > 0 Then lText &= "Owner: " & .cache.owner & vbCrLf
-                '        If .cache.travelbugs IsNot Nothing AndAlso .cache.travelbugs.Length > 0 Then lText &= "Travellers: " & .cache.travelbugs & vbCrLf
+                '        If .cache.logs IsNot Nothing AndAlso .cache.logs.Length > 0 Then lText &= "Logs: " & .cache.logs & vbLf
+                '        If .cache.placed_by IsNot Nothing AndAlso .cache.placed_by.Length > 0 Then lText &= "Placed by: " & .cache.placed_by & vbLf
+                '        If .cache.owner IsNot Nothing AndAlso .cache.owner.Length > 0 Then lText &= "Owner: " & .cache.owner & vbLf
+                '        If .cache.travelbugs IsNot Nothing AndAlso .cache.travelbugs.Length > 0 Then lText &= "Travellers: " & .cache.travelbugs & vbLf
 
                 '    End If
                 '    If .extensions IsNot Nothing Then lText &= .extensions.OuterXml

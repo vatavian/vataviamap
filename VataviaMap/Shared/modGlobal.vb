@@ -312,7 +312,7 @@ EndFound:
             End Select
             lIndex += 1
         End While
-        Return lSB.ToString.Replace(vbLf & vbLf, vbLf).Replace(vbLf, vbCrLf)
+        Return lSB.ToString.Replace(vbLf & vbLf, vbLf).Replace(vbLf, vbLf)
     End Function
 
     'Encode or decode text using the ROT13 algorithm
