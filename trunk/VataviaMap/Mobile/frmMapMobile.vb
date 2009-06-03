@@ -49,7 +49,6 @@ Public Class frmMap
         Catch e As Exception
             'TODO: open frmDownloadMobile or let user choose this folder somehow rather than just error message
             MsgBox("Could not create cache folder" & vbLf & pTileCacheFolder & vbLf & "Edit registry in CurrentUser\Software\" & g_AppName & "\TileCacheFolder to change", MsgBoxStyle.OkOnly, "TileCacheFolder Needed")
-            Exit Sub
         End Try
         SharedNew()
 
@@ -641,20 +640,27 @@ SetCenter:
 
                         If .cache.logs IsNot Nothing AndAlso .cache.logs.Count > 0 Then
                             'T19:00:00 is the time for all logs? remove it and format the entries a bit
-                            Dim lFoundIt As String = "Found it"
-                            Dim lFoundItIcon As String = lFoundIt
-                            Dim lDNF As String = "Didn't find it"
-                            Dim lDNFIcon As String = lDNF
-                            If g_WaypointIcons.ContainsKey("Geocache|icon_smile") Then lFoundItIcon = "<img src=""" & IO.Path.Combine(pTileCacheFolder, "icon_smile.gif") & """>"
-                            If g_WaypointIcons.ContainsKey("Geocache|icon_sad") Then lDNFIcon = "<img src=""" & IO.Path.Combine(pTileCacheFolder, "icon_sad.gif") & """>"
-
+                            Dim lIconPath As String = IO.Path.Combine(pTileCacheFolder, "Icons" & g_PathChar & "Geocache" & g_PathChar)
+                            Dim lIconFilename As String
                             lText &= "<b>Logs:</b><br>"
                             For Each lLog As clsGroundspeakLog In .cache.logs
                                 Select Case lLog.logtype
-                                    Case lFoundIt : lText &= lFoundItIcon
-                                    Case lDNF : lText &= lDNFIcon
-                                    Case Else : lText &= lLog.logtype
+                                    Case "Found it" : lIconFilename = lIconPath & "icon_smile.gif"
+                                    Case "Didn't find it" : lIconFilename = lIconPath & "icon_sad.gif"
+                                    Case "Write note" : lIconFilename = lIconPath & "icon_note.gif"
+                                    Case "Enable Listing" : lIconFilename = lIconPath & "icon_enabled.gif"
+                                    Case "Temporarily Disable Listing" : lIconFilename = lIconPath & "icon_disabled.gif"
+                                    Case "Needs Maintenance" : lIconFilename = lIconPath & "icon_needsmaint.gif"
+                                    Case "Owner Maintenance" : lIconFilename = lIconPath & "icon_maint.gif"
+                                    Case "Publish Listing" : lIconFilename = lIconPath & "icon_greenlight.gif"
+                                    Case "Update Coordinates" : lIconFilename = lIconPath & "coord_update.gif"
+                                    Case Else : lIconFilename = ""
                                 End Select
+                                If IO.File.Exists(lIconFilename) Then
+                                    lText &= "<img src=""" & lIconFilename & """>"
+                                Else
+                                    lText &= lLog.logtype
+                                End If
                                 lText &= "<b>" & lLog.logdate.Replace("T19:00:00", "") & "</b> " & lLog.logfinder & ": " & lLog.logtext & "<br>"
                             Next
                             'Dim lLastTimePos As Integer = 0

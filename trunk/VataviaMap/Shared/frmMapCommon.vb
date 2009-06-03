@@ -166,23 +166,38 @@ Partial Class frmMap
                 Next
             Next
         Next
+
+        'TODO: move this to only get geocaching icons when they are absent and user wants them
         If Not g_WaypointIcons.ContainsKey("geocache|webcam cache") Then
             'get geocaching icons from http://www.geocaching.com/about/cache_types.aspx
-            Dim lBaseURL As String = "http://www.geocaching.com/images/WptTypes/"
+            Dim lBaseURL As String = "http://www.geocaching.com/images/"
+            Dim lTypeURL As String = lBaseURL & "WptTypes/"
             lCacheIconFolder &= g_PathChar & "Geocache" & g_PathChar
-            pDownloader.Enqueue(lBaseURL & "2.gif", lCacheIconFolder & "Traditional Cache.gif", QueueItemType.IconItem, 2, False)
-            pDownloader.Enqueue(lBaseURL & "3.gif", lCacheIconFolder & "Multi-cache.gif", QueueItemType.IconItem, 2, False)
-            pDownloader.Enqueue(lBaseURL & "8.gif", lCacheIconFolder & "Unknown Cache.gif", QueueItemType.IconItem, 2, False)
-            pDownloader.Enqueue(lBaseURL & "5.gif", lCacheIconFolder & "Letterbox Hybrid.gif", QueueItemType.IconItem, 2, False)
-            pDownloader.Enqueue(lBaseURL & "1858.gif", lCacheIconFolder & "Wherigo Cache.gif", QueueItemType.IconItem, 2, False)
-            pDownloader.Enqueue(lBaseURL & "6.gif", lCacheIconFolder & "Event Cache.gif", QueueItemType.IconItem, 2, False)
-            pDownloader.Enqueue(lBaseURL & "mega.gif", lCacheIconFolder & "Mega-Event Cache.gif", QueueItemType.IconItem, 2, False)
-            pDownloader.Enqueue(lBaseURL & "13.gif", lCacheIconFolder & "Cache In Trash Out Event.gif", QueueItemType.IconItem, 2, False)
-            pDownloader.Enqueue(lBaseURL & "earthcache.gif", lCacheIconFolder & "Earthcache.gif", QueueItemType.IconItem, 2, False)
-            pDownloader.Enqueue(lBaseURL & "4.gif", lCacheIconFolder & "Virtual Cache.gif", QueueItemType.IconItem, 2, False)
-            pDownloader.Enqueue(lBaseURL & "1304.gif", lCacheIconFolder & "GPS Adventures Exhibit.gif", QueueItemType.IconItem, 2, False)
-            pDownloader.Enqueue(lBaseURL & "9.gif", lCacheIconFolder & "Project APE Cache.gif", QueueItemType.IconItem, 2, False)
-            pDownloader.Enqueue(lBaseURL & "11.gif", lCacheIconFolder & "Webcam Cache.gif", QueueItemType.IconItem, 2, False)
+            With pDownloader
+                .Enqueue(lTypeURL & "2.gif", lCacheIconFolder & "Traditional Cache.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "3.gif", lCacheIconFolder & "Multi-cache.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "8.gif", lCacheIconFolder & "Unknown Cache.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "5.gif", lCacheIconFolder & "Letterbox Hybrid.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "1858.gif", lCacheIconFolder & "Wherigo Cache.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "6.gif", lCacheIconFolder & "Event Cache.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "mega.gif", lCacheIconFolder & "Mega-Event Cache.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "13.gif", lCacheIconFolder & "Cache In Trash Out Event.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "earthcache.gif", lCacheIconFolder & "Earthcache.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "4.gif", lCacheIconFolder & "Virtual Cache.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "1304.gif", lCacheIconFolder & "GPS Adventures Exhibit.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "9.gif", lCacheIconFolder & "Project APE Cache.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "11.gif", lCacheIconFolder & "Webcam Cache.gif", QueueItemType.IconItem, 2, False)
+                Dim lIconURL As String = lBaseURL & "icons/"
+                .Enqueue(lIconURL & "icon_smile.gif", lCacheIconFolder & "icon_smile.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lIconURL & "icon_sad.gif", lCacheIconFolder & "icon_sad.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lIconURL & "icon_note.gif", lCacheIconFolder & "icon_note.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lIconURL & "icon_maint.gif", lCacheIconFolder & "icon_maint.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lIconURL & "icon_needsmaint.gif", lCacheIconFolder & "icon_needsmaint.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lIconURL & "icon_disabled.gif", lCacheIconFolder & "icon_disabled.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lIconURL & "icon_enabled.gif", lCacheIconFolder & "icon_enabled.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lIconURL & "icon_greenlight.gif", lCacheIconFolder & "icon_greenlight.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lIconURL & "coord_update.gif", lCacheIconFolder & "coord_update.gif", QueueItemType.IconItem, 2, False)
+            End With
         End If
     End Sub
 
@@ -1004,6 +1019,7 @@ Partial Class frmMap
     Private Sub frmMap_Disposed(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Disposed
         pDownloader.Enabled = False
         pUploader.Enabled = False
+        System.Threading.Thread.CurrentThread.Abort()
     End Sub
 
     Private Sub frmMap_Paint(ByVal sender As Object, ByVal e As System.Windows.Forms.PaintEventArgs) Handles Me.Paint
