@@ -199,6 +199,7 @@ Partial Class frmMap
                 .Enqueue(lIconURL & "icon_enabled.gif", lCacheIconFolder & "icon_enabled.gif", QueueItemType.IconItem, 2, False)
                 .Enqueue(lIconURL & "icon_greenlight.gif", lCacheIconFolder & "icon_greenlight.gif", QueueItemType.IconItem, 2, False)
                 .Enqueue(lIconURL & "coord_update.gif", lCacheIconFolder & "coord_update.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lIconURL & "icon_rsvp.gif", lCacheIconFolder & "icon_rsvp.gif", QueueItemType.IconItem, 2, False)
             End With
         End If
     End Sub

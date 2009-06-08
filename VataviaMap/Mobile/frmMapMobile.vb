@@ -664,6 +664,7 @@ SetCenter:
                                     Case "Owner Maintenance" : lIconFilename = lIconPath & "icon_maint.gif"
                                     Case "Publish Listing" : lIconFilename = lIconPath & "icon_greenlight.gif"
                                     Case "Update Coordinates" : lIconFilename = lIconPath & "coord_update.gif"
+                                    Case "Will Attend" : lIconFilename = lIconPath & "icon_rsvp.gif"
                                     Case Else : lIconFilename = ""
                                 End Select
                                 If IO.File.Exists(lIconFilename) Then
