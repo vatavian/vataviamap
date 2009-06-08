@@ -37,12 +37,19 @@ Public Class frmMap
         pControlsUse = True
         pControlsShow = True
 
+        pCacheDays = 365 'Longer default for keeping cached tiles on mobile
+
         pTrackLastTime = DateTime.UtcNow.Subtract(pTrackMinInterval)
         pUploadLastTime = New DateTime(1, 1, 1)
 
         updateDataHandler = New EventHandler(AddressOf UpdateData)
 
         pTileCacheFolder = GetAppSetting("TileCacheFolder", "\My Documents\tiles\")
+
+        If pTileCacheFolder.Length > 0 AndAlso Not pTileCacheFolder.EndsWith(g_PathChar) Then
+            pTileCacheFolder &= g_PathChar
+        End If
+
         pGPXFolder = IO.Path.GetDirectoryName(pTileCacheFolder)
         Try
             IO.Directory.CreateDirectory(pTileCacheFolder)
@@ -50,6 +57,7 @@ Public Class frmMap
             'TODO: open frmDownloadMobile or let user choose this folder somehow rather than just error message
             MsgBox("Could not create cache folder" & vbLf & pTileCacheFolder & vbLf & "Edit registry in CurrentUser\Software\" & g_AppName & "\TileCacheFolder to change", MsgBoxStyle.OkOnly, "TileCacheFolder Needed")
         End Try
+
         SharedNew()
 
         pCursorLayer = New clsLayerGPX("cursor", Me)
@@ -60,8 +68,10 @@ Public Class frmMap
         mnuViewTrack.Checked = pDisplayTrack
         mnuViewMapTiles.Checked = pShowTileImages
         mnuViewGPSdetails.Checked = pShowGPSdetails
-        mnuViewTileNames.Checked = pShowTileNames
         mnuViewTileOutlines.Checked = pShowTileOutlines
+        mnuViewTileNames.Checked = pShowTileNames
+        mnuViewTrack.Checked = pDisplayTrack
+        mnuViewControls.Checked = pControlsShow
         mnuRefreshOnClick.Checked = pClickDownload
         Select Case pGPSFollow
             Case 1 : mnuFollow.Checked = True
@@ -174,7 +184,7 @@ RestartRedraw:
 
             If Not pRecordTrack Then lDetails &= vbLf & "Logging Off"
         End If
-        lDetails &= vbLf & GPS_API.RIL.GetCellTowerString
+        If pRecordCellID Then lDetails &= vbLf & GPS_API.RIL.GetCellTowerString
         'If pUsedCacheCount + pAddedCacheCount > 0 Then
         '    lDetails &= " Cache " & Format(pUsedCacheCount / (pUsedCacheCount + pAddedCacheCount), "0.0 %") & " " & pDownloader.TileRAMcacheLimit
         'End If
@@ -378,7 +388,7 @@ SetCenter:
                     ' str &= "Elev " & GPS_POSITION.SeaLevelAltitude & "m"
                 End If
             End If
-        Catch 'e As Exception
+        Catch e As Exception
             'MsgBox(e.Message & vbLf & e.StackTrace)
         End Try
     End Sub
@@ -408,8 +418,8 @@ SetCenter:
                     lTrackPoint.course = GPS_POSITION.Heading
                 End If
 
-                lTrackPoint.name = GPS_API.RIL.GetCellTowerString
-                lTrackPoint.cmt = Microsoft.WindowsMobile.Status.SystemState.PhoneSignalStrength 'GPS_API.RIL.GetCellTowerInfo.dwRxLevel
+                If pRecordCellID Then lTrackPoint.SetExtension("celltower", GPS_API.RIL.GetCellTowerString)
+                lTrackPoint.SetExtension("phonesignal", Microsoft.WindowsMobile.Status.SystemState.PhoneSignalStrength)
 
                 If pRecordTrack Then
                     pTrackMutex.WaitOne()
@@ -676,7 +686,7 @@ SetCenter:
                         If .cache.owner IsNot Nothing AndAlso .cache.owner.Length > 0 Then lText &= "<b>Owner:</b> " & .cache.owner & "<br>"
                         If .cache.travelbugs IsNot Nothing AndAlso .cache.travelbugs.Length > 0 Then lText &= "<b>Travellers:</b> " & .cache.travelbugs & "<br>"
                     End If
-                    If .extensions IsNot Nothing Then lText &= .extensions.OuterXml
+                    lText &= .extensionsString
 
                     Dim lStream As IO.StreamWriter = IO.File.CreateText("\My Documents\cache.html")
                     lStream.Write(lText)

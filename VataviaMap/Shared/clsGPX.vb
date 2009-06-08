@@ -418,6 +418,7 @@ Public Class clsGroundspeakCache
 End Class
 
 Public Class clsGPXwaypoint
+    Inherits clsGPXhasExtenstions
     Private tagField As String 'wpt or trkpt
     Private latField As Double
     Private lonField As Double
@@ -448,7 +449,6 @@ Public Class clsGPXwaypoint
     Private ageofdgpsdataField As Double
     Private ageofdgpsdataFieldSpecified As Boolean
     Private dgpsidField As String
-    Private extensionsField As XmlElement
 
     Private urlField As String
     Private urlnameField As String
@@ -473,7 +473,9 @@ Public Class clsGPXwaypoint
         For Each lChild As XmlNode In aXML.ChildNodes
             Select Case lChild.Name
                 Case "extensions"
-                    Me.extensionsField = lChild
+                    For Each lExtension As Xml.XmlElement In lChild.ChildNodes
+                        Me.SetExtension(lExtension.Name, lExtension.InnerXml)
+                    Next
                 Case "link"
                     If linkField Is Nothing Then linkField = New Generic.List(Of clsGPXlink)
                     linkField.Add(New clsGPXlink(lChild))
@@ -508,8 +510,6 @@ Public Class clsGPXwaypoint
             & " lon=""" & lonField.ToString("#.########") & """>" & ControlChars.Lf
         If eleFieldSpecified Then lXML &= "<ele>" & Format(eleField, "0.###") & "</ele>" & ControlChars.Lf
         If timeFieldSpecified Then lXML &= "<time>" & timeField.ToString("yyyy-MM-ddTHH:mm:ss.fff") & "Z</time>" & ControlChars.Lf
-        If speedFieldSpecified Then lXML &= "<speed>" & Format(speedField, "0.###") & "</speed>" & ControlChars.Lf
-        If courseFieldSpecified Then lXML &= "<course>" & Format(courseField, "0.###") & "</course>" & ControlChars.Lf
         If nameField IsNot Nothing AndAlso nameField.Length > 0 Then lXML &= "<name>" & nameField & "</name>" & ControlChars.Lf
         If cmtField IsNot Nothing AndAlso cmtField.Length > 0 Then lXML &= "<cmt>" & cmtField & "</cmt>" & ControlChars.Lf
         If descField IsNot Nothing AndAlso descField.Length > 0 Then lXML &= "<desc>" & descField & "</desc>" & ControlChars.Lf
@@ -523,7 +523,13 @@ Public Class clsGPXwaypoint
         If pdopFieldSpecified Then lXML &= "<pdop>" & pdopField & "</pdop>" & ControlChars.Lf
         If ageofdgpsdataFieldSpecified Then lXML &= "<ageofdgpsdata>" & ageofdgpsdataField & "</ageofdgpsdata>" & ControlChars.Lf
         If dgpsidField IsNot Nothing AndAlso dgpsidField.Length > 0 Then lXML &= "<dgpsid>" & dgpsidField & "</dgpsid>" & ControlChars.Lf
-        If extensionsField IsNot Nothing Then lXML &= extensionsField.OuterXml
+        'If speedFieldSpecified OrElse courseFieldSpecified OrElse extensionsField IsNot Nothing Then
+        '    lXML &= "<extensions>" & ControlChars.Lf
+        '    If speedFieldSpecified Then lXML &= "<speed>" & Format(speedField, "0.###") & "</speed>" & ControlChars.Lf
+        '    If courseFieldSpecified Then lXML &= "<course>" & Format(courseField, "0.###") & "</course>" & ControlChars.Lf
+        lXML &= extensionsString()
+        'lXML &= "</extensions>" & ControlChars.Lf
+        'End If
         If urlField IsNot Nothing AndAlso urlField.Length > 0 Then lXML &= "<url>" & urlField & "</url>" & ControlChars.Lf
         If urlnameField IsNot Nothing AndAlso urlnameField.Length > 0 Then lXML &= "<urlname>" & urlnameField & "</urlname>" & ControlChars.Lf
         If cacheField IsNot Nothing Then lXML &= cacheField.ToString
@@ -803,14 +809,14 @@ Public Class clsGPXwaypoint
         End Set
     End Property
 
-    Public Property extensions() As XmlElement
-        Get
-            Return Me.extensionsField
-        End Get
-        Set(ByVal value As XmlElement)
-            Me.extensionsField = value
-        End Set
-    End Property
+    'Public Property extensions() As XmlElement
+    '    Get
+    '        Return Me.extensionsField
+    '    End Get
+    '    Set(ByVal value As XmlElement)
+    '        Me.extensionsField = value
+    '    End Set
+    'End Property
 
     <System.Xml.Serialization.XmlAttributeAttribute()> _
     Public Property lat() As Double
@@ -866,6 +872,7 @@ Public Class clsGPXwaypoint
         Set(ByVal value As Double)
             Me.speedField = value
             speedSpecified = True
+            SetExtension("speed", value)
         End Set
     End Property
 
@@ -886,6 +893,7 @@ Public Class clsGPXwaypoint
         Set(ByVal value As Double)
             Me.courseField = value
             courseSpecified = True
+            SetExtension("course", value)
         End Set
     End Property
 
@@ -1255,4 +1263,38 @@ Partial Public Class clsGPXcopyright
             Me.authorField = value
         End Set
     End Property
+End Class
+
+Public Class clsGPXhasExtenstions
+    Private extensions As Generic.List(Of String)
+
+    Public Sub New()
+    End Sub
+
+    Public Sub SetExtension(ByVal aTag As String, ByVal aValue As String)
+        Dim lOpenTag As String = "<" & aTag & ">"
+        If extensions Is Nothing Then
+            extensions = New Generic.List(Of String)
+        Else
+            For lIndex As Integer = 0 To extensions.Count - 1
+                If extensions(lIndex).StartsWith(lOpenTag) Then
+                    extensions.RemoveAt(lIndex)
+                    Exit For
+                End If
+            Next
+        End If
+        extensions.Add(lOpenTag & aValue & "</" & aTag & ">")
+    End Sub
+
+    Public Function extensionsString() As String
+        Dim lString As String = ""
+        If extensions IsNot Nothing AndAlso extensions.Count > 0 Then
+            lString = "<extensions>" & ControlChars.Lf
+            For Each lExtension As String In extensions
+                lString &= lExtension & ControlChars.Lf
+            Next
+            lString &= "</extensions>" & ControlChars.Lf
+        End If
+        Return lString
+    End Function
 End Class

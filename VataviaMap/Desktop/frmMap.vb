@@ -13,7 +13,7 @@ Public Class frmMap
             Me.ZoomToolStripMenuItem.DropDownItems.Add(New ToolStripMenuItem(CStr(lZoomLevel), Nothing, New EventHandler(AddressOf ZoomToolStripMenuItem_Click)))
         Next
 
-        pTileCacheFolder = GetAppSetting("TileCacheFolder", IO.Path.GetTempPath())
+        pTileCacheFolder = GetAppSetting("TileCacheFolder", IO.Path.GetTempPath() & "tiles" & g_PathChar)
 
         If Not IO.Directory.Exists(pTileCacheFolder) Then
             Dim lDialog As New FolderBrowserDialog
@@ -23,9 +23,12 @@ Public Class frmMap
                 If .ShowDialog = Windows.Forms.DialogResult.OK Then
                     pTileCacheFolder = .SelectedPath
                 Else 'There is no hope if we cannot cache tiles
-                    End '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                    pTileCacheFolder = ""
                 End If
             End With
+        End If
+        If pTileCacheFolder.Length > 0 AndAlso Not pTileCacheFolder.EndsWith(g_PathChar) Then
+            pTileCacheFolder &= g_PathChar
         End If
 
         SharedNew()
