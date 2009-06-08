@@ -15,7 +15,8 @@ Partial Class frmMap
     'Changing the tile server also changes g_TileCacheFolder
     Private pTileCacheFolder As String = ""
 
-    'Tiles older than this will be downloaded again as needed
+    'Tiles older than this will be downloaded again as needed, pOldestCache will be set in GetSettings from pCacheDays/TileCacheDays
+    Private pCacheDays As Integer = 21
     Private pOldestCache As DateTime = New DateTime(1900, 1, 1)
 
     Private pShowTileImages As Boolean = True
@@ -153,20 +154,21 @@ Partial Class frmMap
 
     Private Sub LoadCachedIcons()
         Dim lIconFileExts() As String = {"gif", "png", "jpg", "bmp"}
-        Dim lCacheIconFolder As String = IO.Path.Combine(pTileCacheFolder, "Icons")
-        For Each lFolder As String In IO.Directory.GetDirectories(lCacheIconFolder)
-            Dim lFolderName As String = IO.Path.GetFileName(lFolder).ToLower
-            For Each lExt As String In lIconFileExts
-                For Each lFilename As String In IO.Directory.GetFiles(lFolder, "*." & lExt)
-                    Try
-                        Dim lBitmap As New Drawing.Bitmap(lFilename)
-                        g_WaypointIcons.Add(lFolderName & "|" & IO.Path.GetFileNameWithoutExtension(lFilename).ToLower, lBitmap)
-                    Catch
-                    End Try
+        Dim lCacheIconFolder As String = pTileCacheFolder & "Icons"
+        If IO.Directory.Exists(lCacheIconFolder) Then
+            For Each lFolder As String In IO.Directory.GetDirectories(lCacheIconFolder)
+                Dim lFolderName As String = IO.Path.GetFileName(lFolder).ToLower
+                For Each lExt As String In lIconFileExts
+                    For Each lFilename As String In IO.Directory.GetFiles(lFolder, "*." & lExt)
+                        Try
+                            Dim lBitmap As New Drawing.Bitmap(lFilename)
+                            g_WaypointIcons.Add(lFolderName & "|" & IO.Path.GetFileNameWithoutExtension(lFilename).ToLower, lBitmap)
+                        Catch
+                        End Try
+                    Next
                 Next
             Next
-        Next
-
+        End If
         'TODO: move this to only get geocaching icons when they are absent and user wants them
         If Not g_WaypointIcons.ContainsKey("geocache|webcam cache") Then
             'get geocaching icons from http://www.geocaching.com/about/cache_types.aspx
@@ -238,9 +240,8 @@ Partial Class frmMap
                     g_TileServerName = .GetValue("TileServer", g_TileServerName)
                     g_UploadURL = .GetValue("UploadURL", g_UploadURL)
 
-                    'Dim lCacheDays As Integer = 7
-                    'lCacheDays = .GetValue("TileCacheDays", lCacheDays)
-                    'pOldestCache = DateTime.Now.AddDays(-lCacheDays)
+                    pCacheDays = .GetValue("TileCacheDays", pCacheDays)
+                    pOldestCache = DateTime.Now.AddDays(-pCacheDays)
 
                     Zoom = .GetValue("Zoom", Zoom)
 
@@ -335,7 +336,9 @@ Partial Class frmMap
                         lKeyIndex += 1
                     Next
 
-                    .SetValue("TileCacheFolder", pTileCacheFolder)
+                    If IO.Directory.Exists(pTileCacheFolder) Then
+                        .SetValue("TileCacheFolder", pTileCacheFolder)
+                    End If
                     .SetValue("TileServer", g_TileServerName)
                     .SetValue("Zoom", Zoom)
 
@@ -424,7 +427,7 @@ Partial Class frmMap
     End Property
 
     Private Sub SetCacheFolderFromTileServer()
-        g_TileCacheFolder = IO.Path.Combine(pTileCacheFolder, SafeFilename(g_TileServerURL.Replace("http://", ""))) & g_PathChar
+        g_TileCacheFolder = pTileCacheFolder & SafeFilename(g_TileServerURL.Replace("http://", "")) & g_PathChar
     End Sub
 
     ''' <summary>
@@ -654,8 +657,7 @@ Partial Class frmMap
                         If Not lDrewTile Then
                             pDownloader.Enqueue(lTilePoint, pZoom, 0, True) 'Request missing tile with highest priority
                         ElseIf IO.File.GetLastWriteTime(lOriginalTileFileName) < pOldestCache Then
-                            pDownloader.DeleteTile(lOriginalTileFileName)
-                            pDownloader.Enqueue(lTilePoint, pZoom, 1, True) 'Request outdated tile with lower priority
+                            pDownloader.Enqueue(lTilePoint, pZoom, 1, True) 'Request stale tile replacement with lower priority
                         End If
                     End If
                 Next
@@ -731,14 +733,14 @@ Partial Class frmMap
         End If
         Dim lGraphics As Graphics = GetBitmapGraphics()
         If lGraphics IsNot Nothing Then
-            Dim lOffsetToCenter As Point
-            Dim lTopLeft As Point
-            Dim lBotRight As Point
-
-            FindTileBounds(lGraphics.ClipBounds, lOffsetToCenter, lTopLeft, lBotRight)
-
-            Dim lOffsetFromWindowCorner As Point
             If aZoom = pZoom Then
+                Dim lOffsetToCenter As Point
+                Dim lTopLeft As Point
+                Dim lBotRight As Point
+
+                FindTileBounds(lGraphics.ClipBounds, lOffsetToCenter, lTopLeft, lBotRight)
+
+                Dim lOffsetFromWindowCorner As Point
                 lOffsetFromWindowCorner.X = (aTilePoint.X - lTopLeft.X) * g_TileSize + lOffsetToCenter.X
                 lOffsetFromWindowCorner.Y = (aTilePoint.Y - lTopLeft.Y) * g_TileSize + lOffsetToCenter.Y
                 DrawTile(aTileFilename, lGraphics, lOffsetFromWindowCorner)
@@ -770,7 +772,7 @@ Partial Class frmMap
     Public Sub DownloadedItem(ByVal aItem As clsQueueItem) Implements IQueueListener.DownloadedItem
         Select Case aItem.ItemType
             Case QueueItemType.IconItem
-                Dim lCacheIconFolder As String = IO.Path.Combine(pTileCacheFolder, "Icons").ToLower & g_PathChar
+                Dim lCacheIconFolder As String = (pTileCacheFolder & "Icons").ToLower & g_PathChar
                 If aItem.Filename.ToLower.StartsWith(lCacheIconFolder) Then 'Geocache or other icon that lives in "Icons" folder in pTileCacheFolder
                     Try
                         Dim lBitmap As New Drawing.Bitmap(aItem.Filename)
@@ -1019,7 +1021,7 @@ Partial Class frmMap
     Private Sub frmMap_Disposed(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Disposed
         pDownloader.Enabled = False
         pUploader.Enabled = False
-        System.Threading.Thread.CurrentThread.Abort()
+        'System.Threading.Thread.CurrentThread.Abort()
     End Sub
 
     Private Sub frmMap_Paint(ByVal sender As Object, ByVal e As System.Windows.Forms.PaintEventArgs) Handles Me.Paint
