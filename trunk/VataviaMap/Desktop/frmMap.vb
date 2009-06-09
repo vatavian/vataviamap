@@ -194,10 +194,30 @@ Public Class frmMap
     End Sub
 
     Private Sub frmMap_MouseWheel(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles Me.MouseWheel
-        If e.Delta > 0 Then
-            Zoom += 1
-        ElseIf e.Delta < 0 Then
-            Zoom -= 1
+        If pMouseWheelZoom Then
+            If e.Delta > 0 Then
+                Zoom += 1
+            ElseIf e.Delta < 0 Then
+                Zoom -= 1
+            End If
+        ElseIf pMouseWheelTileServer Then
+            For lItemIndex As Integer = 0 To TileServerToolStripMenuItem.DropDownItems.Count - 2
+                Dim lItem As ToolStripMenuItem = TileServerToolStripMenuItem.DropDownItems(lItemIndex)
+                If lItem.Checked Then
+                    If e.Delta > 0 Then
+                        lItemIndex += 1
+                    ElseIf e.Delta < 0 Then
+                        lItemIndex -= 1
+                    End If
+                    If lItemIndex < 0 Then
+                        lItemIndex = pTileServers.Keys.Count - 1
+                    ElseIf lItemIndex >= pTileServers.Keys.Count Then
+                        lItemIndex = 0
+                    End If
+                    TileServer_Click(TileServerToolStripMenuItem.DropDownItems(lItemIndex), e)
+                    Exit Sub
+                End If
+            Next
         End If
     End Sub
 
@@ -437,8 +457,6 @@ Public Class frmMap
         TileServerToolStripMenuItem.DropDownItems.Add(AddTileServerMenuItem)
         TileServerToolStripMenuItem.DropDownItems.Add(EditTileServerMenuItem)
         TileServerToolStripMenuItem.DropDownItems.Add(DefaultsTileServerMenuItem)
-        TileServerToolStripMenuItem.DropDownItems.Add(MaplintTileServerMenuItem)
-        'MaplintTileServerMenuItem.Checked = pShowTransparentTiles
     End Sub
 
     Private Sub DefaultsTileServerMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles DefaultsTileServerMenuItem.Click
@@ -446,9 +464,28 @@ Public Class frmMap
         BuildTileServerMenu()
     End Sub
 
-    Private Sub MaplintTileServerMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MaplintTileServerMenuItem.Click
-        pShowTransparentTiles = Not pShowTransparentTiles
-        MaplintTileServerMenuItem.Checked = pShowTransparentTiles
+    Private Sub OverlayMaplintToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles OverlayMaplintToolStripMenuItem.Click
+        g_TileServerTransparentURL = "http://tah.openstreetmap.org/Tiles/maplint/"
+        OverlayMaplintToolStripMenuItem.Checked = Not OverlayMaplintToolStripMenuItem.Checked
+        If OverlayMaplintToolStripMenuItem.Checked Then
+            OverlayYahooLabelsToolStripMenuItem.Checked = False
+            pShowTransparentTiles = True
+        Else
+            pShowTransparentTiles = OverlayYahooLabelsToolStripMenuItem.Checked
+        End If
+        Redraw()
+    End Sub
+
+    Private Sub OverlayYahooLabelsToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles OverlayYahooLabelsToolStripMenuItem.Click
+        'TODO: manage transparent tile server like main tile server, add Transparent field to server type
+        'g_TileServerTransparentURL = "..."
+        OverlayYahooLabelsToolStripMenuItem.Checked = Not OverlayYahooLabelsToolStripMenuItem.Checked
+        If OverlayYahooLabelsToolStripMenuItem.Checked Then
+            OverlayMaplintToolStripMenuItem.Checked = False
+            pShowTransparentTiles = True
+        Else
+            pShowTransparentTiles = OverlayMaplintToolStripMenuItem.Checked
+        End If
         Redraw()
     End Sub
 
@@ -626,4 +663,19 @@ Public Class frmMap
         pBuddies = aBuddies
         Redraw()
     End Sub
+
+    Private Sub WheelTileServerToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles WheelTileServerToolStripMenuItem.Click
+        WheelTileServerToolStripMenuItem.Checked = True
+        WheelZoomToolStripMenuItem.Checked = False
+        pMouseWheelTileServer = True
+        pMouseWheelZoom = False
+    End Sub
+
+    Private Sub WheelZoomToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles WheelZoomToolStripMenuItem.Click
+        WheelTileServerToolStripMenuItem.Checked = False
+        WheelZoomToolStripMenuItem.Checked = True
+        pMouseWheelTileServer = False
+        pMouseWheelZoom = True
+    End Sub
+
 End Class
