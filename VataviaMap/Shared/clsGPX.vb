@@ -16,6 +16,7 @@ Imports System.Xml
 ''' </summary>
 ''' <remarks></remarks>
 Public Class clsGPX
+    Inherits clsGPXbase
 
     Public Filename As String = ""
 
@@ -23,30 +24,28 @@ Public Class clsGPX
     Private pWaypoints As Generic.List(Of clsGPXwaypoint)
     Private pRoutes As Generic.List(Of clsGPXroute)
     Private pTracks As Generic.List(Of clsGPXtrack)
-    Private pVersion As String
-    Private pCreator As String
+    Private versionField As String
+    Private creatorField As String
     Private nameField As String
     Private descField As String
     Private authorField As XmlElement
     Private copyrightField As clsGPXcopyright
-    Private linkField() As clsGPXlink
     Private timeField As Date
     Private timeFieldSpecified As Boolean
     Private keywordsField As String
     Private boundsField As clsGPXbounds
-    Private extensionsField As XmlElement
 
     Public Sub New()
         Clear()
     End Sub
 
-    Sub Clear()
+    Overrides Sub Clear()
+        MyBase.Clear()
         pWaypoints = New Generic.List(Of clsGPXwaypoint)
         pRoutes = New Generic.List(Of clsGPXroute)
         pTracks = New Generic.List(Of clsGPXtrack)
-        extensionsField = Nothing
-        pVersion = "1.1"
-        pCreator = ""
+        versionField = "1.1"
+        creatorField = ""
         Filename = ""
     End Sub
 
@@ -63,7 +62,11 @@ LoadedXML:
             For Each lChild As XmlNode In pXMLdoc.ChildNodes(1).ChildNodes
                 Select Case lChild.Name
                     Case "extensions"
-                        extensionsField = lChild
+                        SetExtensions(lChild)
+                    Case "link"
+                        AddLink(lChild)
+                    Case "rte"
+                        pRoutes.Add(New clsGPXroute(lChild))
                     Case "trk"
                         pTracks.Add(New clsGPXtrack(lChild))
                     Case "wpt", "waypoint"
@@ -111,6 +114,22 @@ LoadedXML:
             Throw New ApplicationException("Error opening '" & aFilename & "': " & e.Message, e)
         End Try
     End Sub
+
+    Public Overrides Function ToString() As String
+        Dim lXML As String = "<gpx xmlns=""http://www.topografix.com/GPX/1/1"" version=""1.1"" creator=""" _
+            & creator & ">"
+
+        If pWaypoints.Count > 0 Then
+            lXML &= "<wpt>"
+            For Each lWpt As clsGPXwaypoint In pWaypoints
+                lXML &= lWpt.ToString
+            Next
+            lXML &= "</wpt>"
+        End If
+        lXML &= extensionsString()
+        lXML &= linkString()
+        Return lXML & "</gpx>"
+    End Function
 
     Public Sub ExpandBounds(ByVal aWaypoint As clsGPXwaypoint)
         If Me.boundsField Is Nothing Then Me.boundsField = New clsGPXbounds
@@ -163,23 +182,13 @@ LoadedXML:
     End Property
 
 
-    Public Property extensions() As XmlElement
-        Get
-            Return Me.extensionsField
-        End Get
-        Set(ByVal value As XmlElement)
-            Me.extensionsField = value
-        End Set
-    End Property
-
-
     <System.Xml.Serialization.XmlAttributeAttribute()> _
     Public Property version() As String
         Get
-            Return Me.pVersion
+            Return Me.versionField
         End Get
         Set(ByVal value As String)
-            Me.pVersion = value
+            Me.versionField = value
         End Set
     End Property
 
@@ -187,10 +196,10 @@ LoadedXML:
     <System.Xml.Serialization.XmlAttributeAttribute()> _
     Public Property creator() As String
         Get
-            Return Me.pCreator
+            Return Me.creatorField
         End Get
         Set(ByVal value As String)
-            Me.pCreator = value
+            Me.creatorField = value
         End Set
     End Property
 
@@ -227,15 +236,6 @@ LoadedXML:
         End Get
         Set(ByVal value As clsGPXcopyright)
             Me.copyrightField = value
-        End Set
-    End Property
-
-    Public Property link() As clsGPXlink()
-        Get
-            Return Me.linkField
-        End Get
-        Set(ByVal value As clsGPXlink())
-            Me.linkField = value
         End Set
     End Property
 
@@ -279,9 +279,9 @@ LoadedXML:
 End Class
 
 Public Class clsGPXtracksegment
+    Inherits clsGPXbase
 
     Private trkptField As Generic.List(Of clsGPXwaypoint)
-    Private extensionsField As XmlElement
 
     Public Sub New()
         trkptField = New Generic.List(Of clsGPXwaypoint)
@@ -293,7 +293,9 @@ Public Class clsGPXtracksegment
             Try
                 Select Case lChild.Name
                     Case "extensions"
-                        Me.extensionsField = lChild
+                        SetExtensions(lChild)
+                    Case "link"
+                        AddLink(lChild)
                     Case "trkpt"
                         trkptField.Add(New clsGPXwaypoint(lChild))
                     Case Else
@@ -319,15 +321,6 @@ Public Class clsGPXtracksegment
         End Set
     End Property
 
-
-    Public Property extensions() As XmlElement
-        Get
-            Return Me.extensionsField
-        End Get
-        Set(ByVal value As XmlElement)
-            Me.extensionsField = value
-        End Set
-    End Property
 End Class
 
 Public Class clsGroundspeakLog
@@ -418,7 +411,8 @@ Public Class clsGroundspeakCache
 End Class
 
 Public Class clsGPXwaypoint
-    Inherits clsGPXhasExtenstions
+    Inherits clsGPXbase
+
     Private tagField As String 'wpt or trkpt
     Private latField As Double
     Private lonField As Double
@@ -434,7 +428,6 @@ Public Class clsGPXwaypoint
     Private cmtField As String
     Private descField As String
     Private srcField As String
-    Private linkField As Generic.List(Of clsGPXlink)
     Private symField As String
     Private typeField As String
     Private fixField As String
@@ -474,11 +467,14 @@ Public Class clsGPXwaypoint
             Select Case lChild.Name
                 Case "extensions"
                     For Each lExtension As Xml.XmlElement In lChild.ChildNodes
-                        Me.SetExtension(lExtension.Name, lExtension.InnerXml)
+                        Select Case lExtension.Name.ToLower
+                            Case "speed" : speed = lExtension.InnerText
+                            Case "course" : course = lExtension.InnerText
+                            Case Else : SetExtension(lExtension.Name, lExtension.InnerXml)
+                        End Select
                     Next
                 Case "link"
-                    If linkField Is Nothing Then linkField = New Generic.List(Of clsGPXlink)
-                    linkField.Add(New clsGPXlink(lChild))
+                    AddLink(lChild)
                 Case "groundspeak:cache"
                     cacheField = New clsGroundspeakCache(lChild)
                 Case Else
@@ -528,6 +524,7 @@ Public Class clsGPXwaypoint
         '    If speedFieldSpecified Then lXML &= "<speed>" & Format(speedField, "0.###") & "</speed>" & ControlChars.Lf
         '    If courseFieldSpecified Then lXML &= "<course>" & Format(courseField, "0.###") & "</course>" & ControlChars.Lf
         lXML &= extensionsString()
+        lXML &= linkString()
         'lXML &= "</extensions>" & ControlChars.Lf
         'End If
         If urlField IsNot Nothing AndAlso urlField.Length > 0 Then lXML &= "<url>" & urlField & "</url>" & ControlChars.Lf
@@ -658,17 +655,6 @@ Public Class clsGPXwaypoint
         End Get
         Set(ByVal value As String)
             Me.srcField = value
-        End Set
-    End Property
-
-
-    <System.Xml.Serialization.XmlElementAttribute("link")> _
-    Public Property link() As Generic.List(Of clsGPXlink)
-        Get
-            Return Me.linkField
-        End Get
-        Set(ByVal value As Generic.List(Of clsGPXlink))
-            Me.linkField = value
         End Set
     End Property
 
@@ -957,18 +943,28 @@ Public Class clsGPXlink
             Me.hrefField = value
         End Set
     End Property
+
+    Public Overrides Function ToString() As String
+        Dim lString As String = "<link href=""" & hrefField & ">"
+        If textField IsNot Nothing AndAlso textField.Length > 0 Then
+            lString &= "<text>" & textField & "</text>"
+        End If
+        If textField IsNot Nothing AndAlso textField.Length > 0 Then
+            lString &= "<type>" & typeField & "</type>"
+        End If
+        Return lString & "</link>"
+    End Function
 End Class
 
 Partial Public Class clsGPXtrack
+    Inherits clsGPXbase
 
     Private nameField As String
     Private cmtField As String
     Private descField As String
     Private srcField As String
-    Private linkField() As clsGPXlink
     Private numberField As String
     Private typeField As String
-    Private extensionsField As XmlElement
     Private trksegField As Generic.List(Of clsGPXtracksegment)
 
     Public Sub New(ByVal aName As String)
@@ -982,9 +978,11 @@ Partial Public Class clsGPXtrack
             Try
                 Select Case lChild.Name
                     Case "extensions"
-                        Me.extensionsField = lChild
+                        SetExtensions(lChild)
                     Case "trkseg"
                         trksegField.Add(New clsGPXtracksegment(lChild))
+                    Case "link"
+                        AddLink(lChild)
                     Case Else
                         Dim lPropertyInfo As System.Reflection.PropertyInfo = Me.GetType.GetProperty(lChild.Name)
                         If lPropertyInfo IsNot Nothing Then
@@ -1035,15 +1033,6 @@ Partial Public Class clsGPXtrack
         End Set
     End Property
 
-    Public Property link() As clsGPXlink()
-        Get
-            Return Me.linkField
-        End Get
-        Set(ByVal value As clsGPXlink())
-            Me.linkField = value
-        End Set
-    End Property
-
     Public Property number() As String
         Get
             Return Me.numberField
@@ -1062,15 +1051,6 @@ Partial Public Class clsGPXtrack
         End Set
     End Property
 
-    Public Property extensions() As XmlElement
-        Get
-            Return Me.extensionsField
-        End Get
-        Set(ByVal value As XmlElement)
-            Me.extensionsField = value
-        End Set
-    End Property
-
     Public Property trkseg() As Generic.List(Of clsGPXtracksegment)
         Get
             Return Me.trksegField
@@ -1083,16 +1063,40 @@ Partial Public Class clsGPXtrack
 End Class
 
 Partial Public Class clsGPXroute
+    Inherits clsGPXbase
 
     Private nameField As String
     Private cmtField As String
     Private descField As String
     Private srcField As String
-    Private linkField() As clsGPXlink
     Private numberField As String
     Private typeField As String
-    Private extensionsField As XmlElement
-    Private rteptField() As clsGPXwaypoint
+    Private rteptField As Generic.List(Of clsGPXwaypoint)
+
+    Public Sub New(ByVal aXML As XmlNode)
+        rteptField = New Generic.List(Of clsGPXwaypoint)
+        For Each lChild As XmlNode In aXML.ChildNodes
+            Try
+                Select Case lChild.Name
+                    Case "extensions"
+                        SetExtensions(lChild)
+                    Case "rteseg"
+                        rteptField.Add(New clsGPXwaypoint(lChild))
+                    Case "link"
+                        AddLink(lChild)
+                    Case Else
+                        Dim lPropertyInfo As System.Reflection.PropertyInfo = Me.GetType.GetProperty(lChild.Name)
+                        If lPropertyInfo IsNot Nothing Then
+                            lPropertyInfo.SetValue(Me, lChild.InnerText, Nothing)
+                        Else
+                            'Logger.Dbg("Skipped unknown node type: " & lChild.Name)
+                        End If
+                End Select
+            Catch e As Exception
+                'Logger.Dbg("Unable to set " & lChild.Name & " = " & lChild.InnerXml)
+            End Try
+        Next
+    End Sub
 
     Public Property name() As String
         Get
@@ -1130,15 +1134,6 @@ Partial Public Class clsGPXroute
         End Set
     End Property
 
-    Public Property link() As clsGPXlink()
-        Get
-            Return Me.linkField
-        End Get
-        Set(ByVal value As clsGPXlink())
-            Me.linkField = value
-        End Set
-    End Property
-
     Public Property number() As String
         Get
             Return Me.numberField
@@ -1157,23 +1152,15 @@ Partial Public Class clsGPXroute
         End Set
     End Property
 
-    Public Property extensions() As XmlElement
-        Get
-            Return Me.extensionsField
-        End Get
-        Set(ByVal value As XmlElement)
-            Me.extensionsField = value
-        End Set
-    End Property
-
-    Public Property rtept() As clsGPXwaypoint()
+    Public Property rtept() As Generic.List(Of clsGPXwaypoint)
         Get
             Return Me.rteptField
         End Get
-        Set(ByVal value As clsGPXwaypoint())
+        Set(ByVal value As Generic.List(Of clsGPXwaypoint))
             Me.rteptField = value
         End Set
     End Property
+
 End Class
 
 Partial Public Class clsGPXbounds
@@ -1265,10 +1252,22 @@ Partial Public Class clsGPXcopyright
     End Property
 End Class
 
-Public Class clsGPXhasExtenstions
+Public Class clsGPXbase
     Private extensions As Generic.List(Of String)
+    Private linkField As Generic.List(Of clsGPXlink)
 
     Public Sub New()
+    End Sub
+
+    Public Overridable Sub Clear()
+        extensions = Nothing
+        linkField = Nothing
+    End Sub
+
+    Public Sub SetExtensions(ByVal aExtensionsNode As XmlElement)
+        For Each lExtension As Xml.XmlElement In aExtensionsNode.ChildNodes
+            SetExtension(lExtension.Name, lExtension.InnerXml)
+        Next
     End Sub
 
     Public Sub SetExtension(ByVal aTag As String, ByVal aValue As String)
@@ -1297,4 +1296,30 @@ Public Class clsGPXhasExtenstions
         End If
         Return lString
     End Function
+
+    <System.Xml.Serialization.XmlElementAttribute("link")> _
+    Public Property link() As Generic.List(Of clsGPXlink)
+        Get
+            Return Me.linkField
+        End Get
+        Set(ByVal value As Generic.List(Of clsGPXlink))
+            Me.linkField = value
+        End Set
+    End Property
+
+    Protected Sub AddLink(ByVal aLink As XmlElement)
+        If linkField Is Nothing Then linkField = New Generic.List(Of clsGPXlink)
+        linkField.Add(New clsGPXlink(aLink))
+    End Sub
+
+    Public Function linkString() As String
+        Dim lString As String = ""
+        If link IsNot Nothing AndAlso link.Count > 0 Then
+            For Each lLink As clsGPXlink In link
+                lString &= lLink.ToString & ControlChars.Lf
+            Next
+        End If
+        Return lString
+    End Function
+
 End Class

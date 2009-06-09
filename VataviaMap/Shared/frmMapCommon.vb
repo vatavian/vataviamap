@@ -48,6 +48,9 @@ Partial Class frmMap
     Private pMouseDownLat As Double
     Private pMouseDownLon As Double
 
+    Private pMouseWheelZoom As Boolean = True
+    Private pMouseWheelTileServer As Boolean = False
+
     Private pLastKeyDown As Integer = 0
 
     Private pBitmap As Bitmap
@@ -392,11 +395,14 @@ Partial Class frmMap
             If pTileServers.ContainsKey(value) Then
                 g_TileServerName = value
                 TileServerUrl = pTileServers(value)
-                Try
-                    g_TileServerType = System.Enum.Parse(GetType(MapType), g_TileServerName, False)
-                Catch ex As Exception
-                    g_TileServerType = MapType.OpenStreetMap
-                End Try
+                g_TileServerType = MapType.OpenStreetMap
+                If Not TileServerUrl.Contains("openstreetmap") AndAlso _
+                   Not TileServerUrl.Contains("cloudmade") Then
+                    Try
+                        g_TileServerType = System.Enum.Parse(GetType(MapType), g_TileServerName, False)
+                    Catch ex As Exception
+                    End Try
+                End If
                 g_TileCopyright = CopyrightFromMapType(g_TileServerType)
                 pBrushCopyright = New SolidBrush(Color.Black)
             End If
