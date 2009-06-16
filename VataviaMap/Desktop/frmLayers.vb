@@ -16,16 +16,22 @@ Public Class frmLayers
         End If
     End Sub
 
+    Private Sub lstLayers_ItemCheck(ByVal sender As Object, ByVal e As System.Windows.Forms.ItemCheckEventArgs) Handles lstLayers.ItemCheck
+        RaiseChanged()
+    End Sub
+
     Private Sub lstLayers_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles lstLayers.SelectedIndexChanged
         Dim lLayer As clsLayer = pLayers.Item(lstLayers.SelectedIndex)
         If lLayer.GetType.Name = "clsLayerGPX" Then
             Dim lGPX As clsLayerGPX = lLayer
             Dim lColor As Color = lGPX.PenTrack.Color
-            txtOpacity.Text = lColor.ToArgb
+            Dim lWasPopulating As Boolean = pPopulating
+            pPopulating = True
+            txtOpacity.Text = CInt(lColor.A / 2.55)
+            txtWidth.Text = lGPX.PenTrack.Width
             txtArrowSize.Text = lGPX.ArrowSize
+            pPopulating = lWasPopulating
         End If
-
-        RaiseChanged()
     End Sub
 
     Public Sub PopulateList(ByVal aLayers As Generic.List(Of clsLayer))
@@ -35,9 +41,8 @@ Public Class frmLayers
         Dim lHaveLayers As Boolean = aLayers IsNot Nothing AndAlso aLayers.Count > 0
         If lHaveLayers Then
             pLayers = aLayers
-            For Each lLayer As clsLayer In aLayers
-                lstLayers.Items.Add(lLayer.Filename)
-                lstLayers.SetItemChecked(lstLayers.Items.Count - 1, lLayer.Visible)
+            For Each lLayer As clsLayer In aLayers                
+                lstLayers.SetItemChecked(lstLayers.Items.Add(lLayer.Filename), lLayer.Visible)
             Next
         ElseIf pLayers.Count > 0 Then
             pLayers = New Generic.List(Of clsLayer)
@@ -71,7 +76,7 @@ Public Class frmLayers
 
         Dim lWidth As Integer = 1
         If IsNumeric(txtWidth.Text) Then
-            lWidth = CInt(txtWidth.Text) * 2.55
+            lWidth = CInt(txtWidth.Text)
         End If
 
         For Each lLayer As clsLayer In pLayers
@@ -95,7 +100,7 @@ Public Class frmLayers
     End Function
 
     Private Sub txtWidth_TextChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles txtWidth.TextChanged
-        If IsNumeric(txtWidth.Text) Then
+        If Not pPopulating AndAlso IsNumeric(txtWidth.Text) Then
             Dim lWidth As Integer = CInt(txtWidth.Text)
             Dim lGPX As clsLayerGPX
             For Each lLayer As clsLayer In pLayers
@@ -109,7 +114,7 @@ Public Class frmLayers
     End Sub
 
     Private Sub txtArrowSize_TextChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles txtArrowSize.TextChanged
-        If IsNumeric(txtArrowSize.Text) Then
+        If Not pPopulating AndAlso IsNumeric(txtArrowSize.Text) Then
             Dim lArrowSize As Integer = CInt(txtArrowSize.Text)
             Dim lGPX As clsLayerGPX
             For Each lLayer As clsLayer In pLayers
@@ -123,17 +128,19 @@ Public Class frmLayers
     End Sub
 
     Private Sub txtOpacity_TextChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles txtOpacity.TextChanged
-        If IsNumeric(txtOpacity.Text) Then
+        If Not pPopulating AndAlso IsNumeric(txtOpacity.Text) Then
             Try
                 Dim lAlpha As Integer = CInt(txtOpacity.Text) * 2.55
-                Dim lGPX As clsLayerGPX
-                For Each lLayer As clsLayer In pLayers
-                    If lLayer.GetType.Name = "clsLayerGPX" Then
-                        lGPX = lLayer
-                        lGPX.PenTrack.Color = Color.FromArgb(lAlpha, lGPX.PenTrack.Color.R, lGPX.PenTrack.Color.G, lGPX.PenTrack.Color.B)
-                    End If
-                Next
-                RaiseEvent Apply()
+                If lAlpha >= 0 AndAlso lAlpha <= 255 Then
+                    Dim lGPX As clsLayerGPX
+                    For Each lLayer As clsLayer In pLayers
+                        If lLayer.GetType.Name = "clsLayerGPX" Then
+                            lGPX = lLayer
+                            lGPX.PenTrack.Color = Color.FromArgb(lAlpha, lGPX.PenTrack.Color.R, lGPX.PenTrack.Color.G, lGPX.PenTrack.Color.B)
+                        End If
+                    Next
+                    RaiseEvent Apply()
+                End If
             Catch
             End Try
         End If

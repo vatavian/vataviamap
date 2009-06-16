@@ -396,8 +396,8 @@ Partial Class frmMap
                 g_TileServerName = value
                 TileServerUrl = pTileServers(value)
                 g_TileServerType = MapType.OpenStreetMap
-                If Not TileServerUrl.Contains("openstreetmap") AndAlso _
-                   Not TileServerUrl.Contains("cloudmade") Then
+                If Not TileServerUrl.IndexOf("openstreetmap") > 0 AndAlso _
+                   Not TileServerUrl.IndexOf("cloudmade") > 0 Then
                     Try
                         g_TileServerType = System.Enum.Parse(GetType(MapType), g_TileServerName, False)
                     Catch ex As Exception
@@ -565,128 +565,126 @@ Partial Class frmMap
     ''' <param name="g">Graphics object to be drawn into</param>
     Private Sub DrawTiles(ByVal g As Graphics)
         If Not pShowTransparentTiles AndAlso g_TileServerURL.EndsWith("/maplint/") Then g.Clear(Color.White)
-        If IO.Directory.Exists(pTileCacheFolder) Then
-            Dim lOffsetToCenter As Point
-            Dim lTopLeft As Point
-            Dim lBotRight As Point
+        Dim lOffsetToCenter As Point
+        Dim lTopLeft As Point
+        Dim lBotRight As Point
 
-            FindTileBounds(g.ClipBounds, lOffsetToCenter, lTopLeft, lBotRight)
+        FindTileBounds(g.ClipBounds, lOffsetToCenter, lTopLeft, lBotRight)
 
-            Dim lTilePoint As Point
-            Dim lOffsetFromWindowCorner As Point
+        Dim lTilePoint As Point
+        Dim lOffsetFromWindowCorner As Point
 
-            'TODO: check available memory before deciding how many tiles to keep in RAM
-            pDownloader.TileRAMcacheLimit = (lBotRight.X - lTopLeft.X + 1) * (lBotRight.Y - lTopLeft.Y + 1) * 2
+        'TODO: check available memory before deciding how many tiles to keep in RAM
+        pDownloader.TileRAMcacheLimit = (lBotRight.X - lTopLeft.X + 1) * (lBotRight.Y - lTopLeft.Y + 1) * 2
 
-            'Loop through each visible tile
-            For x As Integer = lTopLeft.X To lBotRight.X
-                For y As Integer = lTopLeft.Y To lBotRight.Y
+        'Loop through each visible tile
+        For x As Integer = lTopLeft.X To lBotRight.X
+            For y As Integer = lTopLeft.Y To lBotRight.Y
 
-                    If pRedrawPending Then Exit Sub
+                If pRedrawPending Then Exit Sub
 
-                    lTilePoint = New Point(x, y)
+                lTilePoint = New Point(x, y)
 
-                    lOffsetFromWindowCorner.X = (x - lTopLeft.X) * g_TileSize + lOffsetToCenter.X
-                    lOffsetFromWindowCorner.Y = (y - lTopLeft.Y) * g_TileSize + lOffsetToCenter.Y
+                lOffsetFromWindowCorner.X = (x - lTopLeft.X) * g_TileSize + lOffsetToCenter.X
+                lOffsetFromWindowCorner.Y = (y - lTopLeft.Y) * g_TileSize + lOffsetToCenter.Y
 
-                    Dim lTileFileName As String = TileFilename(lTilePoint, pZoom, pUseMarkedTiles)
+                Dim lTileFileName As String = TileFilename(lTilePoint, pZoom, pUseMarkedTiles)
 
-                    Dim lOriginalTileFileName As String
-                    If pUseMarkedTiles Then
-                        lOriginalTileFileName = TileFilename(lTilePoint, pZoom, False)
-                        ' Go ahead and use unmarked tile if we have it but not a marked version
-                        If Not IO.File.Exists(lTileFileName) Then lTileFileName = lOriginalTileFileName
-                    Else
-                        lOriginalTileFileName = lTileFileName
-                    End If
+                Dim lOriginalTileFileName As String
+                If pUseMarkedTiles Then
+                    lOriginalTileFileName = TileFilename(lTilePoint, pZoom, False)
+                    ' Go ahead and use unmarked tile if we have it but not a marked version
+                    If Not IO.File.Exists(lTileFileName) Then lTileFileName = lOriginalTileFileName
+                Else
+                    lOriginalTileFileName = lTileFileName
+                End If
 
-                    Dim lDrewTile As Boolean = DrawTile(lTileFileName, g, lOffsetFromWindowCorner)
-                    If Not lDrewTile Then ' search for cached tiles at other zoom levels to substitute
-                        'First try tiles zoomed farther out
-                        Dim lZoom As Integer
-                        Dim lX As Integer = x
-                        Dim lY As Integer = y
-                        Dim lNextX As Integer
-                        Dim lNextY As Integer
-                        Dim lZoomedTilePortion As Integer = g_TileSize
-                        Dim lFromX As Integer = 0
-                        Dim lFromY As Integer = 0
-                        Dim lRectOrigTile As New Rectangle(lOffsetFromWindowCorner.X, lOffsetFromWindowCorner.Y, g_TileSize, g_TileSize)
-                        For lZoom = pZoom - 1 To g_ZoomMin Step -1
-                            'Tile coordinates of next zoom out are half
-                            lNextX = lX >> 1
-                            lNextY = lY >> 1
+                Dim lDrewTile As Boolean = DrawTile(lTileFileName, g, lOffsetFromWindowCorner)
+                If Not lDrewTile Then ' search for cached tiles at other zoom levels to substitute
+                    'First try tiles zoomed farther out
+                    Dim lZoom As Integer
+                    Dim lX As Integer = x
+                    Dim lY As Integer = y
+                    Dim lNextX As Integer
+                    Dim lNextY As Integer
+                    Dim lZoomedTilePortion As Integer = g_TileSize
+                    Dim lFromX As Integer = 0
+                    Dim lFromY As Integer = 0
+                    Dim lRectOrigTile As New Rectangle(lOffsetFromWindowCorner.X, lOffsetFromWindowCorner.Y, g_TileSize, g_TileSize)
+                    For lZoom = pZoom - 1 To g_ZoomMin Step -1
+                        'Tile coordinates of next zoom out are half
+                        lNextX = lX >> 1
+                        lNextY = lY >> 1
 
-                            'Half as much of next zoomed tile width and height will fit 
-                            lZoomedTilePortion >>= 1
+                        'Half as much of next zoomed tile width and height will fit 
+                        lZoomedTilePortion >>= 1
 
-                            'Offset within the tile counts half as much in next zoom out
-                            lFromX >>= 1
-                            lFromY >>= 1
+                        'Offset within the tile counts half as much in next zoom out
+                        lFromX >>= 1
+                        lFromY >>= 1
 
-                            'If zoomed from an odd-numbered tile, it was in the right and/or bottom half of next zoom out
-                            If lX > lNextX << 1 Then lFromX += g_HalfTile
-                            If lY > lNextY << 1 Then lFromY += g_HalfTile
+                        'If zoomed from an odd-numbered tile, it was in the right and/or bottom half of next zoom out
+                        If lX > lNextX << 1 Then lFromX += g_HalfTile
+                        If lY > lNextY << 1 Then lFromY += g_HalfTile
 
-                            If DrawTile(TileFilename(New Drawing.Point(lNextX, lNextY), lZoom, False), g, lRectOrigTile, _
-                                    New Rectangle(lFromX, lFromY, lZoomedTilePortion, lZoomedTilePortion)) Then
-                                Exit For 'found a zoomed out tile to draw, don't keep looking for one zoomed out farther
-                            End If
-                            lX = lNextX
-                            lY = lNextY
-                        Next
-
-                        If pZoom < g_ZoomMax Then ' Try to draw tiles within this tile at finer zoom level
-                            lZoom = pZoom + 1
-                            Dim lDoubleX As Integer = x << 1
-                            Dim lFineTilePoint As New Drawing.Point(lDoubleX, y << 1)
-                            ' Portion of the tile covered by a finer zoom tile
-                            Dim lRectDestination As New Rectangle(lOffsetFromWindowCorner.X, _
-                                                                  lOffsetFromWindowCorner.Y, _
-                                                                  g_HalfTile, g_HalfTile)
-                            ' upper left tile
-                            DrawTile(TileFilename(lFineTilePoint, lZoom, False), g, lRectDestination, g_TileSizeRect)
-                            ' upper right tile
-                            lFineTilePoint.X += 1
-                            lRectDestination.X = lOffsetFromWindowCorner.X + g_HalfTile
-                            DrawTile(TileFilename(lFineTilePoint, lZoom, False), g, lRectDestination, g_TileSizeRect)
-                            ' lower right tile
-                            lFineTilePoint.Y += 1
-                            lRectDestination.Y = lOffsetFromWindowCorner.Y + g_HalfTile
-                            DrawTile(TileFilename(lFineTilePoint, lZoom, False), g, lRectDestination, g_TileSizeRect)
-                            ' lower left tile
-                            lFineTilePoint.X = lDoubleX
-                            lRectDestination.X = lOffsetFromWindowCorner.X
-                            DrawTile(TileFilename(lFineTilePoint, lZoom, False), g, lRectDestination, g_TileSizeRect)
+                        If DrawTile(TileFilename(New Drawing.Point(lNextX, lNextY), lZoom, False), g, lRectOrigTile, _
+                                New Rectangle(lFromX, lFromY, lZoomedTilePortion, lZoomedTilePortion)) Then
+                            Exit For 'found a zoomed out tile to draw, don't keep looking for one zoomed out farther
                         End If
+                        lX = lNextX
+                        lY = lNextY
+                    Next
+
+                    If pZoom < g_ZoomMax Then ' Try to draw tiles within this tile at finer zoom level
+                        lZoom = pZoom + 1
+                        Dim lDoubleX As Integer = x << 1
+                        Dim lFineTilePoint As New Drawing.Point(lDoubleX, y << 1)
+                        ' Portion of the tile covered by a finer zoom tile
+                        Dim lRectDestination As New Rectangle(lOffsetFromWindowCorner.X, _
+                                                              lOffsetFromWindowCorner.Y, _
+                                                              g_HalfTile, g_HalfTile)
+                        ' upper left tile
+                        DrawTile(TileFilename(lFineTilePoint, lZoom, False), g, lRectDestination, g_TileSizeRect)
+                        ' upper right tile
+                        lFineTilePoint.X += 1
+                        lRectDestination.X = lOffsetFromWindowCorner.X + g_HalfTile
+                        DrawTile(TileFilename(lFineTilePoint, lZoom, False), g, lRectDestination, g_TileSizeRect)
+                        ' lower right tile
+                        lFineTilePoint.Y += 1
+                        lRectDestination.Y = lOffsetFromWindowCorner.Y + g_HalfTile
+                        DrawTile(TileFilename(lFineTilePoint, lZoom, False), g, lRectDestination, g_TileSizeRect)
+                        ' lower left tile
+                        lFineTilePoint.X = lDoubleX
+                        lRectDestination.X = lOffsetFromWindowCorner.X
+                        DrawTile(TileFilename(lFineTilePoint, lZoom, False), g, lRectDestination, g_TileSizeRect)
                     End If
-                    If pDownloader.Enabled Then
-                        If Not lDrewTile Then
-                            pDownloader.Enqueue(lTilePoint, pZoom, 0, True) 'Request missing tile with highest priority
-                        ElseIf IO.File.GetLastWriteTime(lOriginalTileFileName) < pOldestCache Then
-                            pDownloader.Enqueue(lTilePoint, pZoom, 1, True) 'Request stale tile replacement with lower priority
-                        End If
+                End If
+                If pShowTileImages AndAlso pDownloader.Enabled Then
+                    If Not lDrewTile Then
+                        pDownloader.Enqueue(lTilePoint, pZoom, 0, True) 'Request missing tile with highest priority
+                    ElseIf IO.File.GetLastWriteTime(lOriginalTileFileName) < pOldestCache Then
+                        pDownloader.Enqueue(lTilePoint, pZoom, 1, True) 'Request stale tile replacement with lower priority
                     End If
-                Next
+                End If
             Next
+        Next
 
-            If pRedrawPending Then Exit Sub
+        If pRedrawPending Then Exit Sub
 
-            If pControlsShow Then
-                g.DrawLine(pPenBlack, pControlsMargin, 0, pControlsMargin, Me.Height)
-                g.DrawLine(pPenBlack, 0, pControlsMargin, Me.Width, pControlsMargin)
-                g.DrawLine(pPenBlack, Me.Width - pControlsMargin, 0, Me.Width - pControlsMargin, Me.Height)
-                g.DrawLine(pPenBlack, 0, Me.Height - pControlsMargin, Me.Width, Me.Height - pControlsMargin)
-            End If
-
-            If pGPXShow Then DrawLayers(g, lTopLeft, lOffsetToCenter)
-
-            If pShowCopyright Then g.DrawString(g_TileCopyright, pFontCopyright, pBrushCopyright, 3, Height - 50)
-
-            If pRedrawPending Then Exit Sub
-
-            DrewTiles(g, lTopLeft, lOffsetToCenter)
+        If pControlsShow Then
+            g.DrawLine(pPenBlack, pControlsMargin, 0, pControlsMargin, Me.Height)
+            g.DrawLine(pPenBlack, 0, pControlsMargin, Me.Width, pControlsMargin)
+            g.DrawLine(pPenBlack, Me.Width - pControlsMargin, 0, Me.Width - pControlsMargin, Me.Height)
+            g.DrawLine(pPenBlack, 0, Me.Height - pControlsMargin, Me.Width, Me.Height - pControlsMargin)
         End If
+
+        If pGPXShow Then DrawLayers(g, lTopLeft, lOffsetToCenter)
+
+        If pShowCopyright AndAlso pShowTileImages Then g.DrawString(g_TileCopyright, pFontCopyright, pBrushCopyright, 3, Height - 50)
+
+        If pRedrawPending Then Exit Sub
+
+        DrewTiles(g, lTopLeft, lOffsetToCenter)
     End Sub
 
     ''' <summary>

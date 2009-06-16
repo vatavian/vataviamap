@@ -104,7 +104,7 @@ Public Class frmMap
             Dim pBuddyAlarmLayer As clsLayerGPX = New clsLayerGPX("cursor", Me)
             pBuddyAlarmLayer.SymbolPen = New Pen(Color.Red)
             pBuddyAlarmLayer.SymbolSize = pBuddyAlarmMeters / MetersPerPixel(pZoom)
-            pBuddyAlarmLayer.DrawTrackpoint(g, lWaypoint, aTopLeft, aOffsetToCenter)
+            pBuddyAlarmLayer.DrawTrackpoint(g, lWaypoint, aTopLeft, aOffsetToCenter, -1, -1)
         End If
     End Sub
 

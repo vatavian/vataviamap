@@ -247,22 +247,39 @@ Public Class clsLayerGPX
 
     Public GPX As clsGPX
 
-    Public PenTrack As New Pen(Color.FromArgb(-2147432248), 4) '128, 0, 200, 200))
-    Public PenGeocache As New Pen(Color.Green)
-    Public PenWaypoint As New Pen(Color.Navy)
+    Public PenTrack As Pen
+    Public PenGeocache As Pen
+    Public PenWaypoint As Pen
 
     Public LabelField As String
-    Public BrushLabel As New SolidBrush(Color.Black)
-    Public FontLabel As New Font("Arial", 10, FontStyle.Regular)
+    Public BrushLabel As SolidBrush
+    Public FontLabel As Font
 
     Public SymbolSize As Integer
-    Public SymbolPen As Drawing.Pen = PenTrack
+    Public SymbolPen As Drawing.Pen
 
-    Public ArrowSize As Integer = 0
-    Private pDistSinceArrow As Integer = 0
+    Public ArrowSize As Integer
+    Private pDistSinceArrow As Integer
+
+    Private Sub SetDefaults()
+        PenTrack = New Pen(Color.FromArgb(-2147432248), 4) '128, 0, 200, 200))
+        PenGeocache = New Pen(Color.Green)
+        PenWaypoint = New Pen(Color.Navy)
+
+        LabelField = ""
+        BrushLabel = New SolidBrush(Color.Black)
+        FontLabel = New Font("Arial", 10, FontStyle.Regular)
+
+        SymbolSize = 10
+        SymbolPen = PenTrack
+
+        ArrowSize = 0
+        pDistSinceArrow = 0
+    End Sub
 
     Public Sub New(ByVal aFilename As String, ByVal aMapForm As frmMap)
         MyBase.New(aFilename, aMapForm)
+        SetDefaults()
         GPX = New clsGPX
         If IO.File.Exists(aFilename) Then
             GPX.LoadFile(aFilename)
@@ -271,6 +288,7 @@ Public Class clsLayerGPX
 
     Public Sub New(ByVal aWaypoints As Generic.List(Of clsGPXwaypoint), ByVal aMapForm As frmMap)
         MyBase.New("", aMapForm)
+        SetDefaults()
         GPX = New clsGPX
         GPX.wpt = aWaypoints
     End Sub
@@ -313,21 +331,44 @@ Public Class clsLayerGPX
                 If GPX.trk.Count = 1 AndAlso (GPX.trk(0).trkseg.Count = 1) AndAlso (GPX.trk(0).trkseg(0).trkpt.Count = 1) Then
                     DrawWaypoint(g, GPX.trk(0).trkseg(0).trkpt(0), aTopLeftTile, aOffsetToCenter)
                 Else
+
+#If Not Smartphone Then
+                    Dim lSymbolPath As New Drawing2D.GraphicsPath()
+                    Dim lTrackPath As New Drawing2D.GraphicsPath()
+#End If
+
                     lStartTime = Date.Now
                     For Each lTrack As clsGPXtrack In GPX.trk
                         For Each lTrackSegment As clsGPXtracksegment In lTrack.trkseg
                             Dim lLastX As Integer = -1
                             Dim lLastY As Integer = -1
                             For Each lTrackPoint As clsGPXwaypoint In lTrackSegment.trkpt
+
+#If Not Smartphone Then
+                                If Not DrawTrackpoint(lTrackPoint, aTopLeftTile, aOffsetToCenter, lSymbolPath, lTrackPath, lLastX, lLastY) Then
+                                    If lTrackPath.PointCount > 0 Then
+                                        g.DrawPath(PenTrack, lTrackPath)
+                                        lTrackPath.Reset()
+                                    End If
+#Else
                                 If Not DrawTrackpoint(g, lTrackPoint, aTopLeftTile, aOffsetToCenter, lLastX, lLastY) Then
-                                    'unset last point if it was not drawn to avoid incorrectly drawing line directly between non-adjacent points
-                                    'todo: figure out how to draw segment from last point if last point was outside view
+#End If
                                     lLastX = -1
                                     lLastY = -1
                                 End If
                             Next
+#If Not Smartphone Then
+                            If lSymbolPath.PointCount > 0 AndAlso SymbolPen IsNot Nothing Then
+                                g.DrawPath(SymbolPen, lSymbolPath)
+                                lSymbolPath.Reset()
+                            End If
+                            If lTrackPath.PointCount > 0 AndAlso PenTrack IsNot Nothing Then
+                                g.DrawPath(PenTrack, lTrackPath)
+                                lTrackPath.Reset()
+                            End If
+#End If
+                            If Date.Now.Subtract(lStartTime).TotalSeconds > 2 Then Exit For
                         Next
-                        If Date.Now.Subtract(lStartTime).TotalSeconds > 2 Then Exit For
                     Next
                 End If
             End If
@@ -438,16 +479,16 @@ Public Class clsLayerGPX
     ''' <param name="aWaypoint"></param>
     ''' <param name="aTopLeftTile"></param>
     ''' <param name="aOffsetToCenter"></param>
-    ''' <param name="aFromX"></param>
-    ''' <param name="aFromY"></param>
+    ''' <param name="aFromX">X coordinate of point to draw line from, -1 to skip drawing from</param>
+    ''' <param name="aFromY">Y coordinate of point to draw line from, -1 to skip drawing from</param>
     ''' <returns>True if waypoint was drawn, False if it was outside view</returns>
     ''' <remarks></remarks>
     Public Function DrawTrackpoint(ByVal g As Graphics, _
                                     ByVal aWaypoint As clsGPXwaypoint, _
                                     ByVal aTopLeftTile As Point, _
                                     ByVal aOffsetToCenter As Point, _
-                           Optional ByRef aFromX As Integer = -1, _
-                           Optional ByRef aFromY As Integer = -1) As Boolean
+                                    ByRef aFromX As Integer, _
+                                    ByRef aFromY As Integer) As Boolean
         With aWaypoint
             If MapForm.LatLonInView(.lat, .lon) Then
                 Dim lTileXY As Point 'Which tile this point belongs in
@@ -489,5 +530,69 @@ Public Class clsLayerGPX
             End If
         End With
     End Function
+
+#If Not Smartphone Then
+
+    ''' <summary>
+    ''' Optimized version using GraphicsPath not available on Smartphone
+    ''' </summary>
+    ''' <param name="aWaypoint"></param>
+    ''' <param name="aTopLeftTile"></param>
+    ''' <param name="aOffsetToCenter"></param>
+    ''' <param name="aSymbolPath"></param>
+    ''' <param name="aTrackPath"></param>
+    ''' <param name="aFromX">X coordinate of point to draw line from, -1 to skip drawing from</param>
+    ''' <param name="aFromY">Y coordinate of point to draw line from, -1 to skip drawing from</param>
+    ''' <returns></returns>
+    ''' <remarks></remarks>
+    Private Function DrawTrackpoint(ByVal aWaypoint As clsGPXwaypoint, _
+                                ByVal aTopLeftTile As Point, _
+                                ByVal aOffsetToCenter As Point, _
+                                ByVal aSymbolPath As Drawing2D.GraphicsPath, _
+                                ByVal aTrackPath As Drawing2D.GraphicsPath, _
+                                ByRef aFromX As Integer, _
+                                ByRef aFromY As Integer) As Boolean
+        With aWaypoint
+            If MapForm.LatLonInView(.lat, .lon) Then
+                Dim lTileXY As Point 'Which tile this point belongs in
+                Dim lTileOffset As Point 'Offset within lTileXY in pixels
+                lTileXY = CalcTileXY(.lat, .lon, MapForm.Zoom, lTileOffset)
+                Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileSize + aOffsetToCenter.X + lTileOffset.X
+                Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileSize + aOffsetToCenter.Y + lTileOffset.Y
+
+                If aFromX <> -1 OrElse aFromY <> -1 Then
+                    aTrackPath.AddLine(aFromX, aFromY, lX, lY)
+                    If ArrowSize > 0 Then pDistSinceArrow += Math.Sqrt((lX - aFromX) ^ 2 + (lY - aFromY) ^ 2)
+                End If
+
+                Select Case .sym
+                    'Case Nothing
+                    '    If ArrowSize > 0 AndAlso pDistSinceArrow >= ArrowSize AndAlso .courseSpecified Then 'Draw arrow
+                    '        DrawArrow(g, PenTrack, lX, lY, DegToRad(.course), ArrowSize)
+                    '        pDistSinceArrow = 0
+                    '    End If
+                    Case "cursor"
+                        If SymbolSize > 0 Then
+                            'If .courseSpecified Then 'Draw arrow
+                            '    DrawArrow(g, SymbolPen, lX, lY, DegToRad(.course), SymbolSize)
+                            'Else 'Draw an X
+                            aSymbolPath.AddLine(lX - SymbolSize, lY - SymbolSize, lX + SymbolSize, lY + SymbolSize)
+                            aSymbolPath.AddLine(lX - SymbolSize, lY + SymbolSize, lX + SymbolSize, lY - SymbolSize)
+                            'End If
+                        End If
+                    Case "circle"
+                        If SymbolSize > 0 Then
+                            aSymbolPath.AddEllipse(lX - SymbolSize, lY - SymbolSize, SymbolSize * 2, SymbolSize * 2)
+                        End If
+                End Select
+                aFromX = lX
+                aFromY = lY
+                Return True
+            Else
+                Return False
+            End If
+        End With
+    End Function
+#End If
 
 End Class
