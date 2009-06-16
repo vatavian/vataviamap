@@ -142,7 +142,7 @@ RestartRedraw:
                 Dim lWaypoint As New clsGPXwaypoint("wpt", GPS_POSITION.Latitude, GPS_POSITION.Longitude)
                 lWaypoint.sym = "cursor"
                 lWaypoint.course = GPS_POSITION.Heading
-                pCursorLayer.DrawTrackpoint(g, lWaypoint, aTopLeft, aOffsetToCenter)
+                pCursorLayer.DrawTrackpoint(g, lWaypoint, aTopLeft, aOffsetToCenter, -1, -1)
             End If
         End If
     End Sub
