@@ -48,8 +48,7 @@ Partial Class frmMap
     Private pMouseDownLat As Double
     Private pMouseDownLon As Double
 
-    Private pMouseWheelZoom As Boolean = True
-    Private pMouseWheelTileServer As Boolean = False
+    Private pMouseWheelAction As EnumWheelAction = EnumWheelAction.Zoom
 
     Private pLastKeyDown As Integer = 0
 

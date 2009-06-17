@@ -54,6 +54,12 @@ Module modGlobal
         DegreesMinutesSeconds = 2
     End Enum
 
+    Public Enum EnumWheelAction
+        Zoom = 0
+        TileServer = 1
+        Layer = 2
+    End Enum
+
     Friend Function FormattedDegrees(ByVal aDegrees As Double, ByVal aFormat As EnumDegreeFormat) As String
         Dim lStr As String = Nothing, lStrMinutes As String = Nothing, lStrSeconds As String = Nothing
         Select Case aFormat

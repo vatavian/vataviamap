@@ -194,31 +194,49 @@ Public Class frmMap
     End Sub
 
     Private Sub frmMap_MouseWheel(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles Me.MouseWheel
-        If pMouseWheelZoom Then
-            If e.Delta > 0 Then
-                Zoom += 1
-            ElseIf e.Delta < 0 Then
-                Zoom -= 1
-            End If
-        ElseIf pMouseWheelTileServer Then
-            For lItemIndex As Integer = 0 To TileServerToolStripMenuItem.DropDownItems.Count - 2
-                Dim lItem As ToolStripMenuItem = TileServerToolStripMenuItem.DropDownItems(lItemIndex)
-                If lItem.Checked Then
-                    If e.Delta > 0 Then
-                        lItemIndex += 1
-                    ElseIf e.Delta < 0 Then
-                        lItemIndex -= 1
-                    End If
-                    If lItemIndex < 0 Then
-                        lItemIndex = pTileServers.Keys.Count - 1
-                    ElseIf lItemIndex >= pTileServers.Keys.Count Then
-                        lItemIndex = 0
-                    End If
-                    TileServer_Click(TileServerToolStripMenuItem.DropDownItems(lItemIndex), e)
-                    Exit Sub
+        Select Case pMouseWheelAction
+            Case EnumWheelAction.Zoom
+                If e.Delta > 0 Then
+                    Zoom += 1
+                ElseIf e.Delta < 0 Then
+                    Zoom -= 1
                 End If
-            Next
-        End If
+            Case EnumWheelAction.TileServer
+                For lItemIndex As Integer = 0 To TileServerToolStripMenuItem.DropDownItems.Count - 2
+                    Dim lItem As ToolStripMenuItem = TileServerToolStripMenuItem.DropDownItems(lItemIndex)
+                    If lItem.Checked Then
+                        If e.Delta > 0 Then
+                            lItemIndex += 1
+                        ElseIf e.Delta < 0 Then
+                            lItemIndex -= 1
+                        End If
+                        If lItemIndex < 0 Then
+                            lItemIndex = pTileServers.Keys.Count - 1
+                        ElseIf lItemIndex >= pTileServers.Keys.Count Then
+                            lItemIndex = 0
+                        End If
+                        TileServer_Click(TileServerToolStripMenuItem.DropDownItems(lItemIndex), e)
+                        Exit Sub
+                    End If
+                Next
+            Case EnumWheelAction.Layer
+                Dim lVisibleIndex As Integer = -1
+                For lVisibleIndex = 0 To pLayers.Count - 1
+                    If pLayers(lVisibleIndex).Visible Then
+                        Exit For
+                    End If
+                Next
+                lVisibleIndex += 1
+                If lVisibleIndex >= pLayers.Count Then lVisibleIndex = 0
+                For lIndex As Integer = 0 To pLayers.Count - 1
+                    If (lIndex = lVisibleIndex) Then
+                        pLayers(lIndex).Visible = True
+                    Else
+                        pLayers(lIndex).Visible = False
+                    End If
+                Next
+                Redraw()
+        End Select
     End Sub
 
     Private Sub frmMap_Shown(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Shown
@@ -578,7 +596,7 @@ Public Class frmMap
         Redraw()
     End Sub
 
-    Private Sub pLayersForm_CheckedItemsChanged(ByVal aSelectedLayers As ArrayList) Handles pLayersForm.CheckedItemsChanged
+    Private Sub pLayersForm_CheckedItemsChanged(ByVal aSelectedLayers As Generic.List(Of String)) Handles pLayersForm.CheckedItemsChanged
         'Change set of loaded/visible layers to match ones now checked
         Dim lFilename As String
 
@@ -667,15 +685,21 @@ Public Class frmMap
     Private Sub WheelTileServerToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles WheelTileServerToolStripMenuItem.Click
         WheelTileServerToolStripMenuItem.Checked = True
         WheelZoomToolStripMenuItem.Checked = False
-        pMouseWheelTileServer = True
-        pMouseWheelZoom = False
+        WheelLayerToolStripMenuItem.Checked = False
+        pMouseWheelAction = EnumWheelAction.TileServer
     End Sub
 
     Private Sub WheelZoomToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles WheelZoomToolStripMenuItem.Click
         WheelTileServerToolStripMenuItem.Checked = False
         WheelZoomToolStripMenuItem.Checked = True
-        pMouseWheelTileServer = False
-        pMouseWheelZoom = True
+        WheelLayerToolStripMenuItem.Checked = False
+        pMouseWheelAction = EnumWheelAction.Zoom
     End Sub
 
+    Private Sub WheelLayerToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles WheelLayerToolStripMenuItem.Click
+        WheelTileServerToolStripMenuItem.Checked = False
+        WheelZoomToolStripMenuItem.Checked = False
+        WheelLayerToolStripMenuItem.Checked = True
+        pMouseWheelAction = EnumWheelAction.Layer
+    End Sub
 End Class

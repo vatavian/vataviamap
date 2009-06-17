@@ -3,6 +3,7 @@ Public Class clsLayer
     Public Visible As Boolean = True
     Public MapForm As frmMap
     Private pBounds As clsGPXbounds
+    Private pLegendColor As Color = Drawing.Color.White
 
     Public Sub New(ByVal aFilename As String, ByVal aMapForm As frmMap)
         Filename = aFilename
@@ -21,6 +22,15 @@ Public Class clsLayer
     Public Overridable Sub Clear()
         Filename = ""
     End Sub
+
+    Public Overridable Property LegendColor() As Color
+        Get
+            Return pLegendColor
+        End Get
+        Set(ByVal value As Color)
+            pLegendColor = value
+        End Set
+    End Property
 
     Public Overridable Sub Render(ByVal g As Graphics, ByVal aTopLeftTile As Point, ByVal aOffsetToCenter As Point)
     End Sub
@@ -306,6 +316,15 @@ Public Class clsLayerGPX
         MyBase.Clear()
         GPX.Clear()
     End Sub
+
+    Public Overrides Property LegendColor() As System.Drawing.Color
+        Get
+            Return PenTrack.Color
+        End Get
+        Set(ByVal value As System.Drawing.Color)
+            PenTrack.Color = value
+        End Set
+    End Property
 
     Public Overrides Sub Render(ByVal g As Graphics, ByVal aTopLeftTile As Point, ByVal aOffsetToCenter As Point)
         If Me.Visible Then
