@@ -58,17 +58,19 @@ Partial Class frmMap
         Me.WheelToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.WheelZoomToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.WheelTileServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.WheelLayerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.RightClickMenu = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.RefreshFromServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.GetAllDescendantsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
-        Me.WheelLayerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.HelpToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.VataviaMapProjectPageToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.MenuStripMain.SuspendLayout()
         Me.RightClickMenu.SuspendLayout()
         Me.SuspendLayout()
         '
         'MenuStripMain
         '
-        Me.MenuStripMain.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FileToolStripMenuItem, Me.ViewToolStripMenuItem, Me.ZoomToolStripMenuItem, Me.TileServerToolStripMenuItem, Me.OverlayServerToolStripMenuItem, Me.BuddiesToolStripMenuItem, Me.WheelToolStripMenuItem})
+        Me.MenuStripMain.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FileToolStripMenuItem, Me.ViewToolStripMenuItem, Me.ZoomToolStripMenuItem, Me.TileServerToolStripMenuItem, Me.OverlayServerToolStripMenuItem, Me.BuddiesToolStripMenuItem, Me.WheelToolStripMenuItem, Me.HelpToolStripMenuItem})
         Me.MenuStripMain.Location = New System.Drawing.Point(0, 0)
         Me.MenuStripMain.Name = "MenuStripMain"
         Me.MenuStripMain.Size = New System.Drawing.Size(658, 27)
@@ -280,6 +282,12 @@ Partial Class frmMap
         Me.WheelTileServerToolStripMenuItem.Size = New System.Drawing.Size(170, 24)
         Me.WheelTileServerToolStripMenuItem.Text = "Tile Server"
         '
+        'WheelLayerToolStripMenuItem
+        '
+        Me.WheelLayerToolStripMenuItem.Name = "WheelLayerToolStripMenuItem"
+        Me.WheelLayerToolStripMenuItem.Size = New System.Drawing.Size(170, 24)
+        Me.WheelLayerToolStripMenuItem.Text = "Layer"
+        '
         'RightClickMenu
         '
         Me.RightClickMenu.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.RefreshFromServerToolStripMenuItem, Me.GetAllDescendantsToolStripMenuItem})
@@ -298,11 +306,18 @@ Partial Class frmMap
         Me.GetAllDescendantsToolStripMenuItem.Size = New System.Drawing.Size(239, 24)
         Me.GetAllDescendantsToolStripMenuItem.Text = "Get All Descendants"
         '
-        'WheelLayerToolStripMenuItem
+        'HelpToolStripMenuItem
         '
-        Me.WheelLayerToolStripMenuItem.Name = "WheelLayerToolStripMenuItem"
-        Me.WheelLayerToolStripMenuItem.Size = New System.Drawing.Size(170, 24)
-        Me.WheelLayerToolStripMenuItem.Text = "Layer"
+        Me.HelpToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.VataviaMapProjectPageToolStripMenuItem})
+        Me.HelpToolStripMenuItem.Name = "HelpToolStripMenuItem"
+        Me.HelpToolStripMenuItem.Size = New System.Drawing.Size(53, 23)
+        Me.HelpToolStripMenuItem.Text = "Help"
+        '
+        'VataviaMapProjectPageToolStripMenuItem
+        '
+        Me.VataviaMapProjectPageToolStripMenuItem.Name = "VataviaMapProjectPageToolStripMenuItem"
+        Me.VataviaMapProjectPageToolStripMenuItem.Size = New System.Drawing.Size(267, 24)
+        Me.VataviaMapProjectPageToolStripMenuItem.Text = "VataviaMap Project Page"
         '
         'frmMap
         '
@@ -360,4 +375,6 @@ Partial Class frmMap
     Friend WithEvents OverlayMaplintToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents OverlayYahooLabelsToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents WheelLayerToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents HelpToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents VataviaMapProjectPageToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
 End Class
