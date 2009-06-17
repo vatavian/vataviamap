@@ -702,4 +702,8 @@ Public Class frmMap
         WheelLayerToolStripMenuItem.Checked = True
         pMouseWheelAction = EnumWheelAction.Layer
     End Sub
+
+    Private Sub VataviaMapProjectPageToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles VataviaMapProjectPageToolStripMenuItem.Click
+        OpenFile("http://code.google.com/p/vataviamap/")
+    End Sub
 End Class
