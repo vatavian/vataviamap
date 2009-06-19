@@ -492,15 +492,19 @@ Partial Class frmMap
     End Sub
 
     Private Function GetBitmapGraphics() As Graphics
-        pBitmapMutex.WaitOne()
-        If Not pBitmap Is Nothing Then
-            Dim lGraphics As Graphics = Graphics.FromImage(pBitmap)
-            lGraphics.Clip = New Drawing.Region(New Drawing.Rectangle(0, 0, pBitmap.Width, pBitmap.Height))
-            Return lGraphics
-        Else
-            pBitmapMutex.ReleaseMutex()
+        Try
+            pBitmapMutex.WaitOne()
+            If Not pBitmap Is Nothing Then
+                Dim lGraphics As Graphics = Graphics.FromImage(pBitmap)
+                lGraphics.Clip = New Drawing.Region(New Drawing.Rectangle(0, 0, pBitmap.Width, pBitmap.Height))
+                Return lGraphics
+            Else
+                pBitmapMutex.ReleaseMutex()
+                Return Nothing
+            End If
+        Catch e As Exception
             Return Nothing
-        End If
+        End Try
     End Function
 
     Private Sub ReleaseBitmapGraphics()
@@ -671,15 +675,15 @@ Partial Class frmMap
         If pRedrawPending Then Exit Sub
 
         If pControlsShow Then
-            g.DrawLine(pPenBlack, pControlsMargin, 0, pControlsMargin, Me.Height)
-            g.DrawLine(pPenBlack, 0, pControlsMargin, Me.Width, pControlsMargin)
-            g.DrawLine(pPenBlack, Me.Width - pControlsMargin, 0, Me.Width - pControlsMargin, Me.Height)
-            g.DrawLine(pPenBlack, 0, Me.Height - pControlsMargin, Me.Width, Me.Height - pControlsMargin)
+            g.DrawLine(pPenBlack, pControlsMargin, 0, pControlsMargin, pBitmap.Height)
+            g.DrawLine(pPenBlack, 0, pControlsMargin, pBitmap.Width, pControlsMargin)
+            g.DrawLine(pPenBlack, pBitmap.Width - pControlsMargin, 0, pBitmap.Width - pControlsMargin, pBitmap.Height)
+            g.DrawLine(pPenBlack, 0, pBitmap.Height - pControlsMargin, pBitmap.Width, pBitmap.Height - pControlsMargin)
         End If
 
         If pGPXShow Then DrawLayers(g, lTopLeft, lOffsetToCenter)
 
-        If pShowCopyright AndAlso pShowTileImages Then g.DrawString(g_TileCopyright, pFontCopyright, pBrushCopyright, 3, Height - 50)
+        If pShowCopyright AndAlso pShowTileImages Then g.DrawString(g_TileCopyright, pFontCopyright, pBrushCopyright, 3, pBitmap.Height - 20)
 
         If pRedrawPending Then Exit Sub
 
@@ -1031,7 +1035,9 @@ Partial Class frmMap
     Private Sub frmMap_Paint(ByVal sender As Object, ByVal e As System.Windows.Forms.PaintEventArgs) Handles Me.Paint
         If Not pBitmap Is Nothing Then
             pBitmapMutex.WaitOne()
-            e.Graphics.DrawImage(pBitmap, 0, 0)
+            With MapRectangle()
+                e.Graphics.DrawImage(pBitmap, .Left, .Top)
+            End With
             pBitmapMutex.ReleaseMutex()
         End If
     End Sub
@@ -1041,10 +1047,14 @@ Partial Class frmMap
     End Sub
 
     Private Sub frmMap_Resize(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Resize
-        pBitmapMutex.WaitOne()
-        pBitmap = New Bitmap(Width, Height, Drawing.Imaging.PixelFormat.Format24bppRgb)
-        pBitmapMutex.ReleaseMutex()
-        pControlsMargin = Math.Min(Me.Width, Me.Height) / 4
+        With MapRectangle()
+            If .Width > 0 AndAlso .Height > 0 Then
+                pBitmapMutex.WaitOne()
+                pBitmap = New Bitmap(.Width, .Height, Drawing.Imaging.PixelFormat.Format24bppRgb)
+                pControlsMargin = Math.Min(pBitmap.Width, pBitmap.Height) / 4
+                pBitmapMutex.ReleaseMutex()
+            End If
+        End With
         Redraw()
     End Sub
 
@@ -1067,7 +1077,7 @@ Partial Class frmMap
         If aFilenames.Length > 1 Then
             pGPXPanTo = lGPXPanTo
             pGPXZoomTo = lGPXZoomTo
-            ZoomToAll()
+            If pGPXZoomTo Then ZoomToAll()
         End If
 
         If Not pGPXPanTo AndAlso Not pGPXZoomTo Then Redraw()

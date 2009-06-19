@@ -131,6 +131,10 @@ RestartRedraw:
         Return pLayers(0)
     End Function
 
+    Private Function MapRectangle() As Rectangle
+        Return ClientRectangle        
+    End Function
+
     Private Sub Zoomed()
         Redraw()
     End Sub
