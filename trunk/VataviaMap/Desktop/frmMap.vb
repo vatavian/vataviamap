@@ -84,6 +84,14 @@ Public Class frmMap
         End If
     End Sub
 
+    Private Function MapRectangle() As Rectangle
+        Dim lMenuHeight As Integer = 27
+        If Me.MainMenuStrip IsNot Nothing Then lMenuHeight = MainMenuStrip.Height
+        With ClientRectangle
+            Return New Rectangle(.X, .Y + lMenuHeight, .Width, .Height - lMenuHeight)
+        End With
+    End Function
+
     ''' <summary>
     ''' Zoom level has been set, update Zoom menu to show current Zoom
     ''' </summary>
