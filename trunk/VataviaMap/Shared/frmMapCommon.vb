@@ -1049,6 +1049,12 @@ Partial Class frmMap
     End Sub
 
     Private Sub OpenGPXs(ByVal aFilenames() As String)
+        Dim lGPXPanTo As Boolean = pGPXPanTo
+        Dim lGPXZoomTo As Boolean = pGPXZoomTo
+        If aFilenames.Length > 1 Then
+            pGPXPanTo = False
+            pGPXZoomTo = False
+        End If
         Dim lSaveTitle As String = Me.Text
         Dim lNumFiles As Integer = aFilenames.Length
         Dim lCurFile As Integer = 1
@@ -1058,6 +1064,11 @@ Partial Class frmMap
             lCurFile += 1
         Next
         Me.Text = lSaveTitle
+        If aFilenames.Length > 1 Then
+            pGPXPanTo = lGPXPanTo
+            pGPXZoomTo = lGPXZoomTo
+            ZoomToAll()
+        End If
 
         If Not pGPXPanTo AndAlso Not pGPXZoomTo Then Redraw()
     End Sub
