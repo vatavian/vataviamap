@@ -1105,12 +1105,12 @@ Partial Class frmMap
                 End If
                 If pGPXPanTo OrElse pGPXZoomTo AndAlso lNewLayer.Bounds IsNot Nothing Then
                     If pGPXPanTo Then
-                        PanTo(lNewLayer)
+                        PanTo(lNewLayer.Bounds)
                     End If
                     If pGPXZoomTo AndAlso _
                        lNewLayer.Bounds.minlat < lNewLayer.Bounds.maxlat AndAlso _
                        lNewLayer.Bounds.minlon < lNewLayer.Bounds.maxlon Then
-                        ZoomTo(lNewLayer)
+                        Zoom = FindZoom(lNewLayer.Bounds)
                     Else
                         Redraw()
                     End If
@@ -1123,31 +1123,31 @@ Partial Class frmMap
     End Sub
 
     ''' <summary>
-    ''' Center the view on the center of the given layer
+    ''' Center the view on the center of the given bounds
     ''' </summary>
-    ''' <param name="aLayer">Layer to center on</param>
+    ''' <param name="aBounds">Bounds to center on</param>
     ''' <remarks>Does not redraw</remarks>
-    Private Sub PanTo(ByVal aLayer As clsLayer)
-        With aLayer.Bounds
+    Private Sub PanTo(ByVal aBounds As clsGPXbounds)
+        With aBounds
             CenterLat = .minlat + (.maxlat - .minlat) / 2
             CenterLon = .minlon + (.maxlon - .minlon) / 2
         End With
     End Sub
 
     ''' <summary>
-    ''' Change zoom (not center point) to include the given layer
+    ''' Find zoom that would include the given layer without changing the center point
     ''' </summary>
-    ''' <param name="aLayer">Layer to zoom to</param>
+    ''' <param name="aBounds">Bounds to zoom to</param>
     ''' <param name="aZoomIn">True to zoom in to best fit layer</param>
     ''' <param name="aZoomOut">True to zoom out to fit layer</param>
     ''' <remarks>
     ''' Defaults to zooming in or out as needed to best fit layer
-    ''' Does not redraw
+    ''' Does not redraw or set the zoom level of the map
     ''' </remarks>
-    Private Sub ZoomTo(ByVal aLayer As clsLayer, _
-              Optional ByVal aZoomIn As Boolean = True, _
-              Optional ByVal aZoomOut As Boolean = True)
-        With aLayer.Bounds
+    Private Function FindZoom(ByVal aBounds As clsGPXbounds, _
+                     Optional ByVal aZoomIn As Boolean = True, _
+                     Optional ByVal aZoomOut As Boolean = True) As Integer
+        With aBounds
             Dim lDesiredZoom As Integer = pZoom
             Dim lNewLatHeight As Double = LatHeight
             Dim lNewLonWidth As Double = LonWidth
@@ -1173,17 +1173,26 @@ Partial Class frmMap
                     lNewLatHeight *= 2
                 End While
             End If
-            Zoom = lDesiredZoom
+            Return lDesiredZoom
         End With
-    End Sub
+    End Function
 
     Private Sub ZoomToAll()
         Dim lFirstLayer As Boolean = True 'Zoom in on first layer, then zoom out to include all layers
+        Dim lAllBounds As clsGPXbounds = Nothing
         For Each lLayer As clsLayer In pLayers
-            If lFirstLayer Then PanTo(lLayer)
-            ZoomTo(lLayer, lFirstLayer)
+            If lFirstLayer Then
+                lAllBounds = lLayer.Bounds.Clone
+            Else
+                If lLayer.Bounds.minlat < lAllBounds.minlat Then lAllBounds.minlat = lLayer.Bounds.minlat
+                If lLayer.Bounds.minlon < lAllBounds.minlon Then lAllBounds.minlon = lLayer.Bounds.minlon
+                If lLayer.Bounds.maxlat > lAllBounds.maxlat Then lAllBounds.maxlat = lLayer.Bounds.maxlat
+                If lLayer.Bounds.maxlon > lAllBounds.maxlon Then lAllBounds.maxlon = lLayer.Bounds.maxlon
+            End If
             lFirstLayer = False
         Next
+        PanTo(lAllBounds)
+        Zoom = FindZoom(lAllBounds)
     End Sub
 
     ''' <summary>
