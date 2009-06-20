@@ -36,6 +36,7 @@ Partial Class frmLayers
         Me.btnColorRamp = New System.Windows.Forms.Button
         Me.btnColorRandom = New System.Windows.Forms.Button
         Me.btnColor = New System.Windows.Forms.Button
+        Me.Duration = New System.Windows.Forms.ColumnHeader
         Me.grpColor.SuspendLayout()
         Me.SuspendLayout()
         '
@@ -99,10 +100,10 @@ Partial Class frmLayers
                     Or System.Windows.Forms.AnchorStyles.Left) _
                     Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.lstLayers.CheckBoxes = True
-        Me.lstLayers.Columns.AddRange(New System.Windows.Forms.ColumnHeader() {Me.Filename})
+        Me.lstLayers.Columns.AddRange(New System.Windows.Forms.ColumnHeader() {Me.Filename, Me.Duration})
         Me.lstLayers.Location = New System.Drawing.Point(0, 0)
         Me.lstLayers.Name = "lstLayers"
-        Me.lstLayers.Size = New System.Drawing.Size(264, 516)
+        Me.lstLayers.Size = New System.Drawing.Size(724, 516)
         Me.lstLayers.TabIndex = 8
         Me.lstLayers.UseCompatibleStateImageBehavior = False
         Me.lstLayers.View = System.Windows.Forms.View.Details
@@ -178,11 +179,15 @@ Partial Class frmLayers
         Me.btnColor.Text = "Set"
         Me.btnColor.UseVisualStyleBackColor = False
         '
+        'Duration
+        '
+        Me.Duration.Text = "Duration"
+        '
         'frmLayers
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(264, 669)
+        Me.ClientSize = New System.Drawing.Size(724, 669)
         Me.Controls.Add(Me.grpColor)
         Me.Controls.Add(Me.chkAllVisible)
         Me.Controls.Add(Me.lblArrowSize)
@@ -212,4 +217,5 @@ Partial Class frmLayers
     Friend WithEvents btnColorSame As System.Windows.Forms.Button
     Friend WithEvents btnColorRamp As System.Windows.Forms.Button
     Friend WithEvents btnColorRandom As System.Windows.Forms.Button
+    Friend WithEvents Duration As System.Windows.Forms.ColumnHeader
 End Class

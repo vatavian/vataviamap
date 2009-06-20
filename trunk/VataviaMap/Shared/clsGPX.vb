@@ -1169,6 +1169,7 @@ Partial Public Class clsGPXroute
 End Class
 
 Partial Public Class clsGPXbounds
+    Implements ICloneable
 
     Private minlatField As Double = 90
     Private minlonField As Double = 180
@@ -1183,6 +1184,10 @@ Partial Public Class clsGPXbounds
             SetSomething(Me, lAttribute.Name, lAttribute.InnerXml)
         Next
     End Sub
+
+    Public Function Clone() As Object Implements ICloneable.Clone
+        Return MemberwiseClone()
+    End Function
 
     Public Property minlat() As Double
         Get
@@ -1219,6 +1224,11 @@ Partial Public Class clsGPXbounds
             Me.maxlonField = value
         End Set
     End Property
+
+    Public Overrides Function ToString() As String
+        Return "(" & Format(minlonField, "0.000") & ", " & Format(minlatField, "0.000") & ") (" _
+                   & Format(maxlonField, "0.000") & ", " & Format(maxlatField, "0.000") & ")"
+    End Function
 End Class
 
 Partial Public Class clsGPXcopyright

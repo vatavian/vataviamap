@@ -55,7 +55,16 @@ Public Class frmLayers
                     lItem.ForeColor = Color.White
                 End If
                 lItem.Checked = lLayer.Visible
-                'lstLayers.SetItemChecked(lstLayers.Items.Add(lLayer.Filename), lLayer.Visible)
+                If lLayer.GetType.Name = "clsLayerGPX" Then
+                    Dim lGPX As clsLayerGPX = lLayer
+                    Dim lTracks As Generic.List(Of clsGPXtrack) = lGPX.GPX.trk
+                    If lTracks IsNot Nothing AndAlso lTracks.Count > 0 Then
+                        Dim lFirstTrackPoint As clsGPXwaypoint = lTracks(0).trkseg(0).trkpt(0)
+                        Dim lLastTrackSeg As clsGPXtracksegment = lTracks(lTracks.Count - 1).trkseg(lTracks(lTracks.Count - 1).trkseg.Count - 1)
+                        Dim lLastTrackPoint As clsGPXwaypoint = lLastTrackSeg.trkpt(lLastTrackSeg.trkpt.Count - 1)
+                        lItem.SubItems.Add(lLastTrackPoint.time.Subtract(lFirstTrackPoint.time).ToString)
+                    End If
+                End If
             Next
         ElseIf pLayers.Count > 0 Then
             pLayers = New Generic.List(Of clsLayer)
