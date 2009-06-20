@@ -843,14 +843,21 @@ Partial Class frmMap
             Next
         End If
         If pBuddies IsNot Nothing AndAlso pBuddies.Count > 0 Then
+            Dim lUtcNow As Date = Date.UtcNow
             Dim lWaypoints As New Generic.List(Of clsGPXwaypoint)
             For Each lBuddy As clsBuddy In pBuddies.Values
-                If lBuddy.Selected AndAlso lBuddy.Waypoint IsNot Nothing Then lWaypoints.Add(lBuddy.Waypoint)
+                If lBuddy.Selected AndAlso lBuddy.Waypoint IsNot Nothing Then
+                    Dim lWaypoint As clsGPXwaypoint = lBuddy.Waypoint.Clone
+                    If lWaypoint.timeSpecified Then
+                        lWaypoint.name &= " " & TimeSpanString(lUtcNow.Subtract(lWaypoint.time))
+                    End If
+                    lWaypoints.Add(lWaypoint)
+                End If
             Next
             If lWaypoints.Count > 0 Then
                 Dim lLayer As New clsLayerGPX(lWaypoints, Me)
                 lLayer.LabelField = "name"
-                lLayer.Render(g, aTopLeftTile, aOffsetToCenter)                
+                lLayer.Render(g, aTopLeftTile, aOffsetToCenter)
             End If
         End If
     End Sub
@@ -1029,7 +1036,7 @@ Partial Class frmMap
     Private Sub frmMap_Disposed(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Disposed
         pDownloader.Enabled = False
         pUploader.Enabled = False
-        'System.Threading.Thread.CurrentThread.Abort()
+        Diagnostics.Process.GetCurrentProcess.Kill() 'Try to kill our own process, making sure all threads stop
     End Sub
 
     Private Sub frmMap_Paint(ByVal sender As Object, ByVal e As System.Windows.Forms.PaintEventArgs) Handles Me.Paint
@@ -1206,6 +1213,22 @@ Partial Class frmMap
             lLayer.Clear()
         Next
         pLayers.Clear()
+    End Sub
+
+    ''' <summary>
+    ''' Start timer that refreshes buddy positions
+    ''' </summary>
+    ''' <remarks></remarks>
+    Private Sub StartBuddyTimer()
+        If pBuddyTimer Is Nothing Then
+            pBuddyTimer = New System.Threading.Timer(New Threading.TimerCallback(AddressOf RequestBuddyPoint), Nothing, 0, 600000)
+        End If
+    End Sub
+    Private Sub StopBuddyTimer()
+        If pBuddyTimer IsNot Nothing Then
+            pBuddyTimer.Dispose()
+            pBuddyTimer = Nothing
+        End If
     End Sub
 
 End Class

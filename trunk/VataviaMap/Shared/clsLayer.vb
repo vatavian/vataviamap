@@ -223,7 +223,9 @@ Public Class clsBuddy
                 .name = Name
                 .sym = Name
             End With
+            Return True
         End If
+        Return False
     End Function
 
     Private Function GetXmlTagContents(ByVal aXML As String, ByVal aTag As String) As String

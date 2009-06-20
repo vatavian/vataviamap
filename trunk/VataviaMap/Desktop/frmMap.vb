@@ -638,10 +638,9 @@ Public Class frmMap
     Private Sub FindBuddyToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles FindBuddyToolStripMenuItem.Click
         FindBuddyToolStripMenuItem.Checked = Not FindBuddyToolStripMenuItem.Checked
         If FindBuddyToolStripMenuItem.Checked Then
-            pBuddyTimer = New System.Threading.Timer(New Threading.TimerCallback(AddressOf RequestBuddyPoint), Nothing, 0, 60000)
-        ElseIf pBuddyTimer IsNot Nothing Then
-            pBuddyTimer.Dispose()
-            pBuddyTimer = Nothing
+            StartBuddyTimer
+        Else
+            StopBuddyTimer()
         End If
     End Sub
 
@@ -682,6 +681,13 @@ Public Class frmMap
         pBuddyListForm = New frmBuddyList
         pBuddyListForm.Icon = Me.Icon
         pBuddyListForm.AskUser(pBuddies)
+    End Sub
+
+    Private Sub pBuddyListForm_Center(ByVal aLatitude As Double, ByVal aLongitude As Double) Handles pBuddyListForm.Center
+        CenterLat = aLatitude
+        CenterLon = aLongitude
+        SanitizeCenterLatLon()
+        Redraw()
     End Sub
 
     Private Sub pBuddyListForm_Ok(ByVal aBuddies As System.Collections.Generic.Dictionary(Of String, clsBuddy)) Handles pBuddyListForm.Ok
