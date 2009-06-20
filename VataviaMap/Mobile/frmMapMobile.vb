@@ -28,7 +28,8 @@ Public Class frmMap
     WithEvents pDownloadForm As frmDownloadMobile
     WithEvents pUploadForm As frmUploadMobile
     WithEvents pLayersForm As frmOptionsMobileGPX
-    'WithEvents pDetailsForm As frmDetails
+
+    Private pKeepAwakeTimer As System.Threading.Timer
 
     Public Sub New()
         InitializeComponent()
@@ -98,7 +99,6 @@ RestartRedraw:
                         lGraphics.Clear(Color.Black)
                         lDetailsBrush = pBrushWhite
                     Else
-                        SystemIdleTimerReset()
                         DrawTiles(lGraphics)
                     End If
                     If pShowGPSdetails Then
@@ -132,7 +132,7 @@ RestartRedraw:
     End Function
 
     Private Function MapRectangle() As Rectangle
-        Return ClientRectangle        
+        Return ClientRectangle
     End Function
 
     Private Sub Zoomed()
@@ -276,7 +276,9 @@ RestartRedraw:
         If GPS Is Nothing Then GPS = New GPS_API.GPS
         If Not GPS.Opened Then
             SetPowerRequirement(DeviceGPS, True)
-            if Not pFormDark then SetPowerRequirement(DeviceBacklight, True)
+            If Not pFormDark Then
+                StartKeepAwake()
+            End If
 
             Dim lLogIndex As Integer = 0
             Dim lBaseFilename As String = IO.Path.Combine(pGPXFolder, DateTime.Now.ToString("yyyy-MM-dd_HH-mm"))
@@ -334,7 +336,7 @@ RestartRedraw:
             GPS = Nothing
         End If
         SetPowerRequirement(DeviceGPS, False)
-        SetPowerRequirement(DeviceBacklight, False)
+        StopKeepAwake()
         Try
             mnuStartStopGPS.Text = "Start GPS"
             Application.DoEvents()
@@ -902,8 +904,34 @@ SetCenter:
     Private Sub mnuViewDark_Click(ByVal sender As Object, ByVal e As System.EventArgs) Handles mnuViewDark.Click
         mnuViewDark.Checked = Not mnuViewDark.Checked
         pFormDark = mnuViewDark.Checked
-        SetPowerRequirement(DeviceBacklight, Not pFormDark)
         Redraw()
+        If pFormDark Then
+            StopKeepAwake()
+        Else
+            StartKeepAwake()
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' Start timer that keeps system idle from turning off device
+    ''' </summary>
+    ''' <remarks></remarks>
+    Private Sub StartKeepAwake()
+        SystemIdleTimerReset()
+        If pKeepAwakeTimer Is Nothing Then
+            pKeepAwakeTimer = New System.Threading.Timer(New Threading.TimerCallback(AddressOf IdleTimeout), Nothing, 0, 50000)
+        End If
+    End Sub
+
+    Private Sub StopKeepAwake()
+        If pKeepAwakeTimer IsNot Nothing Then
+            pKeepAwakeTimer.Dispose()
+            pKeepAwakeTimer = Nothing
+        End If
+    End Sub
+
+    Private Sub IdleTimeout(ByVal o As Object)
+        SystemIdleTimerReset()
     End Sub
 
     Private Sub mnuFollow_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuFollow.Click
