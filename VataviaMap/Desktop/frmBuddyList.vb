@@ -5,6 +5,8 @@ Public Class frmBuddyList
 
     Public Event Ok(ByVal aBuddies As Generic.Dictionary(Of String, clsBuddy))
 
+    Public Event Center(ByVal aLatitude As Double, ByVal aLongitude As Double)
+
     Public Sub AskUser(ByVal aBuddies As Generic.Dictionary(Of String, clsBuddy))
         pBuddies = New Generic.Dictionary(Of String, clsBuddy)
         For Each lBuddy As clsBuddy In aBuddies.Values
@@ -92,6 +94,15 @@ Public Class frmBuddyList
             Dim lBuddy As clsBuddy = SelectedBuddy()
             pBuddies.Remove(lBuddy.Name)
             PopulateList()
+        End If
+    End Sub
+
+    Private Sub btnCenter_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnCenter.Click
+        Dim lBuddy As clsBuddy = SelectedBuddy()
+        If lBuddy IsNot Nothing AndAlso lBuddy.Waypoint IsNot Nothing Then
+            With lBuddy.Waypoint
+                RaiseEvent Center(.lat, .lon)
+            End With
         End If
     End Sub
 End Class

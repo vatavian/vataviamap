@@ -27,6 +27,7 @@ Partial Class frmBuddyList
         Me.btnOk = New System.Windows.Forms.Button
         Me.btnRemove = New System.Windows.Forms.Button
         Me.btnEdit = New System.Windows.Forms.Button
+        Me.btnCenter = New System.Windows.Forms.Button
         Me.SuspendLayout()
         '
         'lstBuddies
@@ -39,7 +40,7 @@ Partial Class frmBuddyList
         Me.lstBuddies.IntegralHeight = False
         Me.lstBuddies.Location = New System.Drawing.Point(0, 1)
         Me.lstBuddies.Name = "lstBuddies"
-        Me.lstBuddies.Size = New System.Drawing.Size(407, 233)
+        Me.lstBuddies.Size = New System.Drawing.Size(504, 233)
         Me.lstBuddies.TabIndex = 1
         '
         'btnAdd
@@ -55,7 +56,7 @@ Partial Class frmBuddyList
         'btnOk
         '
         Me.btnOk.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.btnOk.Location = New System.Drawing.Point(319, 240)
+        Me.btnOk.Location = New System.Drawing.Point(416, 240)
         Me.btnOk.Name = "btnOk"
         Me.btnOk.Size = New System.Drawing.Size(75, 23)
         Me.btnOk.TabIndex = 3
@@ -82,11 +83,22 @@ Partial Class frmBuddyList
         Me.btnEdit.Text = "Edit"
         Me.btnEdit.UseVisualStyleBackColor = True
         '
+        'btnCenter
+        '
+        Me.btnCenter.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
+        Me.btnCenter.Location = New System.Drawing.Point(255, 240)
+        Me.btnCenter.Name = "btnCenter"
+        Me.btnCenter.Size = New System.Drawing.Size(75, 23)
+        Me.btnCenter.TabIndex = 6
+        Me.btnCenter.Text = "Center"
+        Me.btnCenter.UseVisualStyleBackColor = True
+        '
         'frmBuddyList
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(406, 266)
+        Me.ClientSize = New System.Drawing.Size(503, 266)
+        Me.Controls.Add(Me.btnCenter)
         Me.Controls.Add(Me.btnEdit)
         Me.Controls.Add(Me.btnRemove)
         Me.Controls.Add(Me.btnOk)
@@ -102,4 +114,5 @@ Partial Class frmBuddyList
     Friend WithEvents btnOk As System.Windows.Forms.Button
     Friend WithEvents btnRemove As System.Windows.Forms.Button
     Friend WithEvents btnEdit As System.Windows.Forms.Button
+    Friend WithEvents btnCenter As System.Windows.Forms.Button
 End Class

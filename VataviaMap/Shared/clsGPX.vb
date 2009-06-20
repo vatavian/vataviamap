@@ -412,6 +412,7 @@ End Class
 
 Public Class clsGPXwaypoint
     Inherits clsGPXbase
+    Implements ICloneable
 
     Private tagField As String 'wpt or trkpt
     Private latField As Double
@@ -499,6 +500,10 @@ Public Class clsGPXwaypoint
             Next
         End If
     End Sub
+
+    Public Function Clone() As Object Implements ICloneable.Clone
+        Return MemberwiseClone()
+    End Function
 
     Public Overrides Function ToString() As String
         Dim lXML As String = "<" & tagField _

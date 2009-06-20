@@ -922,7 +922,6 @@ SetCenter:
             pKeepAwakeTimer = New System.Threading.Timer(New Threading.TimerCallback(AddressOf IdleTimeout), Nothing, 0, 50000)
         End If
     End Sub
-
     Private Sub StopKeepAwake()
         If pKeepAwakeTimer IsNot Nothing Then
             pKeepAwakeTimer.Dispose()
@@ -966,10 +965,9 @@ SetCenter:
     Private Sub mnuFindBuddy_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuFindBuddy.Click
         mnuFindBuddy.Checked = Not mnuFindBuddy.Checked
         If mnuFindBuddy.Checked Then
-            pBuddyTimer = New System.Threading.Timer(New Threading.TimerCallback(AddressOf RequestBuddyPoint), Nothing, 0, 60000)
-        ElseIf pBuddyTimer IsNot Nothing Then
-            pBuddyTimer.Dispose()
-            pBuddyTimer = Nothing
+            StartBuddyTimer()
+        Else
+            StopBuddyTimer()
         End If
     End Sub
 

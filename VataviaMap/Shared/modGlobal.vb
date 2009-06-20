@@ -521,6 +521,18 @@ EndFound:
         g.DrawLine(aPen, CInt(aHeadX + aHeadLength * Math.Sin(psi2)), CInt(aHeadY + aHeadLength * Math.Cos(psi2)), aHeadX, aHeadY)
     End Sub
 
+    Public Function TimeSpanString(ByVal aTimeSpan As TimeSpan) As String
+        If aTimeSpan.TotalDays > 1 Then
+            Return Math.Floor(aTimeSpan.TotalDays) & "d"
+        ElseIf aTimeSpan.TotalHours > 1 Then
+            Return Math.Floor(aTimeSpan.TotalHours) & "h"
+        ElseIf aTimeSpan.TotalMinutes > 1 Then
+            Return Math.Floor(aTimeSpan.TotalMinutes) & "m"
+        Else
+            Return ""
+        End If
+    End Function
+
 #Region "GMap code from http://www.codeplex.com/gmap4dotnet"
 
     Private openStreetMapCopyright As String = "© OpenStreetMap"
