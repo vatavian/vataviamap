@@ -22,6 +22,7 @@ Partial Class frmLayers
     'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
+        Me.components = New System.ComponentModel.Container
         Me.txtWidth = New System.Windows.Forms.TextBox
         Me.lblWidth = New System.Windows.Forms.Label
         Me.lblOpacity = New System.Windows.Forms.Label
@@ -37,7 +38,11 @@ Partial Class frmLayers
         Me.btnColorRandom = New System.Windows.Forms.Button
         Me.btnColor = New System.Windows.Forms.Button
         Me.Duration = New System.Windows.Forms.ColumnHeader
+        Me.LayerGridRightContextMenuStrip = New System.Windows.Forms.ContextMenuStrip(Me.components)
+        Me.ZoomToToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.DetailsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.grpColor.SuspendLayout()
+        Me.LayerGridRightContextMenuStrip.SuspendLayout()
         Me.SuspendLayout()
         '
         'txtWidth
@@ -103,7 +108,7 @@ Partial Class frmLayers
         Me.lstLayers.Columns.AddRange(New System.Windows.Forms.ColumnHeader() {Me.Filename, Me.Duration})
         Me.lstLayers.Location = New System.Drawing.Point(0, 0)
         Me.lstLayers.Name = "lstLayers"
-        Me.lstLayers.Size = New System.Drawing.Size(724, 516)
+        Me.lstLayers.Size = New System.Drawing.Size(631, 516)
         Me.lstLayers.TabIndex = 8
         Me.lstLayers.UseCompatibleStateImageBehavior = False
         Me.lstLayers.View = System.Windows.Forms.View.Details
@@ -179,15 +184,30 @@ Partial Class frmLayers
         Me.btnColor.Text = "Set"
         Me.btnColor.UseVisualStyleBackColor = False
         '
+        'LayerGridRightContextMenuStrip
         'Duration
+        Me.LayerGridRightContextMenuStrip.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ZoomToToolStripMenuItem, Me.DetailsToolStripMenuItem})
+        Me.LayerGridRightContextMenuStrip.Name = "LayerGridRightContextMenuStrip"
+        Me.LayerGridRightContextMenuStrip.Size = New System.Drawing.Size(153, 70)
+        '
+        'ZoomToToolStripMenuItem
+        '
+        Me.ZoomToToolStripMenuItem.Name = "ZoomToToolStripMenuItem"
+        Me.ZoomToToolStripMenuItem.Size = New System.Drawing.Size(152, 22)
+        Me.ZoomToToolStripMenuItem.Text = "ZoomTo"
+        '
+        'DetailsToolStripMenuItem
+        '
+        Me.DetailsToolStripMenuItem.Name = "DetailsToolStripMenuItem"
+        Me.DetailsToolStripMenuItem.Size = New System.Drawing.Size(152, 22)
+        Me.DetailsToolStripMenuItem.Text = "Details"
         '
         Me.Duration.Text = "Duration"
-        '
         'frmLayers
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(724, 669)
+        Me.ClientSize = New System.Drawing.Size(631, 669)
         Me.Controls.Add(Me.grpColor)
         Me.Controls.Add(Me.chkAllVisible)
         Me.Controls.Add(Me.lblArrowSize)
@@ -199,6 +219,7 @@ Partial Class frmLayers
         Me.Text = "Layers"
         Me.grpColor.ResumeLayout(False)
         Me.grpColor.PerformLayout()
+        Me.LayerGridRightContextMenuStrip.ResumeLayout(False)
         Me.ResumeLayout(False)
         Me.PerformLayout()
 
@@ -218,4 +239,7 @@ Partial Class frmLayers
     Friend WithEvents btnColorRamp As System.Windows.Forms.Button
     Friend WithEvents btnColorRandom As System.Windows.Forms.Button
     Friend WithEvents Duration As System.Windows.Forms.ColumnHeader
+    Friend WithEvents LayerGridRightContextMenuStrip As System.Windows.Forms.ContextMenuStrip
+    Friend WithEvents ZoomToToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents DetailsToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
 End Class

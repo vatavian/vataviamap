@@ -1,6 +1,7 @@
 Public Class frmLayers
     Public Event CheckedItemsChanged(ByVal aCheckedItems As Generic.List(Of String))
     Public Event Apply()
+    Public Event ZoomTo(aBounds As clsGPXbounds) 
 
     Private pPopulating As Boolean = False
     Private pLayers As New Generic.List(Of clsLayer)
@@ -22,6 +23,14 @@ Public Class frmLayers
         If Not pPopulating AndAlso (e.NewValue = CheckState.Checked) <> pLayers.Item(e.Index).Visible Then
             RaiseChanged(e.Index, e.NewValue)
         End If
+    End Sub
+
+    Private Sub lstLayers_MouseDown(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles lstLayers.MouseDown
+        Select Case e.Button
+            Case Windows.Forms.MouseButtons.Right
+                'TODO: put menu at the selected layer
+                Me.LayerGridRightContextMenuStrip.Show(Me, e.Location)
+        End Select
     End Sub
 
     Private Sub lstLayers_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles lstLayers.SelectedIndexChanged
@@ -232,4 +241,12 @@ Public Class frmLayers
         End If
     End Sub
 
+    Private Sub ZoomToToolStripMenuItem_Click(ByVal sender As Object, ByVal e As System.EventArgs) Handles ZoomToToolStripMenuItem.Click
+        'TODO: figure out closest layer to mouse
+        RaiseEvent ZoomTo(pLayers(0).Bounds)
+    End Sub
+
+    Private Sub DetailsToolStripMenuItem_Click(ByVal sender As Object, ByVal e As System.EventArgs) Handles DetailsToolStripMenuItem.Click
+        MsgBox("Open Details Form Here")
+    End Sub
 End Class
