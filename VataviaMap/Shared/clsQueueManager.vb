@@ -4,7 +4,7 @@
 ''' <remarks></remarks>
 Public Interface IQueueListener
     Sub DownloadedItem(ByVal aItem As clsQueueItem)
-    Sub DownloadedTile(ByVal aTilePoint As Point, ByVal aZoom As Integer, ByVal aFilename As String)
+    Sub DownloadedTile(ByVal aTilePoint As Point, ByVal aZoom As Integer, ByVal aFilename As String, ByVal aTileServerURL As String)
     Sub FinishedQueue(ByVal aQueueIndex As Integer)
 End Interface
 
