@@ -45,8 +45,7 @@ Public Class clsBuddy
     Public Selected As Boolean = True
 
     Public Function LoadFile(ByVal aFilename As String) As Boolean
-        Dim lReader As IO.StreamReader = IO.File.OpenText(aFilename)
-        Dim lFileContents As String = lReader.ReadToEnd
+        Dim lFileContents As String = ReadTextFile(aFilename)
         If lFileContents.IndexOf("<?xml") = 0 Then
             Return LoadLatitudeKML(lFileContents)
         ElseIf lFileContents.IndexOf("google.com/latitude/") > 0 Then

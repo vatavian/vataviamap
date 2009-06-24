@@ -289,7 +289,7 @@ Public Class frmMap
                 Debug.WriteLine("Getting descendants of  '" & pClickedTileFilename & "'")
                 Dim lParentY As Integer = IO.Path.GetFileNameWithoutExtension(pClickedTileFilename)
                 Dim lParentX As Integer = IO.Path.GetFileName(IO.Path.GetDirectoryName(pClickedTileFilename))
-                pDownloader.DownloadDescendants(New Point(lParentX, lParentY), pZoom, pOldestCache)
+                pDownloader.DownloadDescendants(New Point(lParentX, lParentY), pZoom)
             Catch ex As Exception
                 MsgBox("'" & pClickedTileFilename & "'" & vbCrLf & ex.Message, MsgBoxStyle.Critical, "Error Getting Descendant Tiles")
             End Try
@@ -303,7 +303,7 @@ Public Class frmMap
         With lSaveDialog
             .DefaultExt = g_TileExtension
             .InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
-            .FileName = "OpenStreetMap" & g_TileExtension
+            .FileName = "OpenStreetMap-" & Format(Now, "yyyy-MM-dd") & "at" & Format(Now, "HH-mm-ss") & g_TileExtension
             If .ShowDialog = Windows.Forms.DialogResult.OK Then
                 pBitmapMutex.WaitOne()
                 pBitmap.Save(.FileName)
@@ -352,19 +352,7 @@ Public Class frmMap
             For x As Integer = lTopLeft.X To lBotRight.X
                 For y As Integer = lTopLeft.Y To lBotRight.Y
                     lTilePoint = New Point(x, y)
-
-                    Dim lTileFileName As String = TileFilename(lTilePoint, pZoom, pUseMarkedTiles)
-
-                    Dim lOriginalTileFileName As String
-                    If pUseMarkedTiles Then
-                        lOriginalTileFileName = TileFilename(lTilePoint, pZoom, False)
-                        ' Go ahead and use unmarked tile if we have it but not a marked version
-                        If Not IO.File.Exists(lTileFileName) Then lTileFileName = lOriginalTileFileName
-                    Else
-                        lOriginalTileFileName = lTileFileName
-                    End If
-
-                    SaveTile(lTilePoint, pZoom, lTileFileName, aSaveIn)
+                    SaveTile(lTilePoint, pZoom, aSaveIn)
                 Next
             Next
         End If
@@ -373,15 +361,15 @@ Public Class frmMap
     ''' <summary>
     ''' Save a tile with projection information
     ''' </summary>
-    ''' <param name="aTileFilename">cache file name of tile to draw</param>
     ''' <param name="aSaveIn">Folder to save in</param>
     Private Sub SaveTile(ByVal aTilePoint As Point, _
                          ByVal aZoom As Integer, _
-                         ByVal aTileFilename As String, _
                          ByVal aSaveIn As String)
-        Dim lSaveAs As String = IO.Path.Combine(aSaveIn, aTileFilename.Substring(g_TileCacheFolder.Length).Replace("\", "_"))
-        Dim lTileImage As Bitmap = TileImage(aTileFilename)
+
+        Dim lTileImage As Bitmap = TileBitmap(aTilePoint, aZoom, -1)
         If lTileImage IsNot Nothing Then
+            Dim lTileFileName As String = TileFilename(aTilePoint, pZoom, pUseMarkedTiles)
+            Dim lSaveAs As String = IO.Path.Combine(aSaveIn, lTileFileName.Substring(g_TileCacheFolder.Length).Replace(g_PathChar, "_"))
             lTileImage.Save(lSaveAs)
             Dim lNorth As Double, lWest As Double, lSouth As Double, lEast As Double
             CalcLatLonFromTileXY(aTilePoint, aZoom, lNorth, lWest, lSouth, lEast)
@@ -571,7 +559,7 @@ Public Class frmMap
             Dim lSaveTitle As String = Me.Text
             Me.Text = "Downloading http://josm.openstreetmap.de/josm-tested.jar ..."
             Application.DoEvents()
-            If Not pDownloader.DownloadFile("http://josm.openstreetmap.de/josm-tested.jar", lJosmFilename) Then
+            If Not pDownloader.DownloadFile("http://josm.openstreetmap.de/josm-tested.jar", lJosmFilename, False) Then
                 MsgBox("Please manually download JOSM from" & vbCrLf & "http://josm.openstreetmap.de/" & vbCrLf & "and save as " & vbCrLf & lJosmFilename, MsgBoxStyle.OkOnly, "Unable to download JOSM")
             End If
             Me.Text = lSaveTitle

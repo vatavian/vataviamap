@@ -38,8 +38,6 @@ Public Class frmMap
         pControlsUse = True
         pControlsShow = True
 
-        pCacheDays = 365 'Longer default for keeping cached tiles on mobile
-
         pTrackLastTime = DateTime.UtcNow.Subtract(pTrackMinInterval)
         pUploadLastTime = New DateTime(1, 1, 1)
 

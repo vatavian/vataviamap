@@ -15,7 +15,7 @@ Module modGlobal
 
     Public g_TileExtension As String = ".png"
     Public g_PathChar As String = IO.Path.DirectorySeparatorChar
-    Public g_MarkedPrefix As String = "M" & g_PathChar
+    Public g_MarkedPrefix As String = "Marked" & g_PathChar
 
     Public Const g_LatMin As Double = -85.0511
     Public Const g_LatMax As Double = 85.0511
@@ -231,6 +231,8 @@ Module modGlobal
         Dim lRetval As String = "" 'return string
         Dim lChr As String 'individual character in filename
 
+        'TODO: could use    Private pInvalidPathChars() As Char = IO.Path.GetInvalidPathChars()
+
         For i As Integer = 1 To aOriginalFilename.Length
             lChr = Mid(aOriginalFilename, i, 1)
             Select Case Asc(lChr)
@@ -259,7 +261,7 @@ EndFound:
                 If aUseMarkedTiles Then lMarked = g_MarkedPrefix
                 Return g_TileCacheFolder & lMarked & aZoom _
                      & g_PathChar & .X _
-                     & g_PathChar & .Y & g_TileExtension
+                     & g_PathChar & .Y
             Else
                 Return ""
             End If
@@ -532,6 +534,26 @@ EndFound:
             Return ""
         End If
     End Function
+
+    Public Function ReadTextFile(ByVal aFilename As String) As String
+#If Smartphone Then
+        Dim lReader As IO.StreamReader = IO.File.OpenText(aFilename)
+        ReadTextFile = lReader.ReadToEnd()
+        lReader.Close()
+#Else
+        Return IO.File.ReadAllText(aFilename)
+#End If
+    End Function
+
+    Public Sub WriteTextFile(ByVal aFilename As String, ByVal aContents As String)
+#If Smartphone Then
+        Dim lFile As IO.StreamWriter = IO.File.CreateText(aFilename)
+        lFile.Write(aContents)
+        lFile.Close()
+#Else
+        IO.File.WriteAllText(aFilename, aContents)
+#End If
+    End Sub
 
 #Region "GMap code from http://www.codeplex.com/gmap4dotnet"
 
