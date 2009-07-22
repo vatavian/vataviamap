@@ -33,6 +33,7 @@ Partial Class frmMap
         Me.RemoveAllLayersToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.OpenOSMWebsiteToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.OpenJOSMToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.GetOSMBugsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.ExitToolStripSeparator = New System.Windows.Forms.ToolStripSeparator
         Me.ExitToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.ViewToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
@@ -59,11 +60,12 @@ Partial Class frmMap
         Me.WheelZoomToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.WheelTileServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.WheelLayerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.HelpToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.VataviaMapProjectPageToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.RightClickMenu = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.RefreshFromServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.GetAllDescendantsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
-        Me.HelpToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
-        Me.VataviaMapProjectPageToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.FollowOSMURLToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.MenuStripMain.SuspendLayout()
         Me.RightClickMenu.SuspendLayout()
         Me.SuspendLayout()
@@ -79,7 +81,7 @@ Partial Class frmMap
         '
         'FileToolStripMenuItem
         '
-        Me.FileToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.SaveAsToolStripMenuItem, Me.AddLayerToolStripMenuItem, Me.LayersToolStripMenuItem, Me.RemoveAllLayersToolStripMenuItem, Me.OpenOSMWebsiteToolStripMenuItem, Me.OpenJOSMToolStripMenuItem, Me.ExitToolStripSeparator, Me.ExitToolStripMenuItem})
+        Me.FileToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.SaveAsToolStripMenuItem, Me.AddLayerToolStripMenuItem, Me.LayersToolStripMenuItem, Me.RemoveAllLayersToolStripMenuItem, Me.OpenOSMWebsiteToolStripMenuItem, Me.OpenJOSMToolStripMenuItem, Me.FollowOSMURLToolStripMenuItem, Me.GetOSMBugsToolStripMenuItem, Me.ExitToolStripSeparator, Me.ExitToolStripMenuItem})
         Me.FileToolStripMenuItem.Name = "FileToolStripMenuItem"
         Me.FileToolStripMenuItem.Size = New System.Drawing.Size(45, 23)
         Me.FileToolStripMenuItem.Text = "File"
@@ -87,50 +89,56 @@ Partial Class frmMap
         'SaveAsToolStripMenuItem
         '
         Me.SaveAsToolStripMenuItem.Name = "SaveAsToolStripMenuItem"
-        Me.SaveAsToolStripMenuItem.Size = New System.Drawing.Size(257, 24)
+        Me.SaveAsToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
         Me.SaveAsToolStripMenuItem.Text = "Save As..."
         '
         'AddLayerToolStripMenuItem
         '
         Me.AddLayerToolStripMenuItem.Name = "AddLayerToolStripMenuItem"
-        Me.AddLayerToolStripMenuItem.Size = New System.Drawing.Size(257, 24)
+        Me.AddLayerToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
         Me.AddLayerToolStripMenuItem.Text = "Add Layer..."
         '
         'LayersToolStripMenuItem
         '
         Me.LayersToolStripMenuItem.Name = "LayersToolStripMenuItem"
-        Me.LayersToolStripMenuItem.Size = New System.Drawing.Size(257, 24)
+        Me.LayersToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
         Me.LayersToolStripMenuItem.Text = "Layers..."
         '
         'RemoveAllLayersToolStripMenuItem
         '
         Me.RemoveAllLayersToolStripMenuItem.Name = "RemoveAllLayersToolStripMenuItem"
         Me.RemoveAllLayersToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.Delete
-        Me.RemoveAllLayersToolStripMenuItem.Size = New System.Drawing.Size(257, 24)
+        Me.RemoveAllLayersToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
         Me.RemoveAllLayersToolStripMenuItem.Text = "Remove All Layers"
         '
         'OpenOSMWebsiteToolStripMenuItem
         '
         Me.OpenOSMWebsiteToolStripMenuItem.Name = "OpenOSMWebsiteToolStripMenuItem"
-        Me.OpenOSMWebsiteToolStripMenuItem.Size = New System.Drawing.Size(257, 24)
+        Me.OpenOSMWebsiteToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
         Me.OpenOSMWebsiteToolStripMenuItem.Text = "Open OSM Website"
         '
         'OpenJOSMToolStripMenuItem
         '
         Me.OpenJOSMToolStripMenuItem.Name = "OpenJOSMToolStripMenuItem"
-        Me.OpenJOSMToolStripMenuItem.Size = New System.Drawing.Size(257, 24)
+        Me.OpenJOSMToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
         Me.OpenJOSMToolStripMenuItem.Text = "Open JOSM"
+        '
+        'GetOSMBugsToolStripMenuItem
+        '
+        Me.GetOSMBugsToolStripMenuItem.Name = "GetOSMBugsToolStripMenuItem"
+        Me.GetOSMBugsToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
+        Me.GetOSMBugsToolStripMenuItem.Text = "Get OSM Bugs"
         '
         'ExitToolStripSeparator
         '
         Me.ExitToolStripSeparator.Name = "ExitToolStripSeparator"
-        Me.ExitToolStripSeparator.Size = New System.Drawing.Size(254, 6)
+        Me.ExitToolStripSeparator.Size = New System.Drawing.Size(302, 6)
         '
         'ExitToolStripMenuItem
         '
         Me.ExitToolStripMenuItem.Name = "ExitToolStripMenuItem"
         Me.ExitToolStripMenuItem.ShortcutKeys = CType((System.Windows.Forms.Keys.Alt Or System.Windows.Forms.Keys.F4), System.Windows.Forms.Keys)
-        Me.ExitToolStripMenuItem.Size = New System.Drawing.Size(257, 24)
+        Me.ExitToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
         Me.ExitToolStripMenuItem.Text = "Exit"
         '
         'ViewToolStripMenuItem
@@ -288,6 +296,19 @@ Partial Class frmMap
         Me.WheelLayerToolStripMenuItem.Size = New System.Drawing.Size(170, 24)
         Me.WheelLayerToolStripMenuItem.Text = "Layer"
         '
+        'HelpToolStripMenuItem
+        '
+        Me.HelpToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.VataviaMapProjectPageToolStripMenuItem})
+        Me.HelpToolStripMenuItem.Name = "HelpToolStripMenuItem"
+        Me.HelpToolStripMenuItem.Size = New System.Drawing.Size(53, 23)
+        Me.HelpToolStripMenuItem.Text = "Help"
+        '
+        'VataviaMapProjectPageToolStripMenuItem
+        '
+        Me.VataviaMapProjectPageToolStripMenuItem.Name = "VataviaMapProjectPageToolStripMenuItem"
+        Me.VataviaMapProjectPageToolStripMenuItem.Size = New System.Drawing.Size(267, 24)
+        Me.VataviaMapProjectPageToolStripMenuItem.Text = "VataviaMap Project Page"
+        '
         'RightClickMenu
         '
         Me.RightClickMenu.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.RefreshFromServerToolStripMenuItem, Me.GetAllDescendantsToolStripMenuItem})
@@ -306,18 +327,11 @@ Partial Class frmMap
         Me.GetAllDescendantsToolStripMenuItem.Size = New System.Drawing.Size(239, 24)
         Me.GetAllDescendantsToolStripMenuItem.Text = "Get All Descendants"
         '
-        'HelpToolStripMenuItem
+        'FollowOSMURLToolStripMenuItem
         '
-        Me.HelpToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.VataviaMapProjectPageToolStripMenuItem})
-        Me.HelpToolStripMenuItem.Name = "HelpToolStripMenuItem"
-        Me.HelpToolStripMenuItem.Size = New System.Drawing.Size(53, 23)
-        Me.HelpToolStripMenuItem.Text = "Help"
-        '
-        'VataviaMapProjectPageToolStripMenuItem
-        '
-        Me.VataviaMapProjectPageToolStripMenuItem.Name = "VataviaMapProjectPageToolStripMenuItem"
-        Me.VataviaMapProjectPageToolStripMenuItem.Size = New System.Drawing.Size(267, 24)
-        Me.VataviaMapProjectPageToolStripMenuItem.Text = "VataviaMap Project Page"
+        Me.FollowOSMURLToolStripMenuItem.Name = "FollowOSMURLToolStripMenuItem"
+        Me.FollowOSMURLToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
+        Me.FollowOSMURLToolStripMenuItem.Text = "Follow OSM URL on clipboard"
         '
         'frmMap
         '
@@ -377,4 +391,6 @@ Partial Class frmMap
     Friend WithEvents WheelLayerToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents HelpToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents VataviaMapProjectPageToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents GetOSMBugsToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents FollowOSMURLToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
 End Class
