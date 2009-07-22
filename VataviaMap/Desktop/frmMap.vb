@@ -708,4 +708,57 @@ Public Class frmMap
     Private Sub VataviaMapProjectPageToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles VataviaMapProjectPageToolStripMenuItem.Click
         OpenFile("http://code.google.com/p/vataviamap/")
     End Sub
+
+    Private Sub GetOSMBugsToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles GetOSMBugsToolStripMenuItem.Click
+        Dim lBugsGPXurl As String = "http://openstreetbugs.schokokeks.org/api/0.1/getGPX?" _
+            & "b=" & CenterLat - LatHeight / 2 _
+            & "&t=" & CenterLat + LatHeight / 2 _
+            & "&l=" & CenterLon - LatHeight / 2 _
+            & "&r=" & CenterLon + LatHeight / 2 _
+            & "&open=yes"
+        Dim lBugsGPXfilename As String = IO.Path.Combine(My.Computer.FileSystem.SpecialDirectories.MyDocuments, "bugs.gpx")
+        If pDownloader.DownloadFile(lBugsGPXurl, lBugsGPXfilename, False) Then OpenGPX(lBugsGPXfilename) 'TODO: set .LabelField = "desc"
+    End Sub
+
+    Private Sub FollowOSMURLToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles FollowOSMURLToolStripMenuItem.Click
+        'http://www.openstreetmap.org/?lat=33.794266&lon=-84.29019&zoom=18&layers=B000FTF
+        If Clipboard.ContainsText Then
+            Dim lLat As Double = 0
+            Dim lLon As Double = 0
+            Dim lZoom As Integer = 14
+            For Each lArg As String In Clipboard.GetText.Split("&"c, "?"c)
+                Dim lArgPart() As String = lArg.Split("=")
+                If lArgPart.Length = 2 Then
+                    Select Case lArgPart(0)
+                        Case "lat"
+                            If IsNumeric(lArgPart(1)) Then
+                                lLat = Double.Parse(lArgPart(1))
+                            Else
+                                MsgBox("Non-numeric Latitude: " & lArgPart(1), MsgBoxStyle.OkOnly, "OpenStreetMap URL")
+                            End If
+                        Case "lon"
+                            If IsNumeric(lArgPart(1)) Then
+                                lLon = Double.Parse(lArgPart(1))
+                            Else
+                                MsgBox("Non-numeric Longitude: " & lArgPart(1), MsgBoxStyle.OkOnly, "OpenStreetMap URL")
+                            End If
+                        Case "zoom"
+                            If IsNumeric(lArgPart(1)) Then
+                                lZoom = Integer.Parse(lArgPart(1))
+                            Else
+                                MsgBox("Non-numeric Zoom: " & lArgPart(1), MsgBoxStyle.OkOnly, "OpenStreetMap URL")
+                            End If
+                    End Select
+                End If
+            Next
+            If lLat <> 0 AndAlso lLon <> 0 AndAlso lZoom >= g_ZoomMin AndAlso lZoom <= g_ZoomMax Then
+                CenterLat = lLat
+                CenterLon = lLon
+                SanitizeCenterLatLon()
+                Zoom = lZoom
+            End If
+        Else
+            MsgBox("Copy an OpenStreetMap Permalink to the clipboard before using this menu", MsgBoxStyle.OkOnly, "OpenStreetMap URL")
+        End If
+    End Sub
 End Class
