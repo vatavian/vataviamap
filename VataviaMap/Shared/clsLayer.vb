@@ -586,19 +586,19 @@ Public Class clsLayerGPX
                 End If
 
                 Select Case .sym
-                    'Case Nothing
-                    '    If ArrowSize > 0 AndAlso pDistSinceArrow >= ArrowSize AndAlso .courseSpecified Then 'Draw arrow
-                    '        DrawArrow(g, PenTrack, lX, lY, DegToRad(.course), ArrowSize)
-                    '        pDistSinceArrow = 0
-                    '    End If
+                    Case Nothing
+                        If ArrowSize > 0 AndAlso pDistSinceArrow >= ArrowSize AndAlso .courseSpecified Then 'Draw arrow
+                            AddArrow(aSymbolPath, lX, lY, DegToRad(.course), ArrowSize)
+                            pDistSinceArrow = 0
+                        End If
                     Case "cursor"
                         If SymbolSize > 0 Then
-                            'If .courseSpecified Then 'Draw arrow
-                            '    DrawArrow(g, SymbolPen, lX, lY, DegToRad(.course), SymbolSize)
-                            'Else 'Draw an X
-                            aSymbolPath.AddLine(lX - SymbolSize, lY - SymbolSize, lX + SymbolSize, lY + SymbolSize)
-                            aSymbolPath.AddLine(lX - SymbolSize, lY + SymbolSize, lX + SymbolSize, lY - SymbolSize)
-                            'End If
+                            If .courseSpecified Then 'Draw arrow
+                                AddArrow(aSymbolPath, lX, lY, DegToRad(.course), SymbolSize)
+                            Else 'Draw an X
+                                aSymbolPath.AddLine(lX - SymbolSize, lY - SymbolSize, lX + SymbolSize, lY + SymbolSize)
+                                aSymbolPath.AddLine(lX - SymbolSize, lY + SymbolSize, lX + SymbolSize, lY - SymbolSize)
+                            End If
                         End If
                     Case "circle"
                         If SymbolSize > 0 Then
@@ -613,6 +613,25 @@ Public Class clsLayerGPX
             End If
         End With
     End Function
+
+    Private Sub AddArrow(ByVal aSymbolPath As Drawing2D.GraphicsPath, ByVal aXcenter As Integer, ByVal aYcenter As Integer, ByVal aRadians As Double, ByVal aRadius As Integer)
+        Dim ldx As Integer = Math.Sin(aRadians) * aRadius
+        Dim ldy As Integer = Math.Cos(aRadians) * aRadius
+        AddArrow(aSymbolPath, aXcenter - ldx, aYcenter + ldy, aXcenter, aYcenter, aRadius)
+    End Sub
+
+    Private Sub AddArrow(ByVal aSymbolPath As Drawing2D.GraphicsPath, _
+                         ByVal aTailX As Integer, ByVal aTailY As Integer, _
+                         ByVal aHeadX As Integer, ByVal aHeadY As Integer, ByVal aHeadLength As Double)
+        'main line of arrow is easy
+        'g.DrawLine(aPen, aTailX, aTailY, aHeadX, aHeadY)
+
+        Dim aLeaf1X, aLeaf1Y, aLeaf2X, aLeaf2Y As Integer
+        ArrowLeaves(aTailX, aTailY, aHeadX, aHeadY, aHeadLength, aLeaf1X, aLeaf1Y, aLeaf2X, aLeaf2Y)
+        aSymbolPath.AddLine(aLeaf1X, aLeaf1Y, aHeadX, aHeadY)
+        aSymbolPath.AddLine(aLeaf2X, aLeaf2Y, aHeadX, aHeadY)
+    End Sub
+
 #End If
 
 End Class
