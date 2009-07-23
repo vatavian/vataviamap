@@ -5,6 +5,8 @@ Public Class frmMap
     Private GPS_DEVICE_STATE As GPS_API.GpsDeviceState
     Private GPS_POSITION As GPS_API.GpsPosition = Nothing
 
+    Private pLastCellTower As GPS_API.RIL.RILCELLTOWERINFO
+
     Private Shared pTrackMutex As New Threading.Mutex()
 
     ' File name of track log currently being written
@@ -77,6 +79,7 @@ Public Class frmMap
             Case 2 : mnuCenter.Checked = True
         End Select
         mnuAutoStart.Checked = pGPSAutoStart
+        If Not pFormDark Then StartKeepAwake()
         If pGPSAutoStart Then StartGPS()
     End Sub
 
@@ -186,7 +189,9 @@ RestartRedraw:
 
             If Not pRecordTrack Then lDetails &= vbLf & "Logging Off"
         End If
-        If pRecordCellID Then lDetails &= vbLf & GPS_API.RIL.GetCellTowerString
+        If pRecordCellID Then
+            lDetails &= vbLf & GPS_API.RIL.GetCellTowerString
+        End If
         'If pUsedCacheCount + pAddedCacheCount > 0 Then
         '    lDetails &= " Cache " & Format(pUsedCacheCount / (pUsedCacheCount + pAddedCacheCount), "0.0 %") & " " & pDownloader.TileRAMcacheLimit
         'End If
@@ -274,9 +279,6 @@ RestartRedraw:
         If GPS Is Nothing Then GPS = New GPS_API.GPS
         If Not GPS.Opened Then
             SetPowerRequirement(DeviceGPS, True)
-            If Not pFormDark Then
-                StartKeepAwake()
-            End If
 
             Dim lLogIndex As Integer = 0
             Dim lBaseFilename As String = IO.Path.Combine(pGPXFolder, DateTime.Now.ToString("yyyy-MM-dd_HH-mm"))
@@ -334,7 +336,6 @@ RestartRedraw:
             GPS = Nothing
         End If
         SetPowerRequirement(DeviceGPS, False)
-        StopKeepAwake()
         Try
             mnuStartStopGPS.Text = "Start GPS"
             Application.DoEvents()
@@ -360,20 +361,7 @@ RestartRedraw:
                 Catch
                 End Try
                 If (GPS_POSITION IsNot Nothing AndAlso GPS_POSITION.LatitudeValid AndAlso GPS_POSITION.LongitudeValid) Then
-                    Dim lNeedRedraw As Boolean = False
-                    Select Case pGPSFollow
-                        Case 1
-                            If Not LatLonInView(GPS_POSITION.Latitude, GPS_POSITION.Longitude) Then
-                                GoTo SetCenter
-                            End If
-                        Case 2
-SetCenter:
-                            If CenterLat <> GPS_POSITION.Latitude OrElse CenterLon <> GPS_POSITION.Longitude Then
-                                CenterLat = GPS_POSITION.Latitude
-                                CenterLon = GPS_POSITION.Longitude
-                                lNeedRedraw = True
-                            End If
-                    End Select
+                    Dim lNeedRedraw As Boolean = SetCenterFromDevice(GPS_POSITION.Latitude, GPS_POSITION.Longitude)
 
                     If GPS_Listen AndAlso (pRecordTrack OrElse pDisplayTrack) AndAlso DateTime.UtcNow.Subtract(pTrackMinInterval) >= pTrackLastTime Then
                         TrackAddPoint()
@@ -396,6 +384,48 @@ SetCenter:
             'MsgBox(e.Message & vbLf & e.StackTrace)
         End Try
     End Sub
+
+    Private Function SetCenterFromCellLocation() As Boolean
+        Dim lCurrentCellInfo As GPS_API.RIL.RILCELLTOWERINFO = GPS_API.RIL.GetCellTowerInfo
+        If lCurrentCellInfo IsNot Nothing AndAlso lCurrentCellInfo.dwCellID > 0 AndAlso (pLastCellTower Is Nothing OrElse lCurrentCellInfo.dwCellID <> pLastCellTower.dwCellID) Then
+            pLastCellTower = lCurrentCellInfo
+            With lCurrentCellInfo
+                Dim lLat, lLon As Double
+                If GetCellLocationFromGoogle(pTileCacheFolder & "cell", .dwCellID, .dwMobileCountryCode, .dwMobileNetworkCode, .dwLocationAreaCode, lLat, lLon) Then
+                    If SetCenterFromDevice(lLat, lLon) Then
+                        Me.Invoke(pRedrawCallback)
+                        Return True
+                    End If
+                End If
+            End With
+        End If
+        Return False
+    End Function
+
+    ''' <summary>
+    ''' Set the map to make sure given location is in view, depending on value of pGPSFollow
+    ''' </summary>
+    ''' <param name="aLatitude"></param>
+    ''' <param name="aLongitude"></param>
+    ''' <returns>True if map center was updated</returns>
+    ''' <remarks></remarks>
+    Private Function SetCenterFromDevice(ByVal aLatitude As Double, ByVal aLongitude As Double) As Boolean
+        Select Case pGPSFollow
+            Case 1
+                If Not LatLonInView(aLatitude, aLongitude) Then
+                    GoTo SetCenter
+                End If
+            Case 2
+SetCenter:
+                If CenterLat <> aLatitude OrElse CenterLon <> aLongitude Then
+                    CenterLat = aLatitude
+                    CenterLon = aLongitude
+                    SanitizeCenterLatLon()
+                    Return True
+                End If
+        End Select
+        Return False
+    End Function
 
     Private Sub TrackAddPoint()
         If GPS_POSITION IsNot Nothing _
@@ -654,7 +684,7 @@ SetCenter:
 
                         If .cache.logs IsNot Nothing AndAlso .cache.logs.Count > 0 Then
                             'T19:00:00 is the time for all logs? remove it and format the entries a bit
-                            Dim lIconPath As String = IO.Path.Combine(pTileCacheFolder, "Icons" & g_PathChar & "Geocache" & g_PathChar)
+                            Dim lIconPath As String = pTileCacheFolder & "Icons" & g_PathChar & "Geocache" & g_PathChar
                             Dim lIconFilename As String
                             lText &= "<b>Logs:</b><br>"
                             For Each lLog As clsGroundspeakLog In .cache.logs
@@ -753,7 +783,7 @@ SetCenter:
                 .Visible = False
 
                 On Error Resume Next 'Ignore dysfunctional (e.g. non-numeric) settings
-                pTileCacheFolder = .txtTileFolder.Text
+                TileCacheFolder = .txtTileFolder.Text
                 TileServerName = .comboTileServer.Text
                 g_DegreeFormat = .DegreeFormat
                 CenterLat = .Latitude
@@ -930,6 +960,14 @@ SetCenter:
 
     Private Sub IdleTimeout(ByVal o As Object)
         SystemIdleTimerReset()
+
+        If pGPSFollow > 0 _
+            AndAlso (Not GPS_Listen _
+                     OrElse GPS_POSITION Is Nothing _
+                     OrElse Not GPS_POSITION.TimeValid _
+                     OrElse Date.UtcNow.Subtract(GPS_POSITION.Time).TotalMinutes > 1) Then
+            SetCenterFromCellLocation()
+        End If
     End Sub
 
     Private Sub mnuFollow_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuFollow.Click
