@@ -79,6 +79,7 @@
     <Import Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Mobile\modCellLocation.vb" />
     <Compile Include="Shared\clsDownloader.vb" />
     <Compile Include="Shared\clsGPX.vb" />
     <Compile Include="Shared\clsLayer.vb" />

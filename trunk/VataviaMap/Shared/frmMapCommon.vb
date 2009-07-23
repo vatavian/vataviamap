@@ -150,6 +150,21 @@ Partial Class frmMap
         pFormVisible = True
     End Sub
 
+    Public Property TileCacheFolder() As String
+        Get
+            Return pTileCacheFolder
+        End Get
+        Set(ByVal value As String)
+            If value Is Nothing Then value = ""
+            If value.Length > 0 AndAlso Not value.EndsWith(g_PathChar) Then
+                value &= g_PathChar
+            End If
+            pTileCacheFolder = value
+            SetCacheFolderFromTileServer()
+        End Set
+    End Property
+
+
     Private Sub LoadCachedIcons()
         Dim lIconFileExts() As String = {"gif", "png", "jpg", "bmp"}
         Dim lCacheIconFolder As String = pTileCacheFolder & "Icons"
