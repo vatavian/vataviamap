@@ -483,22 +483,6 @@ EndFound:
         Dim ldx As Integer = Math.Sin(aRadians) * aRadius
         Dim ldy As Integer = Math.Cos(aRadians) * aRadius
         DrawArrow(g, aPen, aXcenter - ldx, aYcenter + ldy, aXcenter, aYcenter, aRadius)
-        'DrawArrow(g, aPen, aXcenter - ldx, aYcenter + ldy, aXcenter + ldx, aYcenter - ldy, aRadius)
-
-        'Dim lHalfDx As Integer = ldx / 2
-        'Dim lHalfDy As Integer = ldy / 2
-        'g.DrawLine(aPen, aXcenter - ldx, aYcenter + ldy, aXcenter + ldx, aYcenter - ldy)
-        'g.DrawLine(aPen, aXcenter - lHalfDy, aYcenter + lHalfDx, aXcenter + ldx, aYcenter - ldy)
-        'g.DrawLine(aPen, aXcenter + lHalfDy, aYcenter - lHalfDx, aXcenter + ldx, aYcenter - ldy)
-
-        'Dim lTailX As Integer = aXcenter - ldx
-        'Dim lTailY As Integer = aYcenter + ldy
-        'Dim lHeadX As Integer = aXcenter
-        'Dim lHeadY As Integer = aYcenter
-        'Dim psi1 As Double = aRadians + Math.PI / 10 'angle of one side of arrow head
-        'Dim psi2 As Double = aRadians - Math.PI / 10 'angle of other side of arrow head
-        'g.DrawLine(aPen, CInt(lHeadX + aRadius * Math.Sin(psi1)), CInt(lHeadY + aRadius * Math.Cos(psi1)), lHeadX, lHeadY)
-        'g.DrawLine(aPen, CInt(lHeadX + aRadius * Math.Sin(psi2)), CInt(lHeadY + aRadius * Math.Cos(psi2)), lHeadX, lHeadY)
     End Sub
 
     Public Sub DrawArrow(ByVal g As Graphics, ByVal aPen As Pen, _
@@ -506,6 +490,18 @@ EndFound:
                          ByVal aHeadX As Integer, ByVal aHeadY As Integer, ByVal aHeadLength As Double)
         'main line of arrow is easy
         'g.DrawLine(aPen, aTailX, aTailY, aHeadX, aHeadY)
+
+        Dim aLeaf1X, aLeaf1Y, aLeaf2X, aLeaf2Y As Integer
+        ArrowLeaves(aTailX, aTailY, aHeadX, aHeadY, aHeadLength, aLeaf1X, aLeaf1Y, aLeaf2X, aLeaf2Y)
+        g.DrawLine(aPen, aLeaf1X, aLeaf1Y, aHeadX, aHeadY)
+        g.DrawLine(aPen, aLeaf2X, aLeaf2Y, aHeadX, aHeadY)
+    End Sub
+
+    Public Sub ArrowLeaves(ByVal aTailX As Integer, ByVal aTailY As Integer, _
+                           ByVal aHeadX As Integer, ByVal aHeadY As Integer, _
+                           ByVal aHeadLength As Double, _
+                           ByRef aLeaf1X As Integer, ByRef aLeaf1Y As Integer, _
+                           ByRef aLeaf2X As Integer, ByRef aLeaf2Y As Integer)
 
         Dim psi As Double 'the angle of the vector from the tip to the start
         If aTailY = aHeadY Then
@@ -519,8 +515,10 @@ EndFound:
         End If
         Dim psi1 As Double = psi + Math.PI / 10
         Dim psi2 As Double = psi - Math.PI / 10
-        g.DrawLine(aPen, CInt(aHeadX + aHeadLength * Math.Sin(psi1)), CInt(aHeadY + aHeadLength * Math.Cos(psi1)), aHeadX, aHeadY)
-        g.DrawLine(aPen, CInt(aHeadX + aHeadLength * Math.Sin(psi2)), CInt(aHeadY + aHeadLength * Math.Cos(psi2)), aHeadX, aHeadY)
+        aLeaf1X = CInt(aHeadX + aHeadLength * Math.Sin(psi1))
+        aLeaf1Y = CInt(aHeadY + aHeadLength * Math.Cos(psi1))
+        aLeaf2X = CInt(aHeadX + aHeadLength * Math.Sin(psi2))
+        aLeaf2Y = CInt(aHeadY + aHeadLength * Math.Cos(psi2))
     End Sub
 
     Public Function TimeSpanString(ByVal aTimeSpan As TimeSpan) As String

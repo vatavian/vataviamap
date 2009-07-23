@@ -752,6 +752,7 @@ SetCenter:
             With pDownloadForm
                 .Visible = False
 
+                On Error Resume Next 'Ignore dysfunctional (e.g. non-numeric) settings
                 pTileCacheFolder = .txtTileFolder.Text
                 TileServerName = .comboTileServer.Text
                 g_DegreeFormat = .DegreeFormat
