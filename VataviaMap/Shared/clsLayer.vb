@@ -2,8 +2,8 @@ Public Class clsLayer
     Public Filename As String
     Public Visible As Boolean = True
     Public MapForm As frmMap
-    Private pBounds As clsGPXbounds
-    Private pLegendColor As Color = Drawing.Color.White
+    Protected pBounds As clsGPXbounds
+    Protected pLegendColor As Color = Drawing.Color.HotPink
 
     Public Sub New(ByVal aFilename As String, ByVal aMapForm As frmMap)
         Filename = aFilename
@@ -267,7 +267,7 @@ Public Class clsLayerGPX
     Public FontLabel As Font
 
     Public SymbolSize As Integer
-    Public SymbolPen As Drawing.Pen
+    Public SymbolPen As Pen
 
     Public ArrowSize As Integer
     Private pDistSinceArrow As Integer
@@ -332,10 +332,10 @@ Public Class clsLayerGPX
             Dim lDrawThisOne As Boolean = True
             If GPX.bounds IsNot Nothing Then
                 With GPX.bounds 'Skip drawing this one if it is not in view
-                    If .minlat > MapForm.CenterLat + MapForm.LatHeight / 2 OrElse _
-                        .maxlat < MapForm.CenterLat - MapForm.LatHeight / 2 OrElse _
-                        .minlon > MapForm.CenterLon + MapForm.LonWidth / 2 OrElse _
-                        .maxlon < MapForm.CenterLon - MapForm.LonWidth / 2 Then
+                    If .minlat > MapForm.LatMax OrElse _
+                        .maxlat < MapForm.LatMin OrElse _
+                        .minlon > MapForm.LonMax OrElse _
+                        .maxlon < MapForm.LonMin Then
                         lDrawThisOne = False
                     End If
                 End With

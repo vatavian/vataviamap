@@ -7,6 +7,8 @@ Partial Class frmMap
 
     Public LatHeight As Double 'Height of map display area in latitude degrees
     Public LonWidth As Double  'Width of map display area in longitude degrees
+    'bounds of map display area
+    Public LatMin As Double, LatMax As Double, LonMin As Double, LonMax As Double
 
     Private pZoom As Integer = 10 'varies from g_ZoomMin to g_ZoomMax
 
@@ -51,7 +53,7 @@ Partial Class frmMap
     Private pBitmap As Bitmap
     Private pBitmapMutex As New Threading.Mutex()
 
-    Private pLayers As New Generic.List(Of clsLayer)
+    Public Layers As New Generic.List(Of clsLayer)
 
     Private pGPXPanTo As Boolean = True
     Private pGPXZoomTo As Boolean = True
@@ -546,6 +548,7 @@ Partial Class frmMap
         CalcLatLonFromTileXY(lCentermostTile, pZoom, lNorth, lWest, lSouth, lEast)
         LatHeight = (lNorth - lSouth) * aBounds.Height / g_TileSize
         LonWidth = (lEast - lWest) * aBounds.Width / g_TileSize
+        SanitizeCenterLatLon()
 
         aTopLeft = New Point(lCentermostTile.X, lCentermostTile.Y)
         Dim x As Integer = (aBounds.Width / 2) - lOffsetFromTileEdge.X
@@ -809,7 +812,7 @@ Partial Class frmMap
                             If lBuddy.IconFilename.Length > 0 AndAlso Not IO.File.Exists(lBuddy.IconFilename) AndAlso lBuddy.IconURL.Length > 0 Then
                                 pDownloader.Enqueue(lBuddy.IconURL, lBuddy.IconFilename, QueueItemType.IconItem, , False, lBuddy)
                             End If
-                            Me.Invoke(pRedrawCallback)
+                            NeedRedraw()
                             If pBuddyAlarmEnabled AndAlso pBuddyAlarmMeters > 0 Then
                                 If MetersBetweenLatLon(pBuddyAlarmLat, pBuddyAlarmLon, lBuddy.Waypoint.lat, lBuddy.Waypoint.lon) < pBuddyAlarmMeters Then
                                     Windows.Forms.MessageBox.Show(lBuddy.Name & " approaches", "Nearby Buddy", MessageBoxButtons.OK, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button1)
@@ -824,25 +827,33 @@ Partial Class frmMap
         End Select
     End Sub
 
-    Sub FinishedQueue(ByVal aQueueIndex As Integer) Implements IQueueListener.FinishedQueue
+    Public Sub NeedRedraw()
         'This method will be running in another thread, so we need to call Refresh in a complicated way
         Try
-            Me.Invoke(pRedrawCallback)
+            If Me.InvokeRequired Then
+                Me.Invoke(pRedrawCallback)
+            Else
+                Redraw()
+            End If
         Catch
             'Ignore if we could not refresh, probably because form is closing
         End Try
     End Sub
 
+    Sub FinishedQueue(ByVal aQueueIndex As Integer) Implements IQueueListener.FinishedQueue
+        NeedRedraw()
+    End Sub
+
     Public Function LatLonInView(ByVal aLat As Double, ByVal aLon As Double) As Boolean
-        Return (aLat < CenterLat + LatHeight / 2 AndAlso _
-                aLat > CenterLat - LatHeight / 2 AndAlso _
-                aLon < CenterLon + LonWidth / 2 AndAlso _
-                aLon > CenterLon - LonWidth / 2)
+        Return (aLat < LatMax AndAlso _
+                aLat > LatMin AndAlso _
+                aLon < LonMax AndAlso _
+                aLon > LonMin)
     End Function
 
     Private Sub DrawLayers(ByVal g As Graphics, ByVal aTopLeftTile As Point, ByVal aOffsetToCenter As Point)
-        If pLayers IsNot Nothing AndAlso pLayers.Count > 0 Then
-            For Each lLayer As clsLayer In pLayers
+        If Layers IsNot Nothing AndAlso Layers.Count > 0 Then
+            For Each lLayer As clsLayer In Layers
                 If pRedrawPending Then Exit Sub
                 lLayer.Render(g, aTopLeftTile, aOffsetToCenter)
             Next
@@ -971,6 +982,11 @@ Partial Class frmMap
 
         If CenterLat > g_LatMax Then CenterLat = g_LatMax
         If CenterLat < g_LatMin Then CenterLat = g_LatMin
+
+        LatMin = CenterLat - LatHeight / 2
+        LatMax = CenterLat + LatHeight / 2
+        LonMin = CenterLon - LonWidth / 2
+        LonMax = CenterLon + LonWidth / 2
     End Sub
 
     Private Sub frmMap_KeyDown(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyEventArgs) Handles Me.KeyDown
@@ -1098,9 +1114,9 @@ Partial Class frmMap
                     .LabelField = pGPXLabelField
                 End With
                 If aInsertAt >= 0 Then
-                    pLayers.Insert(aInsertAt, lNewLayer)
+                    Layers.Insert(aInsertAt, lNewLayer)
                 Else
-                    pLayers.Add(lNewLayer)
+                    Layers.Add(lNewLayer)
                 End If
                 If pGPXPanTo OrElse pGPXZoomTo AndAlso lNewLayer.Bounds IsNot Nothing Then
                     If pGPXPanTo Then
@@ -1130,6 +1146,7 @@ Partial Class frmMap
         With aBounds
             CenterLat = .minlat + (.maxlat - .minlat) / 2
             CenterLon = .minlon + (.maxlon - .minlon) / 2
+            SanitizeCenterLatLon()
         End With
     End Sub
 
@@ -1179,19 +1196,21 @@ Partial Class frmMap
     Private Sub ZoomToAll()
         Dim lFirstLayer As Boolean = True 'Zoom in on first layer, then zoom out to include all layers
         Dim lAllBounds As clsGPXbounds = Nothing
-        For Each lLayer As clsLayer In pLayers
-            If lFirstLayer Then
-                lAllBounds = lLayer.Bounds.Clone
-            Else
-                If lLayer.Bounds.minlat < lAllBounds.minlat Then lAllBounds.minlat = lLayer.Bounds.minlat
-                If lLayer.Bounds.minlon < lAllBounds.minlon Then lAllBounds.minlon = lLayer.Bounds.minlon
-                If lLayer.Bounds.maxlat > lAllBounds.maxlat Then lAllBounds.maxlat = lLayer.Bounds.maxlat
-                If lLayer.Bounds.maxlon > lAllBounds.maxlon Then lAllBounds.maxlon = lLayer.Bounds.maxlon
+        For Each lLayer As clsLayer In Layers
+            If lLayer.Bounds IsNot Nothing Then
+                If lFirstLayer Then
+                    lAllBounds = lLayer.Bounds.Clone
+                    lFirstLayer = False
+                Else
+                    lAllBounds.Expand(lLayer.Bounds.minlat, lLayer.Bounds.minlon)
+                    lAllBounds.Expand(lLayer.Bounds.maxlat, lLayer.Bounds.maxlon)
+                End If
             End If
-            lFirstLayer = False
         Next
-        PanTo(lAllBounds)
-        Zoom = FindZoom(lAllBounds)
+        If lAllBounds IsNot Nothing Then
+            PanTo(lAllBounds)
+            Zoom = FindZoom(lAllBounds)
+        End If
     End Sub
 
     ''' <summary>
@@ -1202,7 +1221,7 @@ Partial Class frmMap
     Private Function CloseLayer(ByVal aFilename As String) As Boolean
         Dim lLayer As clsLayer
         aFilename = aFilename.ToLower
-        For Each lLayer In pLayers
+        For Each lLayer In Layers
             If aFilename.Equals(lLayer.Filename.ToLower) Then
                 CloseLayer(lLayer)
                 Return True
@@ -1213,14 +1232,14 @@ Partial Class frmMap
 
     Private Sub CloseLayer(ByVal aLayer As clsLayer)
         aLayer.Clear()
-        pLayers.Remove(aLayer)
+        Layers.Remove(aLayer)
     End Sub
 
     Private Sub CloseAllLayers()
-        For Each lLayer As clsLayer In pLayers
+        For Each lLayer As clsLayer In Layers
             lLayer.Clear()
         Next
-        pLayers.Clear()
+        Layers.Clear()
     End Sub
 
     ''' <summary>

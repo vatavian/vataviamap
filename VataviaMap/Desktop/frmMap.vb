@@ -229,18 +229,18 @@ Public Class frmMap
                 Next
             Case EnumWheelAction.Layer
                 Dim lVisibleIndex As Integer = -1
-                For lVisibleIndex = 0 To pLayers.Count - 1
-                    If pLayers(lVisibleIndex).Visible Then
+                For lVisibleIndex = 0 To Layers.Count - 1
+                    If Layers(lVisibleIndex).Visible Then
                         Exit For
                     End If
                 Next
                 lVisibleIndex += 1
-                If lVisibleIndex >= pLayers.Count Then lVisibleIndex = 0
-                For lIndex As Integer = 0 To pLayers.Count - 1
+                If lVisibleIndex >= Layers.Count Then lVisibleIndex = 0
+                For lIndex As Integer = 0 To Layers.Count - 1
                     If (lIndex = lVisibleIndex) Then
-                        pLayers(lIndex).Visible = True
+                        Layers(lIndex).Visible = True
                     Else
-                        pLayers(lIndex).Visible = False
+                        Layers(lIndex).Visible = False
                     End If
                 Next
                 Redraw()
@@ -310,8 +310,8 @@ Public Class frmMap
                 SaveTiles(IO.Path.GetDirectoryName(.FileName) & "\" & IO.Path.GetFileNameWithoutExtension(.FileName) & "\")
                 pBitmapMutex.ReleaseMutex()
                 'CreateGeoReferenceFile(LatitudeToMeters(pCenterLat - pLatHeight * 1.66), _
-                CreateGeoReferenceFile(LatitudeToMeters(CenterLat + LatHeight / 2), _
-                                       LongitudeToMeters(CenterLon - LonWidth / 2), _
+                CreateGeoReferenceFile(LatitudeToMeters(LatMax), _
+                                       LongitudeToMeters(LonMin), _
                                        pZoom, ImageWorldFilename(.FileName))
                 IO.File.WriteAllText(IO.Path.ChangeExtension(.FileName, "prj"), "PROJCS[""unnamed"", GEOGCS[""unnamed ellipse"", DATUM[""unknown"", SPHEROID[""unnamed"",6378137,0]], PRIMEM[""Greenwich"",0], UNIT[""degree"",0.0174532925199433]], PROJECTION[""Mercator_2SP""], PARAMETER[""standard_parallel_1"",0], PARAMETER[""central_meridian"",0], PARAMETER[""false_easting"",0], PARAMETER[""false_northing"",0], UNIT[""Meter"",1], EXTENSION[""PROJ4"",""+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs""]]")
                 'IO.File.WriteAllText(IO.Path.ChangeExtension(.FileName, "prj"), "PROJCS[""Mercator"",GEOGCS[""unnamed ellipse"",DATUM[""D_unknown"",SPHEROID[""Unknown"",6371000,0]],PRIMEM[""Greenwich"",0],UNIT[""Degree"",0.017453292519943295]],PROJECTION[""Mercator""],PARAMETER[""standard_parallel_1"",0],PARAMETER[""central_meridian"",0],PARAMETER[""scale_factor"",1],PARAMETER[""false_easting"",0],PARAMETER[""false_northing"",0],UNIT[""Meter"",1]]")
@@ -568,7 +568,7 @@ Public Class frmMap
 
         If IO.File.Exists(lJosmFilename) Then
             Dim lArguments As String = ""
-            For Each lLayer As clsLayer In pLayers
+            For Each lLayer As clsLayer In Layers
                 lArguments &= """" & lLayer.Filename & """ "
             Next
             Process.Start(lJosmFilename, lArguments)
@@ -584,7 +584,7 @@ Public Class frmMap
         End If
         pLayersForm = New frmLayers
         pLayersForm.Icon = Me.Icon
-        pLayersForm.PopulateList(pLayers)
+        pLayersForm.PopulateList(Layers)
         pLayersForm.Show()
     End Sub
 
@@ -596,13 +596,13 @@ Public Class frmMap
         'Change set of loaded/visible layers to match ones now checked
         Dim lFilename As String
 
-        For Each lLayer As clsLayer In pLayers
+        For Each lLayer As clsLayer In Layers
             lLayer.Visible = False
         Next
 
         For Each lFilename In aSelectedLayers
             Dim lAlreadyOpen As Boolean = False
-            For Each lLayer As clsLayer In pLayers
+            For Each lLayer As clsLayer In Layers
                 If lLayer.Filename.ToLower = lFilename.ToLower Then
                     lLayer.Visible = True
                     lAlreadyOpen = True
@@ -711,10 +711,10 @@ Public Class frmMap
 
     Private Sub GetOSMBugsToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles GetOSMBugsToolStripMenuItem.Click
         Dim lBugsGPXurl As String = "http://openstreetbugs.schokokeks.org/api/0.1/getGPX?" _
-            & "b=" & CenterLat - LatHeight / 2 _
-            & "&t=" & CenterLat + LatHeight / 2 _
-            & "&l=" & CenterLon - LatHeight / 2 _
-            & "&r=" & CenterLon + LatHeight / 2 _
+            & "b=" & LatMin _
+            & "&t=" & LatMax _
+            & "&l=" & LonMin _
+            & "&r=" & LonMax _
             & "&open=yes"
         Dim lBugsGPXfilename As String = IO.Path.Combine(My.Computer.FileSystem.SpecialDirectories.MyDocuments, "bugs.gpx")
         If pDownloader.DownloadFile(lBugsGPXurl, lBugsGPXfilename, False) Then OpenGPX(lBugsGPXfilename) 'TODO: set .LabelField = "desc"
@@ -762,58 +762,9 @@ Public Class frmMap
         End If
     End Sub
 
-    Private Sub ConvertOpenCellIDToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles ConvertOpenCellIDToolStripMenuItem.Click
-
-        'TODO: sort values in converted version for faster searching
-
-        Dim lOpenDialog As New Windows.Forms.OpenFileDialog
-        With lOpenDialog
-            .Title = "Open uncompressed raw data file"
-            .FileName = "cells.txt"
-            .Filter = "*.txt|*.txt|*.*|*.*"
-            If .ShowDialog = Windows.Forms.DialogResult.OK Then
-                Dim lLatitude As Double
-                Dim lLongitude As Double
-                Dim lDirectory As String = IO.Path.GetDirectoryName(.FileName) & g_PathChar
-                Dim lIndex As Integer = 1
-                While IO.Directory.Exists(lDirectory & "cells-" & lIndex)
-                    lIndex += 1
-                End While
-                Dim lBinDirectory As String = lDirectory & "cells-" & lIndex & "-bin" & g_PathChar
-                IO.Directory.CreateDirectory(lBinDirectory)
-                lDirectory &= "cells-" & lIndex & g_PathChar
-
-                IO.Directory.CreateDirectory(lDirectory)
-                For Each lLine As String In IO.File.ReadAllLines(.FileName)
-                    Dim lFields() As String = lLine.Split(","c)
-                    If lFields(3).StartsWith("31") Then 'Only towers in USA
-                        If lFields(1) <> "0" AndAlso lFields(2) <> "0" _
-                           AndAlso Double.TryParse(lFields(1), lLatitude) AndAlso lLatitude > -90 AndAlso lLatitude < 90 _
-                           AndAlso Double.TryParse(lFields(2), lLongitude) AndAlso lLongitude > -180 AndAlso lLongitude < 180 Then
-                            Dim lPath As String = lDirectory & "USA" 'lFields(3) & "." & lFields(4)
-                            IO.File.AppendAllText(lPath, lLine & vbLf) 'lFields(5) & "," & lFields(6) & "," & lFields(1) & "," & lFields(2) & vbLf)
-
-                            Try
-                                Dim lMCCMNC As UInteger = lFields(3) & lFields(4)
-                                Dim lLAC As UShort = lFields(5)
-                                Dim lID As UInteger = lFields(6)
-                                Dim lFileStream As New IO.FileStream(lBinDirectory & "USA", IO.FileMode.Append) 'lFields(3) & "." & lFields(4)
-                                Dim lWriter As New IO.BinaryWriter(lFileStream)
-                                lWriter.Write(lMCCMNC)
-                                lWriter.Write(lLAC)
-                                lWriter.Write(lID)
-                                lWriter.Write(lLatitude)
-                                lWriter.Write(lLongitude)
-                                lWriter.Close()
-                            Catch
-                                IO.File.AppendAllText(.FileName & ".badbin.txt", lLine & vbCrLf)
-                            End Try
-                        Else
-                            IO.File.AppendAllText(.FileName & ".bad.txt", lLine & vbCrLf)
-                        End If
-                    End If
-                Next
-            End If
-        End With
+    Private Sub OpenCellIDToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles OpenCellIDToolStripMenuItem.Click
+        Dim lOpenCellIDform As New frmOpenCellID
+        lOpenCellIDform.Icon = Me.Icon
+        lOpenCellIDform.AskUser(Me, pDownloader)
     End Sub
 End Class
