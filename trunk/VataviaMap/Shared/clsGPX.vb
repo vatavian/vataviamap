@@ -81,13 +81,13 @@ LoadedXML:
             If Me.boundsField Is Nothing Then
                 Me.boundsField = New clsGPXbounds
                 For Each lWaypoint As clsGPXwaypoint In wpt
-                    ExpandBounds(lWaypoint)
+                    Me.boundsField.Expand(lWaypoint.lat, lWaypoint.lon)
                 Next
 
                 For Each lTrack As clsGPXtrack In trk
                     For Each lTrackSegment As clsGPXtracksegment In lTrack.trkseg
                         For Each lTrackPoint As clsGPXwaypoint In lTrackSegment.trkpt
-                            ExpandBounds(lTrackPoint)
+                            Me.boundsField.Expand(lTrackPoint.lat, lTrackPoint.lon)
                         Next
                     Next
                 Next
@@ -130,24 +130,6 @@ LoadedXML:
         lXML &= linkString()
         Return lXML & "</gpx>"
     End Function
-
-    Public Sub ExpandBounds(ByVal aWaypoint As clsGPXwaypoint)
-        If Me.boundsField Is Nothing Then Me.boundsField = New clsGPXbounds
-        With aWaypoint
-            If .lat < boundsField.minlat Then
-                boundsField.minlat = .lat
-            End If
-            If .lat > boundsField.maxlat Then
-                boundsField.maxlat = .lat
-            End If
-            If .lon < boundsField.minlon Then
-                boundsField.minlon = .lon
-            End If
-            If .lon > boundsField.maxlon Then
-                boundsField.maxlon = .lon
-            End If
-        End With
-    End Sub
 
     <System.Xml.Serialization.XmlElementAttribute("wpt")> _
     Public Property wpt() As Generic.List(Of clsGPXwaypoint)
@@ -1224,6 +1206,13 @@ Partial Public Class clsGPXbounds
             Me.maxlonField = value
         End Set
     End Property
+
+    Public Sub Expand(ByVal aLat As Double, ByVal aLon As Double)
+        If aLat < minlat Then minlat = aLat
+        If aLat > maxlat Then maxlat = aLat
+        If aLon < minlon Then minlon = aLon
+        If aLon > maxlon Then maxlon = aLon
+    End Sub
 
     Public Overrides Function ToString() As String
         Return "(" & Format(minlonField, "0.000") & ", " & Format(minlatField, "0.000") & ") (" _
