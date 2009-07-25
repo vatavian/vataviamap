@@ -33,6 +33,7 @@ Partial Class frmMap
         Me.RemoveAllLayersToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.OpenOSMWebsiteToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.OpenJOSMToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.FollowOSMURLToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.GetOSMBugsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.ExitToolStripSeparator = New System.Windows.Forms.ToolStripSeparator
         Me.ExitToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
@@ -65,17 +66,18 @@ Partial Class frmMap
         Me.RightClickMenu = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.RefreshFromServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.GetAllDescendantsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
-        Me.FollowOSMURLToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.CellTowerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.ConvertOpenCellIDToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.MenuStripMain.SuspendLayout()
         Me.RightClickMenu.SuspendLayout()
         Me.SuspendLayout()
         '
         'MenuStripMain
         '
-        Me.MenuStripMain.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FileToolStripMenuItem, Me.ViewToolStripMenuItem, Me.ZoomToolStripMenuItem, Me.TileServerToolStripMenuItem, Me.OverlayServerToolStripMenuItem, Me.BuddiesToolStripMenuItem, Me.WheelToolStripMenuItem, Me.HelpToolStripMenuItem})
+        Me.MenuStripMain.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FileToolStripMenuItem, Me.ViewToolStripMenuItem, Me.ZoomToolStripMenuItem, Me.TileServerToolStripMenuItem, Me.OverlayServerToolStripMenuItem, Me.BuddiesToolStripMenuItem, Me.WheelToolStripMenuItem, Me.CellTowerToolStripMenuItem, Me.HelpToolStripMenuItem})
         Me.MenuStripMain.Location = New System.Drawing.Point(0, 0)
         Me.MenuStripMain.Name = "MenuStripMain"
-        Me.MenuStripMain.Size = New System.Drawing.Size(658, 27)
+        Me.MenuStripMain.Size = New System.Drawing.Size(785, 27)
         Me.MenuStripMain.TabIndex = 0
         Me.MenuStripMain.Text = "MenuStrip1"
         '
@@ -122,6 +124,12 @@ Partial Class frmMap
         Me.OpenJOSMToolStripMenuItem.Name = "OpenJOSMToolStripMenuItem"
         Me.OpenJOSMToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
         Me.OpenJOSMToolStripMenuItem.Text = "Open JOSM"
+        '
+        'FollowOSMURLToolStripMenuItem
+        '
+        Me.FollowOSMURLToolStripMenuItem.Name = "FollowOSMURLToolStripMenuItem"
+        Me.FollowOSMURLToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
+        Me.FollowOSMURLToolStripMenuItem.Text = "Follow OSM URL on clipboard"
         '
         'GetOSMBugsToolStripMenuItem
         '
@@ -327,18 +335,25 @@ Partial Class frmMap
         Me.GetAllDescendantsToolStripMenuItem.Size = New System.Drawing.Size(239, 24)
         Me.GetAllDescendantsToolStripMenuItem.Text = "Get All Descendants"
         '
-        'FollowOSMURLToolStripMenuItem
+        'CellTowerToolStripMenuItem
         '
-        Me.FollowOSMURLToolStripMenuItem.Name = "FollowOSMURLToolStripMenuItem"
-        Me.FollowOSMURLToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
-        Me.FollowOSMURLToolStripMenuItem.Text = "Follow OSM URL on clipboard"
+        Me.CellTowerToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ConvertOpenCellIDToolStripMenuItem})
+        Me.CellTowerToolStripMenuItem.Name = "CellTowerToolStripMenuItem"
+        Me.CellTowerToolStripMenuItem.Size = New System.Drawing.Size(97, 23)
+        Me.CellTowerToolStripMenuItem.Text = "Cell Tower"
+        '
+        'ConvertOpenCellIDToolStripMenuItem
+        '
+        Me.ConvertOpenCellIDToolStripMenuItem.Name = "ConvertOpenCellIDToolStripMenuItem"
+        Me.ConvertOpenCellIDToolStripMenuItem.Size = New System.Drawing.Size(302, 24)
+        Me.ConvertOpenCellIDToolStripMenuItem.Text = "Convert OpenCellID database"
         '
         'frmMap
         '
         Me.AllowDrop = True
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(658, 398)
+        Me.ClientSize = New System.Drawing.Size(785, 398)
         Me.Controls.Add(Me.MenuStripMain)
         Me.DoubleBuffered = True
         Me.Icon = CType(resources.GetObject("$this.Icon"), System.Drawing.Icon)
@@ -393,4 +408,6 @@ Partial Class frmMap
     Friend WithEvents VataviaMapProjectPageToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents GetOSMBugsToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents FollowOSMURLToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents CellTowerToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents ConvertOpenCellIDToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
 End Class
