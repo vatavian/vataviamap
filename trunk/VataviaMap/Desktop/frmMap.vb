@@ -761,4 +761,59 @@ Public Class frmMap
             MsgBox("Copy an OpenStreetMap Permalink to the clipboard before using this menu", MsgBoxStyle.OkOnly, "OpenStreetMap URL")
         End If
     End Sub
+
+    Private Sub ConvertOpenCellIDToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles ConvertOpenCellIDToolStripMenuItem.Click
+
+        'TODO: sort values in converted version for faster searching
+
+        Dim lOpenDialog As New Windows.Forms.OpenFileDialog
+        With lOpenDialog
+            .Title = "Open uncompressed raw data file"
+            .FileName = "cells.txt"
+            .Filter = "*.txt|*.txt|*.*|*.*"
+            If .ShowDialog = Windows.Forms.DialogResult.OK Then
+                Dim lLatitude As Double
+                Dim lLongitude As Double
+                Dim lDirectory As String = IO.Path.GetDirectoryName(.FileName) & g_PathChar
+                Dim lIndex As Integer = 1
+                While IO.Directory.Exists(lDirectory & "cells-" & lIndex)
+                    lIndex += 1
+                End While
+                Dim lBinDirectory As String = lDirectory & "cells-" & lIndex & "-bin" & g_PathChar
+                IO.Directory.CreateDirectory(lBinDirectory)
+                lDirectory &= "cells-" & lIndex & g_PathChar
+
+                IO.Directory.CreateDirectory(lDirectory)
+                For Each lLine As String In IO.File.ReadAllLines(.FileName)
+                    Dim lFields() As String = lLine.Split(","c)
+                    If lFields(3).StartsWith("31") Then 'Only towers in USA
+                        If lFields(1) <> "0" AndAlso lFields(2) <> "0" _
+                           AndAlso Double.TryParse(lFields(1), lLatitude) AndAlso lLatitude > -90 AndAlso lLatitude < 90 _
+                           AndAlso Double.TryParse(lFields(2), lLongitude) AndAlso lLongitude > -180 AndAlso lLongitude < 180 Then
+                            Dim lPath As String = lDirectory & "USA" 'lFields(3) & "." & lFields(4)
+                            IO.File.AppendAllText(lPath, lLine & vbLf) 'lFields(5) & "," & lFields(6) & "," & lFields(1) & "," & lFields(2) & vbLf)
+
+                            Try
+                                Dim lMCCMNC As UInteger = lFields(3) & lFields(4)
+                                Dim lLAC As UShort = lFields(5)
+                                Dim lID As UInteger = lFields(6)
+                                Dim lFileStream As New IO.FileStream(lBinDirectory & "USA", IO.FileMode.Append) 'lFields(3) & "." & lFields(4)
+                                Dim lWriter As New IO.BinaryWriter(lFileStream)
+                                lWriter.Write(lMCCMNC)
+                                lWriter.Write(lLAC)
+                                lWriter.Write(lID)
+                                lWriter.Write(lLatitude)
+                                lWriter.Write(lLongitude)
+                                lWriter.Close()
+                            Catch
+                                IO.File.AppendAllText(.FileName & ".badbin.txt", lLine & vbCrLf)
+                            End Try
+                        Else
+                            IO.File.AppendAllText(.FileName & ".bad.txt", lLine & vbCrLf)
+                        End If
+                    End If
+                Next
+            End If
+        End With
+    End Sub
 End Class

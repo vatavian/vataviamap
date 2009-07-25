@@ -6,6 +6,7 @@ Public Class frmMap
     Private GPS_POSITION As GPS_API.GpsPosition = Nothing
 
     Private pLastCellTower As GPS_API.RIL.RILCELLTOWERINFO
+    Private pCellLocationProviders As New Generic.List(Of clsCellLocationProvider)
 
     Private Shared pTrackMutex As New Threading.Mutex()
 
@@ -60,6 +61,9 @@ Public Class frmMap
         End Try
 
         SharedNew()
+
+        pCellLocationProviders.Add(New clsCellLocationOpenCellID)
+        pCellLocationProviders.Add(New clsCellLocationGoogle)
 
         pCursorLayer = New clsLayerGPX("cursor", Me)
         pCursorLayer.SymbolPen = New Pen(Color.Red)
@@ -391,7 +395,7 @@ RestartRedraw:
             pLastCellTower = lCurrentCellInfo
             With lCurrentCellInfo
                 Dim lLat, lLon As Double
-                If GetCellLocationFromGoogle(pTileCacheFolder & "cell", .dwCellID, .dwMobileCountryCode, .dwMobileNetworkCode, .dwLocationAreaCode, lLat, lLon) Then
+                If GetCellLocation(pTileCacheFolder & "cell", lCurrentCellInfo, lLat, lLon) Then
                     If SetCenterFromDevice(lLat, lLon) Then
                         Me.Invoke(pRedrawCallback)
                         Return True
@@ -399,6 +403,25 @@ RestartRedraw:
                 End If
             End With
         End If
+        Return False
+    End Function
+
+    Private Function GetCellLocation(ByVal aCellCacheFolder As String, ByVal aCell As GPS_API.RIL.RILCELLTOWERINFO, _
+                                     ByRef aLatitude As Double, ByRef aLongitude As Double) As Boolean
+        'Check for a cached location first
+        For Each lLocationProvider As clsCellLocationProvider In pCellLocationProviders
+            If lLocationProvider.GetCachedLocation(aCellCacheFolder, aCell, aLatitude, aLongitude) Then
+                Return True
+            End If
+        Next
+
+        'Query for a new location and cache if found
+        For Each lLocationProvider As clsCellLocationProvider In pCellLocationProviders
+            If lLocationProvider.GetCellLocation(aCell, aLatitude, aLongitude) Then
+                lLocationProvider.SaveCachedLocation(aCellCacheFolder, aCell, aLatitude, aLongitude)
+                Return True
+            End If
+        Next
         Return False
     End Function
 
