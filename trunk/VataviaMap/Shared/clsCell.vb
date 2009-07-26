@@ -1,8 +1,9 @@
+<CLSCompliant(False)> _
 Public Class clsCell
-    Public MCC As UInt16
-    Public MNC As UInt16
-    Public LAC As UInt16
-    Public ID As UInt32
+    Public MCC As UInt16 'MobileCountryCode
+    Public MNC As UInt16 'MobileNetworkCode
+    Public LAC As UInt16 'LocationAreaCode
+    Public ID As UInt32  'CellID
     Public Latitude As Double
     Public Longitude As Double
 
@@ -12,6 +13,19 @@ Public Class clsCell
     Public Sub New()
         Clear()
     End Sub
+
+#If Smartphone Then
+
+    Public Sub New(ByVal aTowerInfo As GPS_API.RIL.RILCELLTOWERINFO)
+        With aTowerInfo
+            MCC = .dwMobileCountryCode
+            MNC = .dwMobileNetworkCode
+            LAC = .dwLocationAreaCode
+            ID = .dwCellID
+        End With
+    End Sub
+
+#End If
 
     Public Sub Clear()
         MCC = 0

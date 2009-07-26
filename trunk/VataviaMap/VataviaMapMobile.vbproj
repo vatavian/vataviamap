@@ -79,9 +79,10 @@
     <Import Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Mobile\clsCellLocation.vb" />
-    <Compile Include="Mobile\clsCellLocationGoogle.vb" />
-    <Compile Include="Mobile\clsCellLocationOpenCellID.vb" />
+    <Compile Include="Shared\clsCell.vb" />
+    <Compile Include="Shared\clsCellLocation.vb" />
+    <Compile Include="Shared\clsCellLocationGoogle.vb" />
+    <Compile Include="Shared\clsCellLocationOpenCellID.vb" />
     <Compile Include="Shared\clsDownloader.vb" />
     <Compile Include="Shared\clsGPX.vb" />
     <Compile Include="Shared\clsLayer.vb" />
