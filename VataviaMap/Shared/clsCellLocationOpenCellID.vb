@@ -6,10 +6,10 @@ Class clsCellLocationOpenCellID
     Inherits clsCellLocationProvider
 
     Public Sub New()
-        Me.pProviderCode = "o"
+        Me.pProviderCode = "OpenCellID"
     End Sub
 
-    Public Overrides Function GetCellLocation(ByVal aCell As RILCELLTOWERINFO, ByRef Latitude As Double, ByRef Longitude As Double) As Boolean
+    Public Overrides Function GetCellLocation(ByVal aCell As clsCell) As Boolean
         'TODO implement getting cell location from OpenCellID.org
         Return False
     End Function

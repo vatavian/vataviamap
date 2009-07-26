@@ -5,7 +5,7 @@ Public Class frmMap
     Private GPS_DEVICE_STATE As GPS_API.GpsDeviceState
     Private GPS_POSITION As GPS_API.GpsPosition = Nothing
 
-    Private pLastCellTower As GPS_API.RIL.RILCELLTOWERINFO
+    Private pLastCellTower As clsCell
     Private pCellLocationProviders As New Generic.List(Of clsCellLocationProvider)
 
     Private Shared pTrackMutex As New Threading.Mutex()
@@ -123,7 +123,7 @@ RestartRedraw:
     End Sub
 
     Private Function EnsureCurrentTrack() As clsLayerGPX
-        If pLayers.Count = 0 OrElse pLayers(0).Filename <> "current" Then
+        If Layers.Count = 0 OrElse Layers(0).Filename <> "current" Then
             Dim lCurrentTrack As New clsLayerGPX("current", Me)
             lCurrentTrack.Filename = "current"
             With lCurrentTrack.GPX
@@ -131,9 +131,9 @@ RestartRedraw:
                 .trk.Add(New clsGPXtrack("current"))
                 .trk(0).trkseg.Add(New clsGPXtracksegment())
             End With
-            pLayers.Insert(0, lCurrentTrack)
+            Layers.Insert(0, lCurrentTrack)
         End If
-        Return pLayers(0)
+        Return Layers(0)
     End Function
 
     Private Function MapRectangle() As Rectangle
@@ -390,13 +390,12 @@ RestartRedraw:
     End Sub
 
     Private Function SetCenterFromCellLocation() As Boolean
-        Dim lCurrentCellInfo As GPS_API.RIL.RILCELLTOWERINFO = GPS_API.RIL.GetCellTowerInfo
-        If lCurrentCellInfo IsNot Nothing AndAlso lCurrentCellInfo.dwCellID > 0 AndAlso (pLastCellTower Is Nothing OrElse lCurrentCellInfo.dwCellID <> pLastCellTower.dwCellID) Then
+        Dim lCurrentCellInfo As New clsCell(GPS_API.RIL.GetCellTowerInfo)
+        If lCurrentCellInfo IsNot Nothing AndAlso lCurrentCellInfo.ID > 0 AndAlso (pLastCellTower Is Nothing OrElse lCurrentCellInfo.ID <> pLastCellTower.ID) Then
             pLastCellTower = lCurrentCellInfo
             With lCurrentCellInfo
-                Dim lLat, lLon As Double
-                If GetCellLocation(pTileCacheFolder & "cell", lCurrentCellInfo, lLat, lLon) Then
-                    If SetCenterFromDevice(lLat, lLon) Then
+                If GetCellLocation(pTileCacheFolder & "cell", lCurrentCellInfo) Then
+                    If SetCenterFromDevice(lCurrentCellInfo.Latitude, lCurrentCellInfo.Longitude) Then
                         Me.Invoke(pRedrawCallback)
                         Return True
                     End If
@@ -406,19 +405,18 @@ RestartRedraw:
         Return False
     End Function
 
-    Private Function GetCellLocation(ByVal aCellCacheFolder As String, ByVal aCell As GPS_API.RIL.RILCELLTOWERINFO, _
-                                     ByRef aLatitude As Double, ByRef aLongitude As Double) As Boolean
+    Private Function GetCellLocation(ByVal aCellCacheFolder As String, ByVal aCell As clsCell) As Boolean
         'Check for a cached location first
         For Each lLocationProvider As clsCellLocationProvider In pCellLocationProviders
-            If lLocationProvider.GetCachedLocation(aCellCacheFolder, aCell, aLatitude, aLongitude) Then
+            If lLocationProvider.GetCachedLocation(aCellCacheFolder, aCell) Then
                 Return True
             End If
         Next
 
         'Query for a new location and cache if found
         For Each lLocationProvider As clsCellLocationProvider In pCellLocationProviders
-            If lLocationProvider.GetCellLocation(aCell, aLatitude, aLongitude) Then
-                lLocationProvider.SaveCachedLocation(aCellCacheFolder, aCell, aLatitude, aLongitude)
+            If lLocationProvider.GetCellLocation(aCell) Then
+                lLocationProvider.SaveCachedLocation(aCellCacheFolder, aCell)
                 Return True
             End If
         Next
@@ -566,11 +564,11 @@ SetCenter:
     Private Sub mnuGeocache_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuGeocache.Click
         pFormVisible = False
 
-        If pLayers IsNot Nothing AndAlso pLayers.Count > 0 Then
+        If Layers IsNot Nothing AndAlso Layers.Count > 0 Then
             Dim lMiddlemostCache As clsGPXwaypoint = Nothing
             Dim lClosestDistance As Double = Double.MaxValue
             Dim lThisDistance As Double
-            For Each lLayer As clsLayer In pLayers
+            For Each lLayer As clsLayer In Layers
                 Try
                     Dim lGPXLayer As clsLayerGPX = lLayer
                     Dim lDrawThisOne As Boolean = True
@@ -769,8 +767,8 @@ SetCenter:
         mnuViewTrack.Checked = Not mnuViewTrack.Checked
         pDisplayTrack = mnuViewTrack.Checked
 
-        If pLayers.Count > 0 AndAlso pLayers(0).Filename = "current" Then
-            pLayers.RemoveAt(0)
+        If Layers.Count > 0 AndAlso Layers(0).Filename = "current" Then
+            Layers.RemoveAt(0)
         End If
         If pDisplayTrack Then
             pTrackMutex.WaitOne()
@@ -872,7 +870,7 @@ SetCenter:
         pLayersForm = New frmOptionsMobileGPX
         With pLayersForm
             On Error Resume Next
-            .LayersLoaded = pLayers
+            .LayersLoaded = Layers
             .txtGPXFolder.Text = pGPXFolder
             .comboLabels.Text = pGPXLabelField
             .txtGPXSymbolSize.Text = pTrackSymbolSize
@@ -888,8 +886,8 @@ SetCenter:
                 pGPXLabelField = .comboLabels.Text
 
                 'Change set of loaded GPX files to match ones now checked
-                Dim lOldGPX As Generic.List(Of clsLayer) = pLayers
-                pLayers = New Generic.List(Of clsLayer)
+                Dim lOldGPX As Generic.List(Of clsLayer) = Layers
+                Layers = New Generic.List(Of clsLayer)
                 pTrackSymbolSize = .txtGPXSymbolSize.Text
                 'TODO: pPenTrack.Color = .txtGPXSymbolColor.BackColor
                 Dim lSaveText As String = Me.Text
@@ -905,7 +903,7 @@ SetCenter:
                                     lGPXlayer.LabelField = pGPXLabelField
                                 Catch
                                 End Try
-                                pLayers.Add(lLayer)
+                                Layers.Add(lLayer)
                                 lAlreadyOpen = True
                                 Exit For
                             End If

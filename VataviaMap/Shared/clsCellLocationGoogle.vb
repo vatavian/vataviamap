@@ -8,10 +8,10 @@ Class clsCellLocationGoogle
     Private Const Google_Mobile_Service_Uri As String = "http://www.google.com/glm/mmap"
 
     Public Sub New()
-        Me.pProviderCode = "g"
+        Me.pProviderCode = "Google"
     End Sub
 
-    Public Overrides Function GetCellLocation(ByVal aCell As RILCELLTOWERINFO, ByRef Latitude As Double, ByRef Longitude As Double) As Boolean
+    Public Overrides Function GetCellLocation(ByVal aCell As clsCell) As Boolean
         Try
             ' Translate cell tower data into http post parameter data
             Dim formData As Byte() = GetFormPostData(aCell)
@@ -35,8 +35,8 @@ Class clsCellLocationGoogle
             If response.StatusCode = HttpStatusCode.OK Then
                 Dim successful As Integer = Convert.ToInt32(GetCode(responseBytes, 3))
                 If successful = 0 Then
-                    Latitude = GetCode(responseBytes, 7) / 1000000
-                    Longitude = GetCode(responseBytes, 11) / 1000000
+                    aCell.Latitude = GetCode(responseBytes, 7) / 1000000
+                    aCell.Longitude = GetCode(responseBytes, 11) / 1000000
                     Return True
                 End If
             End If
@@ -46,7 +46,7 @@ Class clsCellLocationGoogle
         Return False
     End Function 'GetLocation
 
-    Private Shared Function GetFormPostData(ByVal aCell As RILCELLTOWERINFO) As Byte()
+    Private Shared Function GetFormPostData(ByVal aCell As clsCell) As Byte()
         Dim pd(55) As Byte
         pd(1) = 14 '0x0e;
         pd(16) = 27 '0x1b;
@@ -55,17 +55,17 @@ Class clsCellLocationGoogle
         pd(49) = 255 '0xff;
         pd(50) = 255 '0xff;
         ' GSM uses 4 digits while UTMS used 6 digits (hex)
-        If CType(aCell.dwCellID, Int64) > 65536 Then
+        If CType(aCell.ID, Int64) > 65536 Then
             pd(28) = 5
         Else
             pd(28) = 3
         End If
-        Shift(pd, 17, aCell.dwMobileNetworkCode)
-        Shift(pd, 21, aCell.dwMobileCountryCode)
-        Shift(pd, 31, aCell.dwCellID)
-        Shift(pd, 35, aCell.dwLocationAreaCode)
-        Shift(pd, 39, aCell.dwMobileNetworkCode)
-        Shift(pd, 43, aCell.dwMobileCountryCode)
+        Shift(pd, 17, aCell.MNC)
+        Shift(pd, 21, aCell.MCC)
+        Shift(pd, 31, aCell.ID)
+        Shift(pd, 35, aCell.LAC)
+        Shift(pd, 39, aCell.MNC)
+        Shift(pd, 43, aCell.MCC)
 
         Return pd
     End Function 'GetFormPostData
