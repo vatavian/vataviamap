@@ -62,7 +62,7 @@ Public Class frmMap
     End Sub
 
     Private Sub Redraw()
-        If pFormVisible Then
+        If pFormVisible AndAlso WindowState <> FormWindowState.Minimized Then
             Dim lGraphics As Graphics = GetBitmapGraphics()
             If lGraphics IsNot Nothing Then
                 DrawTiles(lGraphics)
@@ -125,7 +125,7 @@ Public Class frmMap
     Private Sub frmMap_DragDrop(ByVal sender As Object, ByVal e As System.Windows.Forms.DragEventArgs) Handles Me.DragDrop
         Me.Activate()
         If e.Data.GetDataPresent(Windows.Forms.DataFormats.FileDrop) Then
-            OpenGPXs(e.Data.GetData(Windows.Forms.DataFormats.FileDrop))
+            OpenFiles(e.Data.GetData(Windows.Forms.DataFormats.FileDrop))
         End If
     End Sub
 
@@ -389,7 +389,7 @@ Public Class frmMap
             .Multiselect = True
             .Title = "Select GPX file(s) to open"
             If .ShowDialog(Me) = Windows.Forms.DialogResult.OK Then
-                OpenGPXs(.FileNames)
+                OpenFiles(.FileNames)
             End If
         End With
     End Sub

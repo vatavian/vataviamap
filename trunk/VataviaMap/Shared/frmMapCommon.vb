@@ -1080,7 +1080,7 @@ Partial Class frmMap
         Redraw()
     End Sub
 
-    Private Sub OpenGPXs(ByVal aFilenames() As String)
+    Private Sub OpenFiles(ByVal aFilenames() As String)
         Dim lGPXPanTo As Boolean = pGPXPanTo
         Dim lGPXZoomTo As Boolean = pGPXZoomTo
         If aFilenames.Length > 1 Then
@@ -1092,7 +1092,10 @@ Partial Class frmMap
         Dim lCurFile As Integer = 1
         For Each lFilename As String In aFilenames
             Me.Text = "Loading " & lCurFile & "/" & lNumFiles & " '" & IO.Path.GetFileNameWithoutExtension(lFilename) & "'"
-            OpenGPX(lFilename)
+            Select Case IO.Path.GetExtension(lFilename)
+                Case ".cell" : OpenCell(lFilename)
+                Case Else : OpenGPX(lFilename)
+            End Select
             lCurFile += 1
         Next
         Me.Text = lSaveTitle
@@ -1103,6 +1106,12 @@ Partial Class frmMap
         End If
 
         If Not pGPXPanTo AndAlso Not pGPXZoomTo Then Redraw()
+    End Sub
+
+    Public Sub OpenCell(ByVal aFilename As String)
+        Dim lLayer As New clsOpenCellID(aFilename, Me)
+        Layers.Add(lLayer)
+        NeedRedraw()
     End Sub
 
     Private Sub OpenGPX(ByVal aFilename As String, Optional ByVal aInsertAt As Integer = -1)
