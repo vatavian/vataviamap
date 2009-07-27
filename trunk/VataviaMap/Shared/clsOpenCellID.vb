@@ -1,3 +1,8 @@
+''' <summary>
+''' Reads a binary file containing GSM cell IDs and Latitude/Longitude
+''' Draws cells on a map (Inherits clsLayer)
+''' </summary>
+''' <remarks></remarks>
 Public Class clsOpenCellID
     Inherits clsLayer
 
@@ -21,6 +26,7 @@ Public Class clsOpenCellID
         If lReader.ReadUInt32 <> BinaryMagic Then
             Throw New ApplicationException("Unknown file type '" & aFilename & "'")
         Else
+            'Subtract 4 bytes for BinaryMagic
             Dim lLastCell As Integer = (FileLen(aFilename) - 4) / clsCell.NumBytes - 1
             ReDim pCells(lLastCell)
             For lIndex As Integer = 0 To lLastCell
@@ -102,7 +108,16 @@ Public Class clsOpenCellID
         End With
     End Function
 
-    Public Shared Function ConvertDatabase(ByVal aDatabaseFilename As String, _
+    ''' <summary>
+    ''' Convert from OpenCellID CSV formatted raw list of cells into binary or text format
+    ''' </summary>
+    ''' <param name="aCSVFilename">File as downloaded from OpenCellID Raw Data, cells.txt.gz, uncompressed</param>
+    ''' <param name="aSaveAs">File name to save binary formatted data in</param>
+    ''' <param name="aSaveBinary">True to save as binary, False to save as text</param>
+    ''' <param name="aMCCs">List of Mobile Country Codes to include in output</param>
+    ''' <returns>True on success, False on failure</returns>
+    ''' <remarks></remarks>
+    Public Shared Function ConvertDatabase(ByVal aCSVFilename As String, _
                                            ByVal aSaveAs As String, _
                                            ByVal aSaveBinary As Boolean, _
                                            ByVal aMCCs() As String) As Boolean
@@ -112,43 +127,59 @@ Public Class clsOpenCellID
             Dim lFields() As String
             Dim lAllMCCs As Boolean = aMCCs Is Nothing OrElse aMCCs.Length = 0 OrElse Not IsNumeric(aMCCs(0))
 
-            Dim lReader As IO.StreamReader = IO.File.OpenText(aDatabaseFilename)
-            IO.Directory.CreateDirectory(IO.Path.GetDirectoryName(aSaveAs))
-            Dim lWriter As New IO.BinaryWriter(New IO.FileStream(aSaveAs, IO.FileMode.Create))
-            lWriter.Write(BinaryMagic)
-            'TODO: sort values in converted version for faster searching
-            Dim lCell As New clsCell
+            Dim lReader As IO.StreamReader = IO.File.OpenText(aCSVFilename)
+            Dim lCell As clsCell
+            Dim lCells As New Generic.SortedList(Of String, clsCell)
             Dim lInputLine As String
             While Not lReader.EndOfStream
                 lInputLine = lReader.ReadLine()
                 lFields = lInputLine.Split(","c)
                 If lAllMCCs OrElse Array.IndexOf(aMCCs, lFields(3)) > -1 Then
-                    If lFields(1) <> "0" AndAlso lFields(2) <> "0" _
-                       AndAlso Double.TryParse(lFields(1), lCell.Latitude) AndAlso lLatitude > -90 AndAlso lLatitude < 90 _
-                       AndAlso Double.TryParse(lFields(2), lCell.Longitude) AndAlso lLongitude > -180 AndAlso lLongitude < 180 Then
-
-                        If aSaveBinary Then
+                    lCell = New clsCell
+                    With lCell
+                        If lFields(1) <> "0" AndAlso lFields(2) <> "0" _
+                           AndAlso Double.TryParse(lFields(1), .Latitude) AndAlso lLatitude > -90 AndAlso lLatitude < 90 _
+                           AndAlso Double.TryParse(lFields(2), .Longitude) AndAlso lLongitude > -180 AndAlso lLongitude < 180 Then
                             Try
-                                lCell.MCC = lFields(3)
-                                lCell.MNC = lFields(4)
-                                lCell.LAC = lFields(5)
-                                lCell.ID = lFields(6)
-                                lCell.Write(lWriter)
+                                .MCC = lFields(3)
+                                .MNC = lFields(4)
+                                .LAC = lFields(5)
+                                .ID = lFields(6)
+                                Dim lKey As String = Format(.MCC, "000") & "," & Format(.MNC, "0000") & "," & Format(.LAC, "000000") & "," & Format(.ID, "000000000")
+                                'Debug.WriteLine(lCell.Label & "  " & lKey)
+                                lCells.Add(lKey, lCell)
                             Catch
                                 'IO.File.AppendAllText(.FileName & ".badbin.txt", lLine & vbCrLf)
                             End Try
-                        Else 'Save as text
-                            IO.File.AppendAllText(aSaveAs, lInputLine & vbLf) 'lFields(5) & "," & lFields(6) & "," & lFields(1) & "," & lFields(2) & vbLf)
+                        Else
+                            'IO.File.AppendAllText(.FileName & ".bad.txt", lLine & vbCrLf)
                         End If
-                    Else
-                        'IO.File.AppendAllText(.FileName & ".bad.txt", lLine & vbCrLf)
-                    End If
+                    End With
                 End If
             End While
-            lWriter.Close()
 
-            If aSaveBinary Then SaveAppSetting("OpenCellIDBinaryDatabase", aSaveAs)
-            Return True
+            If lCells.Count > 0 Then
+                IO.Directory.CreateDirectory(IO.Path.GetDirectoryName(aSaveAs))
+                Dim lWriter As New IO.BinaryWriter(New IO.FileStream(aSaveAs, IO.FileMode.Create))
+                If aSaveBinary Then
+                    lWriter.Write(BinaryMagic)
+                Else 'header designed to be compatible with http://www.opencellid.org/measure/upload
+                    lWriter.Write(System.Text.Encoding.UTF8.GetBytes("mcc,mnc,lac,cellid,lat,lon" & vbLf))
+                End If
+                For Each lCell In lCells.Values
+                    If aSaveBinary Then
+                        lCell.Write(lWriter)
+                    Else 'Save as text
+                        With lCell
+                            lWriter.Write(System.Text.Encoding.UTF8.GetBytes(.MCC & "," & .MNC & "," & .LAC & "," & .ID & "," & .Latitude & "," & .Longitude & vbLf))
+                        End With
+                    End If
+                Next
+                lWriter.Close()
+
+                If aSaveBinary Then SaveAppSetting("OpenCellIDBinaryDatabase", aSaveAs)
+                Return True
+            End If
         Catch e As Exception
         End Try
         Return False
