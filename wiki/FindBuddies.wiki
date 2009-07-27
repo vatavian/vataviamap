@@ -7,6 +7,10 @@ Your buddy must be locatable by retrieving a URL that results in one of the reco
 
 http://www.instamapper.com/api?action=getPositions&key=584014439054448247
 
+  * [http://www.navizon.com/ Navizon] public XML link: log in, visit "Display the location of users in my group in Browser" then "Publish location to public URL" then use the Hyperlink. Sample URL:
+
+http://my.navizon.com/Webapps/UserAdmin/UserService.asmx/GetUserLocation?user=XXXX
+
   * [http://www.google.com/latitude/apps/badge Google Latitude] KML or JSON point (JSON preferred because it gives more information.) Sample URL (use your buddy's badge number):
 
 http://www.google.com/latitude/apps/badge/api?user=BuddyBadgeNumber&type=json
@@ -23,5 +27,6 @@ Example:
 
 Options:
   * Run !InstaMapper to send your location
+  * Run Navizon to send your location
   * Run Google Latitude to send your location
   * Use the upload option in !VataviaMap Mobile to send to a server that makes your points available in a supported format. TODO: Document how the development server accepts and publishes points.
