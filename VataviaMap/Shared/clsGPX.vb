@@ -1289,6 +1289,18 @@ Public Class clsGPXbase
         extensions.Add(lOpenTag & aValue & "</" & aTag & ">")
     End Sub
 
+    Public Function GetExtension(ByVal aTag As String) As String
+        If extensions IsNot Nothing Then
+            Dim lOpenTag As String = "<" & aTag.ToLower & ">"
+            For Each lExtension As String In extensions
+                If lExtension.ToLower.StartsWith(lOpenTag) Then
+                    Return lExtension.Substring(lOpenTag.Length, lExtension.Length - lOpenTag.Length * 2 - 1)
+                End If
+            Next
+        End If
+        Return ""
+    End Function
+
     Public Function extensionsString() As String
         Dim lString As String = ""
         If extensions IsNot Nothing AndAlso extensions.Count > 0 Then

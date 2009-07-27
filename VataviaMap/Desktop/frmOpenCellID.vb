@@ -61,7 +61,7 @@ Public Class frmOpenCellID
             End If
             .Filter = "*.txt|*.txt|*.txt.gz|*.txt.gz|*.*|*.*"
             If .ShowDialog = Windows.Forms.DialogResult.OK Then
-                ImportRaw(.FileName, IO.Path.ChangeExtension(.FileName, ".bin"), txtMCC.Text.Split(","))
+                ImportRaw(.FileName, IO.Path.ChangeExtension(.FileName, ".cell"), txtMCC.Text.Split(","))
             End If
         End With
     End Sub
@@ -75,11 +75,64 @@ Public Class frmOpenCellID
                 gunzip(aRawDataFilename, lUnzippedFilename)
                 aRawDataFilename = lUnzippedFilename
             End If
-            If clsOpenCellID.ConvertDatabase(aRawDataFilename, aConvertedDataFilename, True, aMCCs) Then
-                SaveAppSetting("OpenCellIDbinary", aConvertedDataFilename)
-                MsgBox("Converted to " & aConvertedDataFilename)
+            Dim lCells As New clsOpenCellID(pMapForm)
+            If lCells.LoadRawCSV(aRawDataFilename, aMCCs) Then
+                If lCells.SaveBinary(aConvertedDataFilename) Then
+                    SaveAppSetting("OpenCellIDbinary", aConvertedDataFilename)
+                    MsgBox("Converted to " & aConvertedDataFilename)
+                End If
             End If
         End If
+    End Sub
+
+    Private Sub btnImportGPX_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnImportGPX.Click
+        Dim lOpenDialog As New Windows.Forms.OpenFileDialog
+        With lOpenDialog
+            .Title = "Open raw data file"
+            .FileName = "*.gpx"
+            .Filter = "*.gpx|*.gpx|*.*|*.*"
+            If .ShowDialog = Windows.Forms.DialogResult.OK Then
+                OpenGPXs(New String() {.FileName})
+            End If
+        End With
+    End Sub
+
+    Private Sub btnImportGPX_DragDrop(ByVal sender As Object, ByVal e As System.Windows.Forms.DragEventArgs) Handles btnImportGPX.DragDrop
+        Me.Activate()
+        If e.Data.GetDataPresent(Windows.Forms.DataFormats.FileDrop) Then
+            OpenGPXs(e.Data.GetData(Windows.Forms.DataFormats.FileDrop))
+        End If
+    End Sub
+
+    Private Sub btnImportGPX_DragEnter(ByVal sender As Object, ByVal e As System.Windows.Forms.DragEventArgs) Handles btnImportGPX.DragEnter
+        If e.Data.GetDataPresent(Windows.Forms.DataFormats.FileDrop) Then
+            e.Effect = Windows.Forms.DragDropEffects.All
+        End If
+    End Sub
+
+    Private Sub OpenGPXs(ByVal aFilenames() As String)
+        Dim lSaveTitle As String = Me.Text
+        Dim lNumFiles As Integer = aFilenames.Length
+        Dim lCellFilename As String
+        Select Case lNumFiles
+            Case 1 : lCellFilename = IO.Path.ChangeExtension(aFilenames(0), ".cell")
+            Case Is > 1 : lCellFilename = IO.Path.Combine(IO.Path.GetDirectoryName(aFilenames(0)), "Imported.cell")
+            Case Else : Return
+        End Select
+        If IO.File.Exists(lCellFilename) Then IO.File.Delete(lCellFilename)
+
+        Dim lCurFile As Integer = 1
+
+        Dim lCells As New clsOpenCellID(pMapForm)
+        For Each lFilename As String In aFilenames
+            Me.Text = "Loading " & lCurFile & "/" & lNumFiles & " '" & IO.Path.GetFileNameWithoutExtension(lFilename) & "'"
+            Dim lGPX As New clsGPX
+            lGPX.LoadFile(lFilename)
+            lCells.LoadGPX(lGPX, txtMCC.Text.Split(","))
+            lCurFile += 1
+        Next
+        lCells.SaveBinary(lCellFilename)
+        Me.Text = lSaveTitle
     End Sub
 
     Private Sub gunzip(ByVal aGzipFilename As String, ByVal aUnzipToFilename As String)
@@ -130,8 +183,8 @@ Public Class frmOpenCellID
             Dim lOpenDialog As New Windows.Forms.OpenFileDialog
             With lOpenDialog
                 .Title = "Open imported data file"
-                .FileName = "cells.bin"
-                .Filter = "*.bin|*.bin|*.*|*.*"
+                .FileName = "cells.cell"
+                .Filter = "*.cell|*.cell|*.*|*.*"
                 If .ShowDialog = Windows.Forms.DialogResult.OK Then
                     lFilename = .FileName
                     SaveAppSetting("OpenCellIDbinary", lFilename)
@@ -140,10 +193,9 @@ Public Class frmOpenCellID
         End If
 
         If IO.File.Exists(lFilename) Then
-            Dim lLayer As New clsOpenCellID(lFilename, pMapForm)
-            pMapForm.Layers.Add(lLayer)
-            pMapForm.NeedRedraw()
+            pMapForm.OpenCell(lFilename)
             Me.Close()
         End If
     End Sub
+
 End Class

@@ -46,7 +46,9 @@ Public Class clsBuddy
 
     Public Function LoadFile(ByVal aFilename As String) As Boolean
         Dim lFileContents As String = ReadTextFile(aFilename)
-        If lFileContents.IndexOf("<?xml") = 0 Then
+        If lFileContents.IndexOf("<UserInfo>") > -1 Then
+            Return LoadNavizonXML(lFileContents)
+        ElseIf lFileContents.IndexOf("<?xml") = 0 Then
             Return LoadLatitudeKML(lFileContents)
         ElseIf lFileContents.IndexOf("google.com/latitude/") > 0 Then
             Return LoadLatitudeJSON(lFileContents)
@@ -57,6 +59,24 @@ Public Class clsBuddy
         Else
             Return LoadDMTP(lFileContents)
         End If
+    End Function
+
+    Public Function LoadNavizonXML(ByVal aFileContents As String) As Boolean
+        Dim lLongitude As Double, lLatitude As Double
+        Try
+            lLongitude = Double.Parse(GetXmlTagContents(aFileContents, "Latitude"))
+            lLatitude = Double.Parse(GetXmlTagContents(aFileContents, "Longitude"))
+            Waypoint = New clsGPXwaypoint("wpt", lLatitude, lLongitude)
+            With Waypoint
+                .name = GetXmlTagContents(aFileContents, "UserName")
+                .desc = GetXmlTagContents(aFileContents, "Timestamp")
+                .sym = Name            
+                Return True
+            End With
+        Catch ex As Exception
+            Debug.WriteLine(ex.Message)
+        End Try
+        Return False
     End Function
 
     ''' <summary>

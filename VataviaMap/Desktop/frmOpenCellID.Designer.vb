@@ -28,6 +28,7 @@ Partial Class frmOpenCellID
         Me.lblMCC = New System.Windows.Forms.Label
         Me.txtMCC = New System.Windows.Forms.TextBox
         Me.btnMapCells = New System.Windows.Forms.Button
+        Me.btnImportGPX = New System.Windows.Forms.Button
         Me.SuspendLayout()
         '
         'btnWebSite
@@ -69,7 +70,7 @@ Partial Class frmOpenCellID
         Me.btnImportRaw.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
         Me.btnImportRaw.Location = New System.Drawing.Point(12, 238)
         Me.btnImportRaw.Name = "btnImportRaw"
-        Me.btnImportRaw.Size = New System.Drawing.Size(134, 23)
+        Me.btnImportRaw.Size = New System.Drawing.Size(123, 23)
         Me.btnImportRaw.TabIndex = 7
         Me.btnImportRaw.Text = "Import Raw Data"
         Me.btnImportRaw.UseVisualStyleBackColor = True
@@ -108,18 +109,30 @@ Partial Class frmOpenCellID
         'btnMapCells
         '
         Me.btnMapCells.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.btnMapCells.Location = New System.Drawing.Point(241, 238)
+        Me.btnMapCells.Location = New System.Drawing.Point(265, 238)
         Me.btnMapCells.Name = "btnMapCells"
-        Me.btnMapCells.Size = New System.Drawing.Size(134, 23)
+        Me.btnMapCells.Size = New System.Drawing.Size(110, 23)
         Me.btnMapCells.TabIndex = 8
         Me.btnMapCells.Text = "Add Cells To Map"
         Me.btnMapCells.UseVisualStyleBackColor = True
+        '
+        'btnImportGPX
+        '
+        Me.btnImportGPX.AllowDrop = True
+        Me.btnImportGPX.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
+        Me.btnImportGPX.Location = New System.Drawing.Point(141, 238)
+        Me.btnImportGPX.Name = "btnImportGPX"
+        Me.btnImportGPX.Size = New System.Drawing.Size(118, 23)
+        Me.btnImportGPX.TabIndex = 9
+        Me.btnImportGPX.Text = "Import From GPX"
+        Me.btnImportGPX.UseVisualStyleBackColor = True
         '
         'frmOpenCellID
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(387, 273)
+        Me.Controls.Add(Me.btnImportGPX)
         Me.Controls.Add(Me.btnMapCells)
         Me.Controls.Add(Me.txtMCC)
         Me.Controls.Add(Me.lblMCC)
@@ -144,4 +157,5 @@ Partial Class frmOpenCellID
     Friend WithEvents lblMCC As System.Windows.Forms.Label
     Friend WithEvents txtMCC As System.Windows.Forms.TextBox
     Friend WithEvents btnMapCells As System.Windows.Forms.Button
+    Friend WithEvents btnImportGPX As System.Windows.Forms.Button
 End Class
