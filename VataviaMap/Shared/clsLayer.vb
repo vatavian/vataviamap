@@ -48,6 +48,8 @@ Public Class clsBuddy
         Dim lFileContents As String = ReadTextFile(aFilename)
         If lFileContents.IndexOf("<UserInfo>") > -1 Then
             Return LoadNavizonXML(lFileContents)
+        ElseIf lFileContents.IndexOf("navizon.com") > -1 Then
+            Return LoadNavizonGears(lFileContents) 'try to find location even though user chose wrong link
         ElseIf lFileContents.IndexOf("<?xml") = 0 Then
             Return LoadLatitudeKML(lFileContents)
         ElseIf lFileContents.IndexOf("google.com/latitude/") > 0 Then
@@ -64,8 +66,8 @@ Public Class clsBuddy
     Public Function LoadNavizonXML(ByVal aFileContents As String) As Boolean
         Dim lLongitude As Double, lLatitude As Double
         Try
-            lLongitude = Double.Parse(GetXmlTagContents(aFileContents, "Latitude"))
-            lLatitude = Double.Parse(GetXmlTagContents(aFileContents, "Longitude"))
+            lLongitude = Double.Parse(GetXmlTagContents(aFileContents, "Longitude"))
+            lLatitude = Double.Parse(GetXmlTagContents(aFileContents, "Latitude"))
             Waypoint = New clsGPXwaypoint("wpt", lLatitude, lLongitude)
             With Waypoint
                 .name = GetXmlTagContents(aFileContents, "UserName")
@@ -73,6 +75,28 @@ Public Class clsBuddy
                 .sym = Name            
                 Return True
             End With
+        Catch ex As Exception
+            Debug.WriteLine(ex.Message)
+        End Try
+        Return False
+    End Function
+
+    Public Function LoadNavizonGears(ByVal aFileContents As String) As Boolean
+        Dim lLongitude As Double, lLatitude As Double
+        Try
+            Dim lBeforeLat As Integer = aFileContents.IndexOf(").offsetHeight},")
+            If lBeforeLat > 0 Then
+                lBeforeLat += 16
+                Dim lLatLonComma As Integer = aFileContents.IndexOf(",", lBeforeLat)
+                If lLatLonComma > 0 Then
+                    Dim lAfterLonComma As Integer = aFileContents.IndexOf(",", lLatLonComma + 1)
+                    lLatitude = Double.Parse(aFileContents.Substring(lBeforeLat, lLatLonComma - lBeforeLat))
+                    lLongitude = Double.Parse(aFileContents.Substring(lLatLonComma + 1, lAfterLonComma - lLatLonComma - 1))
+                    Waypoint = New clsGPXwaypoint("wpt", lLatitude, lLongitude)
+                    Return True                    
+                End If
+            End If
+
         Catch ex As Exception
             Debug.WriteLine(ex.Message)
         End Try
