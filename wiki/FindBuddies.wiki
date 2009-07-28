@@ -7,7 +7,7 @@ Your buddy must be locatable by retrieving a URL that results in one of the reco
 
 http://www.instamapper.com/api?action=getPositions&key=584014439054448247
 
-  * [http://www.navizon.com/ Navizon] public XML link: log in, visit "Display the location of users in my group in Browser" then "Publish location to public URL" then use the Hyperlink. Sample URL:
+  * [http://www.navizon.com/ Navizon] public XML link: log in, visit "Display the location of users in my group in Browser" then "Publish location to public URL" then copy the link at the end of the sentence: "You can also access your location in XML format here." NOTE: Do not use the link labeled Hyperlink or Button. Sample URL:
 
 http://my.navizon.com/Webapps/UserAdmin/UserService.asmx/GetUserLocation?user=XXXX
 
