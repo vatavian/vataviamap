@@ -206,7 +206,7 @@ Public Class frmMap
             Case EnumWheelAction.Zoom
                 If e.Delta > 0 Then
                     Zoom += 1
-                ElseIf e.Delta < 0 Then
+                Else
                     Zoom -= 1
                 End If
             Case EnumWheelAction.TileServer
@@ -215,13 +215,10 @@ Public Class frmMap
                     If lItem.Checked Then
                         If e.Delta > 0 Then
                             lItemIndex += 1
-                        ElseIf e.Delta < 0 Then
+                            If lItemIndex >= pTileServers.Keys.Count Then lItemIndex = 0
+                        Else
                             lItemIndex -= 1
-                        End If
-                        If lItemIndex < 0 Then
-                            lItemIndex = pTileServers.Keys.Count - 1
-                        ElseIf lItemIndex >= pTileServers.Keys.Count Then
-                            lItemIndex = 0
+                            If lItemIndex < 0 Then lItemIndex = pTileServers.Keys.Count - 1
                         End If
                         TileServer_Click(TileServerToolStripMenuItem.DropDownItems(lItemIndex), e)
                         Exit Sub
@@ -234,8 +231,14 @@ Public Class frmMap
                         Exit For
                     End If
                 Next
-                lVisibleIndex += 1
-                If lVisibleIndex >= Layers.Count Then lVisibleIndex = 0
+                If e.Delta > 0 Then
+                    lVisibleIndex += 1
+                    If lVisibleIndex >= Layers.Count Then lVisibleIndex = 0
+                Else
+                    lVisibleIndex -= 1
+                    If lVisibleIndex < 0 Then lVisibleIndex = Layers.Count - 1
+                End If
+
                 For lIndex As Integer = 0 To Layers.Count - 1
                     If (lIndex = lVisibleIndex) Then
                         Layers(lIndex).Visible = True
