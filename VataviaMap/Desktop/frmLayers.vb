@@ -82,7 +82,7 @@ Public Class frmLayers
     End Sub
 
     ' Return a random RGB color.
-    Public Function RandomRGBColor(Optional ByVal aAlpha As Integer = 255) As Color
+    Private Function RandomRGBColor(Optional ByVal aAlpha As Integer = 255) As Color
         Return Color.FromArgb(aAlpha, _
                  pRandom.Next(0, 255), _
                  pRandom.Next(0, 255), _
