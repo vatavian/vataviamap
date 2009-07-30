@@ -3,6 +3,7 @@ Public Class frmMap
     WithEvents pLayersForm As frmLayers
     WithEvents pBuddyAlarmForm As frmBuddyAlarm
     WithEvents pBuddyListForm As frmBuddyList
+    WithEvents pCoordinatesForm As frmCoordinates
     WithEvents pTileServerForm As frmEditNameURL
 
     Public Sub New()
@@ -79,6 +80,7 @@ Public Class frmMap
 
                 ReleaseBitmapGraphics()
                 Refresh()
+                If pCoordinatesForm IsNot Nothing Then pCoordinatesForm.Show(Me)
             End If
             Application.DoEvents()
         End If
@@ -425,11 +427,11 @@ Public Class frmMap
             End Try
         End If
         pTileServerForm = New frmEditNameURL
+        pTileServerForm.Icon = Me.Icon
     End Sub
 
     Private Sub AddTileServerMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles AddTileServerMenuItem.Click
         NewTileServerForm()
-        pTileServerForm.Icon = Me.Icon
         pTileServerForm.AskUser("Add New Tile Server", g_TileServerName, g_TileServerURL, g_TileServerExampleLabel, g_TileServerExampleFile)
         'http://opentiles.appspot.com/tile/get/ma/' 12/1242/1512.png
     End Sub
@@ -437,7 +439,6 @@ Public Class frmMap
     Private Sub EditTileServerMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs)
         Dim lItemClicked As ToolStripMenuItem = sender
         NewTileServerForm()
-        pTileServerForm.Icon = Me.Icon
         pTileServerForm.AskUser("Edit Tile Server", lItemClicked.Text, pTileServers.Item(lItemClicked.Text), g_TileServerExampleLabel, g_TileServerExampleFile)
     End Sub
 
@@ -576,6 +577,18 @@ Public Class frmMap
             Next
             Process.Start(lJosmFilename, lArguments)
         End If
+    End Sub
+
+    Private Sub CoordinatesToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles CoordinatesToolStripMenuItem.Click
+        If pCoordinatesForm IsNot Nothing Then
+            Try
+                pCoordinatesForm.Close()
+            Catch
+            End Try
+        End If
+        pCoordinatesForm = New frmCoordinates
+        pCoordinatesForm.Icon = Me.Icon
+        pCoordinatesForm.Show(Me)
     End Sub
 
     Private Sub LayersToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles LayersToolStripMenuItem.Click
@@ -769,5 +782,9 @@ Public Class frmMap
         Dim lOpenCellIDform As New frmOpenCellID
         lOpenCellIDform.Icon = Me.Icon
         lOpenCellIDform.AskUser(Me, pDownloader)
+    End Sub
+
+    Private Sub pCoordinatesForm_FormClosing(ByVal sender As Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles pCoordinatesForm.FormClosing
+        pCoordinatesForm = Nothing
     End Sub
 End Class

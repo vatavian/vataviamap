@@ -53,6 +53,12 @@
     <Compile Include="Desktop\frmBuddyList.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Desktop\frmCoordinates.Designer.vb">
+      <DependentUpon>frmCoordinates.vb</DependentUpon>
+    </Compile>
+    <Compile Include="Desktop\frmCoordinates.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Desktop\frmOpenCellID.Designer.vb">
       <DependentUpon>frmOpenCellID.vb</DependentUpon>
     </Compile>
@@ -118,6 +124,10 @@
     <EmbeddedResource Include="Desktop\frmBuddyAlarm.resx">
       <SubType>Designer</SubType>
       <DependentUpon>frmBuddyAlarm.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Desktop\frmCoordinates.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>frmCoordinates.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Desktop\frmLayers.resx">
       <SubType>Designer</SubType>
