@@ -16,6 +16,10 @@ Public Class clsCell
         Clear()
     End Sub
 
+    Public Sub New(ByVal aReader As IO.BinaryReader)
+        Me.Read(aReader)
+    End Sub
+
 #If Smartphone Then
 
     Public Sub New(ByVal aTowerInfo As GPS_API.RIL.RILCELLTOWERINFO)
@@ -54,12 +58,12 @@ Public Class clsCell
     ''' Parse a string representation of the cell information
     ''' </summary>
     ''' <param name="aCellIdentity"></param>
-    ''' <param name="aFormat"></param>
+    ''' <param name="aFormat">C = Mobile Country Code, N = Mobile Network Code, L = Local Area Code, I = Cell ID</param>
     ''' <returns></returns>
     ''' <remarks></remarks>
     Shared Function Parse(ByVal aCellIdentity As String, Optional ByVal aFormat As String = "C.N.L.I") As clsCell
         Dim lCell As clsCell = Nothing
-        If aCellIdentity IsNot Nothing Then
+        If aCellIdentity IsNot Nothing AndAlso aCellIdentity.Length > 0 Then
             Try
                 lCell = New clsCell
                 Dim lFormatIndex As Integer = 0
@@ -98,10 +102,6 @@ Public Class clsCell
     Public Function Label() As String
         Return MCC & "." & MNC & "." & LAC & "." & ID
     End Function
-
-    Public Sub New(ByVal aReader As IO.BinaryReader)
-        Me.Read(aReader)
-    End Sub
 
     Public Sub Read(ByVal aReader As IO.BinaryReader)
         With aReader

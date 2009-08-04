@@ -1,9 +1,11 @@
-Imports System.io
+Imports System.IO
 Imports System.Net
-Imports GPS_API.RIL
 
 Class clsCellLocationOpenCellID
     Inherits clsCellLocationProvider
+
+    Public Shared WebsiteURL As String = "http://www.opencellid.org/"
+    Public Shared RawDatabaseURL As String = "http://myapp.fr/cellsIdData/cells.txt.gz"
 
     Public Sub New()
         Me.pProviderCode = "OpenCellID"

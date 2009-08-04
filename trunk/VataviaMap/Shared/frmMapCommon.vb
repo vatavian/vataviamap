@@ -1109,7 +1109,7 @@ Partial Class frmMap
     End Sub
 
     Public Sub OpenCell(ByVal aFilename As String)
-        Dim lLayer As New clsOpenCellID(aFilename, Me)
+        Dim lLayer As New clsCellLayer(aFilename, Me)
         Layers.Add(lLayer)
         NeedRedraw()
     End Sub

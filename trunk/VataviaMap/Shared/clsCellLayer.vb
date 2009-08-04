@@ -3,13 +3,10 @@
 ''' Draws cells on a map (Inherits clsLayer)
 ''' </summary>
 ''' <remarks></remarks>
-Public Class clsOpenCellID
+Public Class clsCellLayer
     Inherits clsLayer
 
-    Public Shared WebsiteURL As String = "http://www.opencellid.org/"
-    Public Shared RawDatabaseURL As String = "http://myapp.fr/cellsIdData/cells.txt.gz"
-
-    Private Const BinaryMagic As UInt32 = &H43454C4C 'spells "CELL"
+    Private Const BinaryMagic As UInt32 = &H43454C4C 'Magic number written at beginning of binary file spells "CELL"
 
     Public SymbolSize As Integer
     Public SymbolPen As Pen
@@ -19,6 +16,12 @@ Public Class clsOpenCellID
     Private pCells As New Generic.List(Of clsCell)
     Private pLastCell As Integer = 0
 
+    ''' <summary>
+    ''' Create a new cell layer from a binary file
+    ''' </summary>
+    ''' <param name="aBinaryFilename">name of binary file to open</param>
+    ''' <param name="aMapForm">Map to draw this layer on, can be Nothing to open layer just for reading/writing cell information</param>
+    ''' <remarks>binary file must be in format written by this class, starting with BinaryMagic then filled with clsCell.Write</remarks>
     Public Sub New(ByVal aBinaryFilename As String, ByVal aMapForm As frmMap)
         MyBase.New(aBinaryFilename, aMapForm)
         SetDefaults()
@@ -46,8 +49,6 @@ Public Class clsOpenCellID
     Public Overrides Sub Render(ByVal g As Graphics, ByVal aTopLeftTile As Point, ByVal aOffsetToCenter As Point)
         If Me.Visible Then
             Dim lDrawLayer As Boolean = True
-            SymbolPen = New Pen(Me.LegendColor, 4)
-
             If pBounds IsNot Nothing Then
                 With pBounds 'Skip drawing if it is not in view
                     If .minlat > MapForm.LatMax OrElse .maxlat < MapForm.LatMin OrElse _
@@ -58,6 +59,7 @@ Public Class clsOpenCellID
                 End With
             End If
             If lDrawLayer Then
+                SymbolPen = New Pen(Me.LegendColor, 1)
                 For Each lCell As clsCell In pCells
                     If MapForm.LatLonInView(lCell.Latitude, lCell.Longitude) Then
                         DrawCell(g, lCell, aTopLeftTile, aOffsetToCenter)
@@ -66,6 +68,24 @@ Public Class clsOpenCellID
             End If
         End If
     End Sub
+
+    ''' <summary>
+    ''' Find the latitude and longitude of aCell and set them inside aCell
+    ''' </summary>
+    ''' <param name="aCell"></param>
+    ''' <returns>True if location was found and set, false if location was not found in this layer</returns>
+    ''' <remarks></remarks>
+    <CLSCompliant(False)> _
+    Public Function GetCellLocation(ByVal aCell As clsCell) As Boolean
+        For Each lCell As clsCell In pCells
+            If lCell.CompareTo(aCell) = 0 Then
+                aCell.Latitude = lCell.Latitude
+                aCell.Longitude = lCell.Longitude
+                Return True
+            End If
+        Next
+        Return False
+    End Function
 
     ''' <summary>
     ''' Draw a cell tower, return True if it was drawn
@@ -77,16 +97,15 @@ Public Class clsOpenCellID
     ''' <returns>True if waypoint was drawn, False if it was outside view</returns>
     ''' <remarks></remarks>
     Private Function DrawCell(ByVal g As Graphics, _
-                                  ByVal aCell As clsCell, _
-                                  ByVal aTopLeftTile As Point, _
-                                  ByVal aOffsetToCenter As Point) As Boolean
+                              ByVal aCell As clsCell, _
+                              ByVal aTopLeftTile As Point, _
+                              ByVal aOffsetToCenter As Point) As Boolean
         With aCell
             Dim lTileXY As Point 'Which tile this point belongs in
             Dim lTileOffset As Point 'Offset within lTileXY in pixels
             lTileXY = CalcTileXY(.Latitude, .Longitude, MapForm.Zoom, lTileOffset)
             Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileSize + aOffsetToCenter.X + lTileOffset.X
             Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileSize + aOffsetToCenter.Y + lTileOffset.Y
-            Dim lBitmap As Drawing.Bitmap = Nothing
 
             If MapForm.Zoom < 16 Then
                 g.DrawLine(SymbolPen, lX - 3, lY - 3, lX + 3, lY + 3)
@@ -104,32 +123,65 @@ Public Class clsOpenCellID
         End With
     End Function
 
+    <CLSCompliant(False)> _
+    Public Sub AddCell(ByVal aCell As clsCell, ByVal aSaveNow As Boolean)
+        pCells.Add(aCell)
+        If aSaveNow Then
+            Dim lNeedsMagic As Boolean = Not IO.File.Exists(Filename)
+            If lNeedsMagic Then IO.Directory.CreateDirectory(IO.Path.GetDirectoryName(Filename))
+            Dim lWriter As New IO.BinaryWriter(New IO.FileStream(Filename, IO.FileMode.Append, IO.FileAccess.Write))
+            If lNeedsMagic Then lWriter.Write(BinaryMagic)
+            aCell.Write(lWriter)
+            lWriter.Close()
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' Add the contents of the specified binary file to the layer
+    ''' </summary>
+    ''' <param name="aBinaryFilename"></param>
+    ''' <returns></returns>
+    ''' <remarks></remarks>
     Public Function LoadBinary(ByVal aBinaryFilename As String) As Boolean
+        Dim lSuccess As Boolean = False
         Dim lReader As New IO.BinaryReader(IO.File.OpenRead(aBinaryFilename))
         If lReader.ReadUInt32 <> BinaryMagic Then
             Throw New ApplicationException("Unknown file type '" & aBinaryFilename & "'")
         Else
             'Subtract 4 bytes for BinaryMagic
-            Dim lLastCell As Integer = (FileLen(aBinaryFilename) - 4) / clsCell.NumBytes - 1
-            Dim lCell As clsCell
-            For lIndex As Integer = 0 To lLastCell
-                lCell = New clsCell(lReader)
-                pCells.Add(lCell)
-                pBounds.Expand(lCell.Latitude, lCell.Longitude)
-            Next
-            Return True
+            'Dim lLastCell As Integer = (FileLen(aBinaryFilename) - 4) / clsCell.NumBytes - 1
+            Try
+                Dim lCell As clsCell
+                Do
+                    lCell = New clsCell(lReader)
+                    pCells.Add(lCell)
+                    pBounds.Expand(lCell.Latitude, lCell.Longitude)
+                    lSuccess = True
+                Loop
+            Catch
+            End Try
         End If
-        Return False
+        Return lSuccess
     End Function
 
     ''' <summary>
     ''' Save in binary formatted file for faster reading later
     ''' </summary>
     ''' <param name="aSaveAs">File name to save binary formatted data in</param>
-    ''' <remarks></remarks>
-    Public Function SaveBinary(ByVal aSaveAs As String) As Boolean
+    ''' <param name="aSplitCells">
+    ''' 0 to put all cells in file aSaveAs    
+    ''' 1 to put cells in separate files aSaveAs.[MobileCountryCode]
+    ''' 2 to put cells in separate files aSaveAs.[MobileCountryCode].[MobileNetworkCode]
+    ''' 3 to put cells in separate files aSaveAs.[MobileCountryCode].[MobileNetworkCode].[LocalAreaCode]
+    ''' 4 to put cells in separate files aSaveAs.[MobileCountryCode].[MobileNetworkCode].[LocalAreaCode].[CellID]
+    ''' </param>
+    ''' <remarks>
+    ''' Extension of ".cell" is suggested. 
+    ''' When splitting, extension of aSaveAs is moved to end of file name.
+    ''' </remarks>
+    Public Function SaveBinary(ByVal aSaveAs As String, Optional ByVal aSplitCells As Integer = 0) As Boolean
         Try
-            Dim aSplitCells As Integer = 4
+            Dim lExtension As String = IO.Path.GetExtension(aSaveAs)
             Dim lLastFilename As String = ""
             Dim lNewFilename As String = aSaveAs
             IO.Directory.CreateDirectory(IO.Path.GetDirectoryName(aSaveAs))
@@ -137,10 +189,10 @@ Public Class clsOpenCellID
             For Each lCell As clsCell In pCells
                 With lCell
                     Select Case aSplitCells
-                        Case 1 : lNewFilename = IO.Path.ChangeExtension(aSaveAs, .MCC) & ".cell"
-                        Case 2 : lNewFilename = IO.Path.ChangeExtension(aSaveAs, .MCC & "." & .MNC) & ".cell"
-                        Case 3 : lNewFilename = IO.Path.ChangeExtension(aSaveAs, .MCC & "." & .MNC & "." & .LAC) & ".cell"
-                        Case 4 : lNewFilename = IO.Path.ChangeExtension(aSaveAs, .Label) & ".cell"
+                        Case 1 : lNewFilename = IO.Path.ChangeExtension(aSaveAs, .MCC) & lExtension
+                        Case 2 : lNewFilename = IO.Path.ChangeExtension(aSaveAs, .MCC & "." & .MNC) & lExtension
+                        Case 3 : lNewFilename = IO.Path.ChangeExtension(aSaveAs, .MCC & "." & .MNC & "." & .LAC) & lExtension
+                        Case 4 : lNewFilename = IO.Path.ChangeExtension(aSaveAs, .Label) & lExtension
                     End Select
                     If lNewFilename <> lLastFilename Then
                         If lWriter IsNot Nothing Then lWriter.Close()
@@ -210,8 +262,8 @@ Public Class clsOpenCellID
                     lCell = New clsCell
                     With lCell
                         If lFields(1) <> "0" AndAlso lFields(2) <> "0" _
-                           AndAlso Double.TryParse(lFields(1), .Latitude) AndAlso lLatitude > -90 AndAlso lLatitude < 90 _
-                           AndAlso Double.TryParse(lFields(2), .Longitude) AndAlso lLongitude > -180 AndAlso lLongitude < 180 Then
+                           AndAlso DoubleTryParse(lFields(1), .Latitude) AndAlso lLatitude > -90 AndAlso lLatitude < 90 _
+                           AndAlso DoubleTryParse(lFields(2), .Longitude) AndAlso lLongitude > -180 AndAlso lLongitude < 180 Then
                             Try
                                 .MCC = lFields(3)
                                 .MNC = lFields(4)
@@ -240,20 +292,31 @@ Public Class clsOpenCellID
 
     Public Function LoadGPX(ByVal aGPX As clsGPX, ByVal aMCCs() As String) As Boolean
         Try
+            Dim lMCCs(-1) As UInt16
+
             Dim lAllMCCs As Boolean = aMCCs Is Nothing OrElse aMCCs.Length = 0 OrElse Not IsNumeric(aMCCs(0))
+            If Not lAllMCCs Then
+                Dim lLastMCC As Integer = aMCCs.GetUpperBound(0)
+                ReDim lMCCs(lLastMCC)
+                For lIndex As Integer = 0 To lLastMCC
+                    lMCCs(lIndex) = UInt16.Parse(aMCCs(lIndex))
+                Next
+            End If
 
             Dim lCell As clsCell
             Dim lCells As New Generic.List(Of clsCell)
+
             For Each lTrack As clsGPXtrack In aGPX.trk
                 For Each lTrackSegment As clsGPXtracksegment In lTrack.trkseg
                     Dim lLastX As Integer = -1
                     Dim lLastY As Integer = -1
                     For Each lTrackPoint As clsGPXwaypoint In lTrackSegment.trkpt
                         Try
-                            lCell = clsCell.Parse(lTrackPoint.name, "I.C.N.L")
+                            lCell = Nothing
+                            lCell = clsCell.Parse(lTrackPoint.name, "I.L.C.N")
                             If lCell Is Nothing Then lCell = clsCell.Parse(lTrackPoint.GetExtension("celltower"), "I.L.C.N")
                             If lCell IsNot Nothing Then
-                                If lAllMCCs OrElse Array.IndexOf(aMCCs, lCell.MCC) > -1 Then
+                                If lAllMCCs OrElse Array.IndexOf(lMCCs, lCell.MCC) > -1 Then
                                     lCell.Latitude = lTrackPoint.lat
                                     lCell.Longitude = lTrackPoint.lon
                                     lCells.Add(lCell)

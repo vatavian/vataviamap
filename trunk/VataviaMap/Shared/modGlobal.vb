@@ -214,10 +214,9 @@ Module modGlobal
         Dim x As Double = (aLongitude + 180) / 360 * lNumTiles
         Dim y As Double = (1 - Math.Log(Math.Tan(aLatitude * Math.PI / 180) _
                                   + 1 / Math.Cos(aLatitude * Math.PI / 180)) / Math.PI) / 2 * lNumTiles
-        CalcTileXY.X = Math.Floor(x)
-        CalcTileXY.Y = Math.Floor(y)
-        aOffset = New Point((x - CalcTileXY.X) * g_TileSize, (y - CalcTileXY.Y) * g_TileSize)
-
+        Dim lPoint As New Point(Math.Floor(x), Math.Floor(y))
+        aOffset = New Point((x - lPoint.X) * g_TileSize, (y - lPoint.Y) * g_TileSize)
+        Return lPoint
     End Function
 
     ''' <summary>
@@ -552,6 +551,19 @@ EndFound:
         IO.File.WriteAllText(aFilename, aContents)
 #End If
     End Sub
+
+    Public Function DoubleTryParse(ByVal aString As String, ByRef aDouble As Double) As Boolean
+#If Smartphone Then
+        Try
+            aDouble = Double.Parse(aString)
+            Return True
+        Catch ex As Exception
+            Return False
+        End Try
+#Else
+        Return Double.TryParse(aString, aDouble)
+#End If
+    End Function
 
 #Region "GMap code from http://www.codeplex.com/gmap4dotnet"
 
