@@ -1,7 +1,7 @@
 Public Class clsLayer
     Public Filename As String
     Public Visible As Boolean = True
-    Public MapForm As frmMap
+    Public MapForm As frmMap 'used for clipping to current view
     Protected pBounds As clsGPXbounds
     Protected pLegendColor As Color = Drawing.Color.HotPink
 

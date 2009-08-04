@@ -37,14 +37,17 @@ Public Class frmOptionsMobileGPX
             Next
         End If
         If IO.Directory.Exists(txtGPXFolder.Text) Then
-            For Each lFilename As String In IO.Directory.GetFiles(txtGPXFolder.Text, "*.gpx")
-                If lHaveGPX Then
-                    For Each lGPX As clsLayer In LayersLoaded
-                        If lGPX.Filename = lFilename Then GoTo NextFile
-                    Next
-                End If
-                lItem = New ListViewItem(lFilename)
-                lstGPX.Items.Add(lItem)
+            For Each lFilename As String In IO.Directory.GetFiles(txtGPXFolder.Text)
+                Select Case IO.Path.GetExtension(lFilename).ToLower
+                    Case ".gpx", ".loc", ".cell"
+                        If lHaveGPX Then
+                            For Each lGPX As clsLayer In LayersLoaded
+                                If lGPX.Filename = lFilename Then GoTo NextFile
+                            Next
+                        End If
+                        lItem = New ListViewItem(lFilename)
+                        lstGPX.Items.Add(lItem)
+                End Select
 NextFile:
             Next
         End If

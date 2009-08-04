@@ -394,7 +394,7 @@ RestartRedraw:
         If lCurrentCellInfo IsNot Nothing AndAlso lCurrentCellInfo.ID > 0 AndAlso (pLastCellTower Is Nothing OrElse lCurrentCellInfo.ID <> pLastCellTower.ID) Then
             pLastCellTower = lCurrentCellInfo
             With lCurrentCellInfo
-                If GetCellLocation(pTileCacheFolder & "cell", lCurrentCellInfo) Then
+                If GetCellLocation(pTileCacheFolder & "cells", lCurrentCellInfo) Then
                     If SetCenterFromDevice(lCurrentCellInfo.Latitude, lCurrentCellInfo.Longitude) Then
                         Me.Invoke(pRedrawCallback)
                         Return True

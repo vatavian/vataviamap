@@ -5,6 +5,7 @@ Public Class frmMap
     WithEvents pBuddyListForm As frmBuddyList
     WithEvents pCoordinatesForm As frmCoordinates
     WithEvents pTileServerForm As frmEditNameURL
+    WithEvents pOpenCellIDForm As frmOpenCellID
 
     Public Sub New()
         InitializeComponent()
@@ -779,9 +780,15 @@ Public Class frmMap
     End Sub
 
     Private Sub OpenCellIDToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles OpenCellIDToolStripMenuItem.Click
-        Dim lOpenCellIDform As New frmOpenCellID
-        lOpenCellIDform.Icon = Me.Icon
-        lOpenCellIDform.AskUser(Me, pDownloader)
+        If pOpenCellIDForm IsNot Nothing Then
+            Try
+                pOpenCellIDForm.Close()
+            Catch ex As Exception
+            End Try
+        End If
+        pOpenCellIDForm = New frmOpenCellID
+        pOpenCellIDForm.Icon = Me.Icon
+        pOpenCellIDForm.AskUser(Me, pDownloader)
     End Sub
 
     Private Sub pCoordinatesForm_FormClosing(ByVal sender As Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles pCoordinatesForm.FormClosing

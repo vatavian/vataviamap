@@ -6,8 +6,8 @@ Public Class frmOpenCellID
     Public Sub AskUser(ByVal aMapForm As frmMap, ByVal aDownloader As clsDownloader)
         pMapForm = aMapForm
         pDownloader = aDownloader
-        lblWebSite.Text = clsOpenCellID.WebsiteURL
-        lblRawData.Text = clsOpenCellID.RawDatabaseURL
+        lblWebSite.Text = clsCellLocationOpenCellID.WebsiteURL
+        lblRawData.Text = clsCellLocationOpenCellID.RawDatabaseURL
         lstMCC.Items.Clear()
         Me.Show()
         Try
@@ -28,7 +28,7 @@ Public Class frmOpenCellID
     End Sub
 
     Private Sub btnWebSite_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnWebSite.Click
-        OpenFile(clsOpenCellID.WebsiteURL)
+        OpenFile(clsCellLocationOpenCellID.WebsiteURL)
     End Sub
 
     Private Sub btnDownloadRaw_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnDownloadRaw.Click
@@ -37,12 +37,12 @@ Public Class frmOpenCellID
             .Title = "Save cells.txt as..."
             .FileName = "cells.txt"
             If .ShowDialog = Windows.Forms.DialogResult.OK Then
-                If pDownloader.DownloadFile(clsOpenCellID.RawDatabaseURL, .FileName & ".gz", False) Then
+                If pDownloader.DownloadFile(clsCellLocationOpenCellID.RawDatabaseURL, .FileName & ".gz", False) Then
                     gunzip(.FileName & ".gz", .FileName)
                     SaveAppSetting("OpenCellIDRaw", .FileName)
                     MsgBox("Downloaded to " & .FileName, , "OpenCellID")
                 Else
-                    MsgBox("Was not able to download from" & vbLf & clsOpenCellID.RawDatabaseURL, , "OpenCellID")
+                    MsgBox("Was not able to download from" & vbLf & clsCellLocationOpenCellID.RawDatabaseURL, , "OpenCellID")
                 End If
             End If
         End With
@@ -75,7 +75,7 @@ Public Class frmOpenCellID
                 gunzip(aRawDataFilename, lUnzippedFilename)
                 aRawDataFilename = lUnzippedFilename
             End If
-            Dim lCells As New clsOpenCellID(pMapForm)
+            Dim lCells As New clsCellLayer(pMapForm)
             If lCells.LoadRawCSV(aRawDataFilename, aMCCs) Then
                 If lCells.SaveBinary(aConvertedDataFilename) Then
                     SaveAppSetting("OpenCellIDbinary", aConvertedDataFilename)
@@ -123,7 +123,7 @@ Public Class frmOpenCellID
 
         Dim lCurFile As Integer = 1
 
-        Dim lCells As New clsOpenCellID(pMapForm)
+        Dim lCells As New clsCellLayer(pMapForm)
         For Each lFilename As String In aFilenames
             Me.Text = "Loading " & lCurFile & "/" & lNumFiles & " '" & IO.Path.GetFileNameWithoutExtension(lFilename) & "'"
             Dim lGPX As New clsGPX
