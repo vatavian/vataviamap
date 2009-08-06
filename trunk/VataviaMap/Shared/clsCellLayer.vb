@@ -6,15 +6,11 @@
 Public Class clsCellLayer
     Inherits clsLayer
 
-    Private Const BinaryMagic As UInt32 = &H43454C4C 'Magic number written at beginning of binary file spells "CELL"
-
-    Public SymbolSize As Integer
-    Public SymbolPen As Pen
-    Public BrushLabel As SolidBrush
-    Public FontLabel As Font
-
     Private pCells As New Generic.List(Of clsCell)
     Private pLastCell As Integer = 0
+    Private pCenterComputed As Boolean = False
+    Private pCenterLat As Double
+    Private pCenterLon As Double
 
     ''' <summary>
     ''' Create a new cell layer from a binary file
@@ -33,17 +29,23 @@ Public Class clsCellLayer
         SetDefaults()
     End Sub
 
+    Public Overrides Sub Clear()
+        MyBase.Clear()
+        SetDefaults()
+    End Sub
+
+#Region "Drawing Code"
+
+    Public SymbolSize As Integer
+    Public SymbolPen As Pen
+    Public BrushLabel As SolidBrush
+    Public FontLabel As Font
+
     Private Sub SetDefaults()
         Me.Bounds = New clsGPXbounds
         BrushLabel = New SolidBrush(Color.Black)
         FontLabel = New Font("Arial", 10, FontStyle.Regular)
-
         SymbolSize = 25
-    End Sub
-
-    Public Overrides Sub Clear()
-        MyBase.Clear()
-        SetDefaults()
     End Sub
 
     Public Overrides Sub Render(ByVal g As Graphics, ByVal aTopLeftTile As Point, ByVal aOffsetToCenter As Point)
@@ -58,34 +60,44 @@ Public Class clsCellLayer
                     End If
                 End With
             End If
+            If Not pCenterComputed Then
+                pCenterLat = 0
+                pCenterLon = 0
+                For Each lCell As clsCell In pCells
+                    pCenterLat += lCell.Latitude
+                    pCenterLon += lCell.Longitude
+                Next
+                pCenterLat /= pCells.Count
+                pCenterLon /= pCells.Count
+            End If
             If lDrawLayer Then
                 SymbolPen = New Pen(Me.LegendColor, 1)
+
+                Dim lTileXY As Point 'Which tile this point belongs in
+                Dim lTileOffset As Point 'Offset within lTileXY in pixels
+                lTileXY = CalcTileXY(pCenterLat, pCenterLon, MapForm.Zoom, lTileOffset)
+                Dim lCenterX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileSize + aOffsetToCenter.X + lTileOffset.X
+                Dim lCenterY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileSize + aOffsetToCenter.Y + lTileOffset.Y
+
                 For Each lCell As clsCell In pCells
-                    If MapForm.LatLonInView(lCell.Latitude, lCell.Longitude) Then
-                        DrawCell(g, lCell, aTopLeftTile, aOffsetToCenter)
-                    End If
+                    With lCell
+                        lTileXY = CalcTileXY(.Latitude, .Longitude, MapForm.Zoom, lTileOffset)
+                        Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileSize + aOffsetToCenter.X + lTileOffset.X
+                        Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileSize + aOffsetToCenter.Y + lTileOffset.Y
+
+                        g.DrawLine(SymbolPen, lX, lY, lCenterX, lCenterY)
+
+                    End With
                 Next
+                If MapForm.Zoom > 12 Then
+                    Try
+                        g.DrawString(IO.Path.GetFileNameWithoutExtension(Filename).Replace("Imported.310.410.", ""), FontLabel, BrushLabel, lCenterX, lCenterY)
+                    Catch
+                    End Try
+                End If
             End If
         End If
     End Sub
-
-    ''' <summary>
-    ''' Find the latitude and longitude of aCell and set them inside aCell
-    ''' </summary>
-    ''' <param name="aCell"></param>
-    ''' <returns>True if location was found and set, false if location was not found in this layer</returns>
-    ''' <remarks></remarks>
-    <CLSCompliant(False)> _
-    Public Function GetCellLocation(ByVal aCell As clsCell) As Boolean
-        For Each lCell As clsCell In pCells
-            If lCell.CompareTo(aCell) = 0 Then
-                aCell.Latitude = lCell.Latitude
-                aCell.Longitude = lCell.Longitude
-                Return True
-            End If
-        Next
-        Return False
-    End Function
 
     ''' <summary>
     ''' Draw a cell tower, return True if it was drawn
@@ -122,6 +134,29 @@ Public Class clsCellLayer
             End If
         End With
     End Function
+#End Region 'Drawing Code
+
+    ''' <summary>
+    ''' Find the latitude and longitude of aCell and set them inside aCell
+    ''' </summary>
+    ''' <param name="aCell"></param>
+    ''' <returns>True if location was found and set, false if location was not found in this layer</returns>
+    ''' <remarks></remarks>
+    <CLSCompliant(False)> _
+    Public Function GetCellLocation(ByVal aCell As clsCell) As Boolean
+        For Each lCell As clsCell In pCells
+            If lCell.CompareTo(aCell) = 0 Then
+                aCell.Latitude = lCell.Latitude
+                aCell.Longitude = lCell.Longitude
+                Return True
+            End If
+        Next
+        Return False
+    End Function
+
+#Region "Binary File Handling"
+
+    Private Const BinaryMagic As UInt32 = &H43454C4C 'Magic number written at beginning of binary file spells "CELL"
 
     <CLSCompliant(False)> _
     Public Sub AddCell(ByVal aCell As clsCell, ByVal aSaveNow As Boolean)
@@ -213,6 +248,7 @@ Public Class clsCellLayer
         End Try
         Return False
     End Function
+#End Region 'Binary File Handling
 
     ''' <summary>
     ''' Save in binary formatted file for faster reading later

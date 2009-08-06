@@ -9,7 +9,7 @@ Public Class clsCellLocationProvider
     End Sub
 
     Public Overridable Function GetCachedLocation(ByVal aCellCacheFolder As String, ByVal aCell As clsCell) As Boolean
-        If HaveCacheLayer Then
+        If HaveCacheLayer(aCellCacheFolder) Then
             Return pCacheLayer.GetCellLocation(aCell)
         End If
         Return False
