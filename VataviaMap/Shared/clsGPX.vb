@@ -845,7 +845,7 @@ Public Class clsGPXwaypoint
         Set(ByVal value As Double)
             Me.speedField = value
             speedSpecified = True
-            SetExtension("speed", value)
+            SetExtension("speed", Format(value, "0.###"))
         End Set
     End Property
 
@@ -866,7 +866,7 @@ Public Class clsGPXwaypoint
         Set(ByVal value As Double)
             Me.courseField = value
             courseSpecified = True
-            SetExtension("course", value)
+            SetExtension("course", Format(value, "0.###"))
         End Set
     End Property
 
