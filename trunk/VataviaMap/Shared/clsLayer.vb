@@ -2,6 +2,12 @@ Public Class clsLayer
     Public Filename As String
     Public Visible As Boolean = True
     Public MapForm As frmMap 'used for clipping to current view
+
+    Public LabelField As String
+    Public LabelMinZoom As Integer = 13
+    Public BrushLabel As SolidBrush
+    Public FontLabel As Font
+
     Protected pBounds As clsGPXbounds
     Protected pLegendColor As Color = Drawing.Color.HotPink
 
@@ -34,6 +40,11 @@ Public Class clsLayer
 
     Public Overridable Sub Render(ByVal g As Graphics, ByVal aTopLeftTile As Point, ByVal aOffsetToCenter As Point)
     End Sub
+
+    Public Overridable Function Fields() As String()
+        Dim lFields() As String = {}
+        Return lFields
+    End Function
 End Class
 
 Public Class clsBuddy
@@ -306,15 +317,21 @@ Public Class clsLayerGPX
     Public PenGeocache As Pen
     Public PenWaypoint As Pen
 
-    Public LabelField As String
-    Public BrushLabel As SolidBrush
-    Public FontLabel As Font
-
     Public SymbolSize As Integer
     Public SymbolPen As Pen
 
     Public ArrowSize As Integer
     Private pDistSinceArrow As Integer
+
+    Private pFields() As String = {"name", _
+                                   "urlname", _
+                                   "desc", _
+                                   "container", _
+                                   "difficulty", _
+                                   "terrain", _
+                                   "encoded_hints", _
+                                   "hints", _
+                                   "age"}
 
     Private Sub SetDefaults()
         PenTrack = New Pen(Color.FromArgb(-2147432248), 4) '128, 0, 200, 200))
@@ -370,6 +387,10 @@ Public Class clsLayerGPX
             PenTrack.Color = value
         End Set
     End Property
+
+    Public Overrides Function Fields() As String()
+        Return pFields
+    End Function
 
     Public Overrides Sub Render(ByVal g As Graphics, ByVal aTopLeftTile As Point, ByVal aOffsetToCenter As Point)
         If Me.Visible Then
@@ -499,7 +520,7 @@ Public Class clsLayerGPX
                 End If
 
                 'Debug.WriteLine(.lat & ", " & .lon & " -> " & lX & ", " & lY)
-                If MapForm.Zoom > 12 Then 'AndAlso .sym IsNot Nothing Then
+                If MapForm.Zoom >= LabelMinZoom Then 'AndAlso .sym IsNot Nothing Then
                     Try
                         Dim lLabelText As String = Nothing
                         Select Case LabelField
@@ -515,10 +536,16 @@ Public Class clsLayerGPX
                                 If aWaypoint.timeSpecified Then
                                     'Dim lTimeSince As TimeSpan = Now.Subtract(Date.Parse(lFields(0) & " " & lFields(1)))
                                     Dim lTimeSince As TimeSpan = Now.ToUniversalTime.Subtract(aWaypoint.time)
-                                    Dim lTimeSinceString As String = " "
-                                    If lTimeSince.TotalDays >= 1 Then lTimeSinceString &= lTimeSince.Days & "d "
-                                    If lTimeSince.TotalHours >= 1 Then lTimeSinceString &= lTimeSince.Hours & "h "
-                                    If lTimeSince.TotalMinutes > 1 Then lTimeSinceString &= lTimeSince.Minutes & "m "
+                                    Dim lTimeSinceString As String = ""
+                                    If lTimeSince.TotalDays >= 365 Then
+                                        lTimeSinceString = Format(lTimeSince.TotalDays / 365, "0.#") & "yr"
+                                    ElseIf lTimeSince.TotalDays >= 1 Then
+                                        lTimeSinceString = lTimeSince.Days & "dy"
+                                    ElseIf lTimeSince.TotalHours >= 1 Then
+                                        lTimeSinceString = lTimeSince.Hours & "hr"
+                                    ElseIf lTimeSince.TotalMinutes >= 1 Then
+                                        lTimeSinceString = lTimeSince.Minutes & "min"
+                                    End If
                                     lLabelText = lTimeSinceString
                                 End If
 

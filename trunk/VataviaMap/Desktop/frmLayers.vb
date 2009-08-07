@@ -34,20 +34,30 @@ Public Class frmLayers
     End Sub
 
     Private Sub lstLayers_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles lstLayers.SelectedIndexChanged
+        Dim lWasPopulating As Boolean = pPopulating
+        Dim lLabelFieldsSet As Boolean = False
+        pPopulating = True        
         For Each lIndex As Integer In lstLayers.SelectedIndices
             Dim lLayer As clsLayer = pLayers.Item(lIndex)
             Dim lColor As Color = lLayer.LegendColor
             btnColor.BackColor = Color.FromArgb(255, lColor.R, lColor.G, lColor.B)
+            txtOpacity.Text = CInt(lColor.A / 2.55)
             If lLayer.GetType.Name = "clsLayerGPX" Then
                 Dim lGPX As clsLayerGPX = lLayer
-                Dim lWasPopulating As Boolean = pPopulating
-                pPopulating = True
-                txtOpacity.Text = CInt(lColor.A / 2.55)
                 txtWidth.Text = lGPX.PenTrack.Width
                 txtArrowSize.Text = lGPX.ArrowSize
-                pPopulating = lWasPopulating
+            End If
+            If Not lLabelFieldsSet Then
+                cboLabelField.Items.Clear()
+                cboLabelField.Items.AddRange(lLayer.Fields)
+                cboLabelField.Text = lLayer.LabelField
+                txtLabelFont.Font = lLayer.FontLabel
+                txtLabelFont.Text = lLayer.FontLabel.Name & " " & Format(lLayer.FontLabel.SizeInPoints, "0.#")
+                cboLayerZoom.Text = lLayer.LabelMinZoom
+                lLabelFieldsSet = True
             End If
         Next
+        pPopulating = lWasPopulating
     End Sub
 
     Public Sub PopulateList(ByVal aLayers As Generic.List(Of clsLayer))
@@ -56,6 +66,7 @@ Public Class frmLayers
         lstLayers.Items.Clear()
         Dim lHaveLayers As Boolean = aLayers IsNot Nothing AndAlso aLayers.Count > 0
         If lHaveLayers Then
+            Dim lLabelFieldsSet As Boolean = False
             pLayers = aLayers
             For Each lLayer As clsLayer In aLayers
                 Dim lItem As ListViewItem = lstLayers.Items.Add(lLayer.Filename)
@@ -74,10 +85,19 @@ Public Class frmLayers
                         lItem.SubItems.Add(lLastTrackPoint.time.Subtract(lFirstTrackPoint.time).ToString)
                     End If
                 End If
+                If Not lLabelFieldsSet Then
+                    cboLabelField.Items.Clear()
+                    cboLabelField.Items.AddRange(lLayer.Fields)
+                    lLabelFieldsSet = (cboLabelField.Items.Count > 0)
+                End If
             Next
         ElseIf pLayers.Count > 0 Then
             pLayers = New Generic.List(Of clsLayer)
         End If
+        cboLayerZoom.Items.Clear()
+        For lZoom As Integer = g_ZoomMin To g_ZoomMax
+            cboLayerZoom.Items.Add(lZoom)
+        Next
         pPopulating = False
     End Sub
 
@@ -188,31 +208,33 @@ Public Class frmLayers
         End If
 
         For lIndex As Integer = 0 To pLayers.Count - 1
-            If aSame Then
-                'don't need to change color in loop
-            Else
-                If aRandom Then
-                    lColor = RandomRGBColor(lAlpha)
-                ElseIf aRamp Then
-                    Select Case lChannel
-                        Case 0 : lRed -= 20 : If lRed < 0 Then lRed = pRandom.Next(100, 255) : lChannel = 1
-                        Case 1 : lGreen -= 20 : If lGreen < 0 Then lGreen = pRandom.Next(100, 255) : lChannel = 2
-                        Case 2 : lBlue -= 20 : If lBlue < 0 Then lBlue = pRandom.Next(100, 255) : lChannel = 0
-                    End Select
-                    lColor = Color.FromArgb(lAlpha, lRed, lGreen, lBlue)
-                End If
-                If lColor.GetBrightness < 0.5 Then
-                    lForeColor = Color.White
+            If pLayers(lIndex).Visible Then
+                If aSame Then
+                    'don't need to change color in loop
                 Else
-                    lForeColor = Color.Black
+                    If aRandom Then
+                        lColor = RandomRGBColor(lAlpha)
+                    ElseIf aRamp Then
+                        Select Case lChannel
+                            Case 0 : lRed -= 20 : If lRed < 0 Then lRed = pRandom.Next(100, 255) : lChannel = 1
+                            Case 1 : lGreen -= 20 : If lGreen < 0 Then lGreen = pRandom.Next(100, 255) : lChannel = 2
+                            Case 2 : lBlue -= 20 : If lBlue < 0 Then lBlue = pRandom.Next(100, 255) : lChannel = 0
+                        End Select
+                        lColor = Color.FromArgb(lAlpha, lRed, lGreen, lBlue)
+                    End If
+                    If lColor.GetBrightness < 0.5 Then
+                        lForeColor = Color.White
+                    Else
+                        lForeColor = Color.Black
+                    End If
                 End If
-            End If
 
-            pLayers(lIndex).LegendColor = lColor
-            With lstLayers.Items(lIndex)
-                .BackColor = lColor
-                .ForeColor = lForeColor
-            End With
+                pLayers(lIndex).LegendColor = lColor
+                With lstLayers.Items(lIndex)
+                    .BackColor = lColor
+                    .ForeColor = lForeColor
+                End With
+            End If
         Next
         RaiseEvent Apply()
 
@@ -248,5 +270,56 @@ Public Class frmLayers
 
     Private Sub DetailsToolStripMenuItem_Click(ByVal sender As Object, ByVal e As System.EventArgs) Handles DetailsToolStripMenuItem.Click
         MsgBox("Open Details Form Here")
+    End Sub
+
+    Private Sub txtLabelFont_KeyPress(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles txtLabelFont.KeyPress
+        If Not pPopulating Then SpecifyFont()
+    End Sub
+
+    Private Sub txtLabelFont_MouseDown(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles txtLabelFont.MouseDown
+        If Not pPopulating Then SpecifyFont()
+    End Sub
+
+    Private Sub SpecifyFont()
+        Dim lFontDialog As New Windows.Forms.FontDialog
+        With lFontDialog
+            .ShowColor = True
+            .Font = txtLabelFont.Font
+            If .ShowDialog = Windows.Forms.DialogResult.OK Then
+                txtLabelFont.Font = .Font
+                txtLabelFont.Text = .Font.Name & " " & Format(.Font.SizeInPoints, "0.#")
+
+                For Each lLayer As clsLayer In SelectedLayers()
+                    lLayer.FontLabel = .Font
+                    lLayer.BrushLabel = New SolidBrush(.Color)
+                Next
+                RaiseEvent Apply()
+            End If
+        End With
+    End Sub
+
+    Private Sub cboLabelField_SelectedValueChanged(ByVal sender As Object, ByVal e As System.EventArgs) Handles cboLabelField.SelectedValueChanged
+        If Not pPopulating Then
+            Try
+                For Each lLayer As clsLayer In SelectedLayers()
+                    lLayer.LabelField = cboLabelField.Text
+                Next
+                RaiseEvent Apply()
+            Catch
+            End Try
+        End If
+    End Sub
+
+    Private Sub cboLayerZoom_SelectedValueChanged(ByVal sender As Object, ByVal e As System.EventArgs) Handles cboLayerZoom.SelectedValueChanged
+        If Not pPopulating Then
+            Try
+                Dim lZoom As Integer = cboLayerZoom.Text
+                For Each lLayer As clsLayer In SelectedLayers()
+                    lLayer.LabelMinZoom = lZoom
+                Next
+                RaiseEvent Apply()
+            Catch
+            End Try
+        End If
     End Sub
 End Class
