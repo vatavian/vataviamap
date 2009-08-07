@@ -24,7 +24,7 @@ Module modGlobal
     Private g_RangeY As Double = 2 * g_LimitY
 
     Public Const g_ZoomMin As Integer = 0
-    Public Const g_ZoomMax As Integer = 17
+    Public Const g_ZoomMax As Integer = 18
 
     Public g_TileServerType As MapType = MapType.OpenStreetMap
     Private g_TileServerLanguage As String = "en"

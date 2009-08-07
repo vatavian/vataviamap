@@ -38,8 +38,13 @@ Public Class clsCellLayer
 
     Public SymbolSize As Integer
     Public SymbolPen As Pen
-    Public BrushLabel As SolidBrush
-    Public FontLabel As Font
+
+    Private pFields() As String = {"MobileCountryCode", _
+                                   "MobileNetworkCode", _
+                                   "LocalAreaCode", _
+                                   "CellID", _
+                                   "L.C", _
+                                   "Filename"}
 
     Private Sub SetDefaults()
         Me.Bounds = New clsGPXbounds
@@ -47,6 +52,10 @@ Public Class clsCellLayer
         FontLabel = New Font("Arial", 10, FontStyle.Regular)
         SymbolSize = 25
     End Sub
+
+    Public Overrides Function Fields() As String()
+        Return pFields
+    End Function
 
     Public Overrides Sub Render(ByVal g As Graphics, ByVal aTopLeftTile As Point, ByVal aOffsetToCenter As Point)
         If Me.Visible Then
@@ -78,8 +87,8 @@ Public Class clsCellLayer
                 lTileXY = CalcTileXY(pCenterLat, pCenterLon, MapForm.Zoom, lTileOffset)
                 Dim lCenterX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileSize + aOffsetToCenter.X + lTileOffset.X
                 Dim lCenterY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileSize + aOffsetToCenter.Y + lTileOffset.Y
-
-                For Each lCell As clsCell In pCells
+                Dim lCell As clsCell
+                For Each lCell In pCells
                     With lCell
                         lTileXY = CalcTileXY(.Latitude, .Longitude, MapForm.Zoom, lTileOffset)
                         Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileSize + aOffsetToCenter.X + lTileOffset.X
@@ -89,9 +98,20 @@ Public Class clsCellLayer
 
                     End With
                 Next
-                If MapForm.Zoom > 12 Then
+                If MapForm.Zoom >= LabelMinZoom Then
                     Try
-                        g.DrawString(IO.Path.GetFileNameWithoutExtension(Filename).Replace("Imported.310.410.", ""), FontLabel, BrushLabel, lCenterX, lCenterY)
+                        Dim lLabelText As String = Nothing
+                        Select Case LabelField
+                            Case "MobileCountryCode" : lLabelText = lCell.MCC
+                            Case "MobileNetworkCode" : lLabelText = lCell.MNC
+                            Case "LocalAreaCode" : lLabelText = lCell.LAC
+                            Case "CellID" : lLabelText = lCell.ID
+                            Case "L.C" : lLabelText = IO.Path.GetFileNameWithoutExtension(Filename).Replace("Imported.310.410.", "")
+                            Case "Filename" : lLabelText = IO.Path.GetFileNameWithoutExtension(Filename)
+                        End Select
+                        If lLabelText IsNot Nothing AndAlso lLabelText.Length > 0 Then
+                            g.DrawString(lLabelText, FontLabel, BrushLabel, lCenterX, lCenterY)
+                        End If
                     Catch
                     End Try
                 End If
