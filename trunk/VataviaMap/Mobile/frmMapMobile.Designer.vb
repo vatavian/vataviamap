@@ -34,6 +34,7 @@ Partial Public Class frmMap
         Me.mnuViewTileOutlines = New System.Windows.Forms.MenuItem
         Me.mnuViewTileNames = New System.Windows.Forms.MenuItem
         Me.mnuViewTrack = New System.Windows.Forms.MenuItem
+        Me.mnuViewControls = New System.Windows.Forms.MenuItem
         Me.mnuGPS = New System.Windows.Forms.MenuItem
         Me.mnuCenter = New System.Windows.Forms.MenuItem
         Me.mnuFollow = New System.Windows.Forms.MenuItem
@@ -41,7 +42,7 @@ Partial Public Class frmMap
         Me.mnuRecordTrack = New System.Windows.Forms.MenuItem
         Me.mnuRefreshOnClick = New System.Windows.Forms.MenuItem
         Me.mnuFindBuddy = New System.Windows.Forms.MenuItem
-        Me.mnuViewControls = New System.Windows.Forms.MenuItem
+        Me.mnuTakePicture = New System.Windows.Forms.MenuItem
         Me.SuspendLayout()
         '
         'mnuMain
@@ -63,6 +64,7 @@ Partial Public Class frmMap
         Me.mnuOptions.MenuItems.Add(Me.mnuGPS)
         Me.mnuOptions.MenuItems.Add(Me.mnuRefreshOnClick)
         Me.mnuOptions.MenuItems.Add(Me.mnuFindBuddy)
+        Me.mnuOptions.MenuItems.Add(Me.mnuTakePicture)
         Me.mnuOptions.Text = "Options"
         '
         'mnuOptionsDownload
@@ -117,6 +119,11 @@ Partial Public Class frmMap
         '
         Me.mnuViewTrack.Text = "Current Track"
         '
+        'mnuViewControls
+        '
+        Me.mnuViewControls.Checked = True
+        Me.mnuViewControls.Text = "Controls"
+        '
         'mnuGPS
         '
         Me.mnuGPS.MenuItems.Add(Me.mnuCenter)
@@ -149,10 +156,9 @@ Partial Public Class frmMap
         '
         Me.mnuFindBuddy.Text = "Find Buddy"
         '
-        'mnuViewControls
+        'mnuTakePicture
         '
-        Me.mnuViewControls.Checked = True
-        Me.mnuViewControls.Text = "Controls"
+        Me.mnuTakePicture.Text = "Take Picture"
         '
         'frmMap
         '
@@ -187,5 +193,6 @@ Partial Public Class frmMap
     Friend WithEvents mnuRecordTrack As System.Windows.Forms.MenuItem
     Friend WithEvents mnuFindBuddy As System.Windows.Forms.MenuItem
     Friend WithEvents mnuViewControls As System.Windows.Forms.MenuItem
+    Friend WithEvents mnuTakePicture As System.Windows.Forms.MenuItem
 
 End Class

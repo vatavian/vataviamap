@@ -1035,4 +1035,27 @@ SetCenter:
         pControlsUse = pControlsShow
         Redraw()
     End Sub
+
+    Private Sub mnuTakePicture_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuTakePicture.Click
+        Dim ccd As New Microsoft.WindowsMobile.Forms.CameraCaptureDialog
+        With ccd
+            .InitialDirectory = "\My Documents\My Pictures"
+            Dim lBaseName As String = "\MapImage_"
+            Dim lFilename As String
+            Dim lIndex As Integer = 1
+            Do
+                lFilename = .InitialDirectory & lBaseName & Format(lIndex, "000") & ".jpg"
+                lIndex += 1
+            Loop While IO.File.Exists(lFilename)
+            .DefaultFileName = IO.Path.GetFileName(lFilename)
+            .StillQuality = Microsoft.WindowsMobile.Forms.CameraCaptureStillQuality.High
+            .Resolution = New Drawing.Size(2048, 1536)
+            .Mode = Microsoft.WindowsMobile.Forms.CameraCaptureMode.Still
+            .Owner = Me
+            .Title = .DefaultFileName
+            If ccd.ShowDialog() = Windows.Forms.DialogResult.OK Then
+                'MsgBox(ccd.FileName)
+            End If
+        End With
+    End Sub
 End Class

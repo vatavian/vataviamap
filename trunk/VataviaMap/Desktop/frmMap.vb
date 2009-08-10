@@ -537,7 +537,11 @@ Public Class frmMap
     End Sub
 
     Private Sub OpenOSMWebsiteToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles OpenOSMWebsiteToolStripMenuItem.Click
-        Process.Start("http://www.openstreetmap.org/index.html?mlat=" & CenterLat & "&mlon=" & CenterLon & "&zoom=" & pZoom)
+        Try
+            Process.Start("http://www.openstreetmap.org/index.html?mlat=" & CenterLat & "&mlon=" & CenterLon & "&zoom=" & pZoom)
+        Catch ex As System.ComponentModel.Win32Exception
+            'This happens when Firefox takes a moment to start due to updates, ignore it
+        End Try
     End Sub
 
     Private Sub OpenJOSMToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles OpenJOSMToolStripMenuItem.Click
