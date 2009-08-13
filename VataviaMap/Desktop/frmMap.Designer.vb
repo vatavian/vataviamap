@@ -28,6 +28,7 @@ Partial Class frmMap
         Me.MenuStripMain = New System.Windows.Forms.MenuStrip
         Me.FileToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.SaveAsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.CopyToClipboardToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.AddLayerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.LayersToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.RemoveAllLayersToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
@@ -44,6 +45,7 @@ Partial Class frmMap
         Me.PanToGPXToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.ZoomToGPXToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.UseMarkedTilesToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.CoordinatesToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.ZoomToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.ZoomAllLayersToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.TileServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
@@ -68,7 +70,6 @@ Partial Class frmMap
         Me.RightClickMenu = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.RefreshFromServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.GetAllDescendantsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
-        Me.CoordinatesToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.MenuStripMain.SuspendLayout()
         Me.RightClickMenu.SuspendLayout()
         Me.SuspendLayout()
@@ -84,7 +85,7 @@ Partial Class frmMap
         '
         'FileToolStripMenuItem
         '
-        Me.FileToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.SaveAsToolStripMenuItem, Me.AddLayerToolStripMenuItem, Me.LayersToolStripMenuItem, Me.RemoveAllLayersToolStripMenuItem, Me.OpenOSMWebsiteToolStripMenuItem, Me.OpenJOSMToolStripMenuItem, Me.FollowOSMURLToolStripMenuItem, Me.GetOSMBugsToolStripMenuItem, Me.ExitToolStripSeparator, Me.ExitToolStripMenuItem})
+        Me.FileToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.SaveAsToolStripMenuItem, Me.CopyToClipboardToolStripMenuItem, Me.AddLayerToolStripMenuItem, Me.LayersToolStripMenuItem, Me.RemoveAllLayersToolStripMenuItem, Me.OpenOSMWebsiteToolStripMenuItem, Me.OpenJOSMToolStripMenuItem, Me.FollowOSMURLToolStripMenuItem, Me.GetOSMBugsToolStripMenuItem, Me.ExitToolStripSeparator, Me.ExitToolStripMenuItem})
         Me.FileToolStripMenuItem.Name = "FileToolStripMenuItem"
         Me.FileToolStripMenuItem.Size = New System.Drawing.Size(45, 23)
         Me.FileToolStripMenuItem.Text = "File"
@@ -94,6 +95,13 @@ Partial Class frmMap
         Me.SaveAsToolStripMenuItem.Name = "SaveAsToolStripMenuItem"
         Me.SaveAsToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
         Me.SaveAsToolStripMenuItem.Text = "Save As..."
+        '
+        'CopyToClipboardToolStripMenuItem
+        '
+        Me.CopyToClipboardToolStripMenuItem.Name = "CopyToClipboardToolStripMenuItem"
+        Me.CopyToClipboardToolStripMenuItem.ShortcutKeys = CType((System.Windows.Forms.Keys.Control Or System.Windows.Forms.Keys.C), System.Windows.Forms.Keys)
+        Me.CopyToClipboardToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
+        Me.CopyToClipboardToolStripMenuItem.Text = "Copy to Clipboard"
         '
         'AddLayerToolStripMenuItem
         '
@@ -194,6 +202,12 @@ Partial Class frmMap
         Me.UseMarkedTilesToolStripMenuItem.Name = "UseMarkedTilesToolStripMenuItem"
         Me.UseMarkedTilesToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
         Me.UseMarkedTilesToolStripMenuItem.Text = "Use Marked Tiles"
+        '
+        'CoordinatesToolStripMenuItem
+        '
+        Me.CoordinatesToolStripMenuItem.Name = "CoordinatesToolStripMenuItem"
+        Me.CoordinatesToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
+        Me.CoordinatesToolStripMenuItem.Text = "Coordinates"
         '
         'ZoomToolStripMenuItem
         '
@@ -349,12 +363,6 @@ Partial Class frmMap
         Me.GetAllDescendantsToolStripMenuItem.Size = New System.Drawing.Size(239, 24)
         Me.GetAllDescendantsToolStripMenuItem.Text = "Get All Descendants"
         '
-        'CoordinatesToolStripMenuItem
-        '
-        Me.CoordinatesToolStripMenuItem.Name = "CoordinatesToolStripMenuItem"
-        Me.CoordinatesToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
-        Me.CoordinatesToolStripMenuItem.Text = "Coordinates"
-        '
         'frmMap
         '
         Me.AllowDrop = True
@@ -418,4 +426,5 @@ Partial Class frmMap
     Friend WithEvents CellTowerToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents OpenCellIDToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents CoordinatesToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents CopyToClipboardToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
 End Class

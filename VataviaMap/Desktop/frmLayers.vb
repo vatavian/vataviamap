@@ -5,7 +5,6 @@ Public Class frmLayers
 
     Private pPopulating As Boolean = False
     Private pLayers As New Generic.List(Of clsLayer)
-    Private pRandom As New Random
 
     Private Sub RaiseChanged(ByVal aIndex As Integer, ByVal aChecked As Boolean)
         If Not pPopulating AndAlso Me.Visible Then
@@ -54,6 +53,10 @@ Public Class frmLayers
                 txtLabelFont.Font = lLayer.FontLabel
                 txtLabelFont.Text = lLayer.FontLabel.Name & " " & Format(lLayer.FontLabel.SizeInPoints, "0.#")
                 cboLayerZoom.Text = lLayer.LabelMinZoom
+
+                cboGroupField.Items.Clear()
+                cboGroupField.Items.AddRange(lLayer.Fields)
+                cboGroupField.Text = lLayer.GroupField
                 lLabelFieldsSet = True
             End If
         Next
@@ -88,6 +91,8 @@ Public Class frmLayers
                 If Not lLabelFieldsSet Then
                     cboLabelField.Items.Clear()
                     cboLabelField.Items.AddRange(lLayer.Fields)
+                    cboGroupField.Items.Clear()
+                    cboGroupField.Items.AddRange(lLayer.Fields)
                     lLabelFieldsSet = (cboLabelField.Items.Count > 0)
                 End If
             Next
@@ -100,14 +105,6 @@ Public Class frmLayers
         Next
         pPopulating = False
     End Sub
-
-    ' Return a random RGB color.
-    Private Function RandomRGBColor(Optional ByVal aAlpha As Integer = 255) As Color
-        Return Color.FromArgb(aAlpha, _
-                 pRandom.Next(0, 255), _
-                 pRandom.Next(0, 255), _
-                 pRandom.Next(0, 255))
-    End Function
 
     Private Sub txtWidth_TextChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles txtWidth.TextChanged
         If Not pPopulating AndAlso IsNumeric(txtWidth.Text) Then
@@ -195,7 +192,7 @@ Public Class frmLayers
         Dim lRed As Integer = btnColor.BackColor.R
         Dim lGreen As Integer = btnColor.BackColor.G
         Dim lBlue As Integer = btnColor.BackColor.B
-        Dim lChannel As Integer = pRandom.Next(0, 2)
+        Dim lChannel As Integer = g_Random.Next(0, 2)
 
         Dim lColor As Color = Color.FromArgb(lAlpha, lRed, lGreen, lBlue)
         Dim lForeColor As Color = Color.Black
@@ -216,9 +213,9 @@ Public Class frmLayers
                         lColor = RandomRGBColor(lAlpha)
                     ElseIf aRamp Then
                         Select Case lChannel
-                            Case 0 : lRed -= 20 : If lRed < 0 Then lRed = pRandom.Next(100, 255) : lChannel = 1
-                            Case 1 : lGreen -= 20 : If lGreen < 0 Then lGreen = pRandom.Next(100, 255) : lChannel = 2
-                            Case 2 : lBlue -= 20 : If lBlue < 0 Then lBlue = pRandom.Next(100, 255) : lChannel = 0
+                            Case 0 : lRed -= 20 : If lRed < 0 Then lRed = g_Random.Next(100, 255) : lChannel = 1
+                            Case 1 : lGreen -= 20 : If lGreen < 0 Then lGreen = g_Random.Next(100, 255) : lChannel = 2
+                            Case 2 : lBlue -= 20 : If lBlue < 0 Then lBlue = g_Random.Next(100, 255) : lChannel = 0
                         End Select
                         lColor = Color.FromArgb(lAlpha, lRed, lGreen, lBlue)
                     End If
@@ -316,6 +313,18 @@ Public Class frmLayers
                 Dim lZoom As Integer = cboLayerZoom.Text
                 For Each lLayer As clsLayer In SelectedLayers()
                     lLayer.LabelMinZoom = lZoom
+                Next
+                RaiseEvent Apply()
+            Catch
+            End Try
+        End If
+    End Sub
+
+    Private Sub cboGroupField_SelectedValueChanged(ByVal sender As Object, ByVal e As System.EventArgs) Handles cboGroupField.SelectedValueChanged
+        If Not pPopulating Then
+            Try
+                For Each lLayer As clsLayer In SelectedLayers()
+                    lLayer.GroupField = cboGroupField.Text
                 Next
                 RaiseEvent Apply()
             Catch
