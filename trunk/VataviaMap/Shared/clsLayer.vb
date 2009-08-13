@@ -8,6 +8,8 @@ Public Class clsLayer
     Public BrushLabel As SolidBrush
     Public FontLabel As Font
 
+    Protected pGroupField As String
+
     Protected pBounds As clsGPXbounds
     Protected pLegendColor As Color = Drawing.Color.HotPink
 
@@ -28,6 +30,15 @@ Public Class clsLayer
     Public Overridable Sub Clear()
         Filename = ""
     End Sub
+
+    Public Overridable Property GroupField() As String
+        Get
+            Return pGroupField
+        End Get
+        Set(ByVal value As String)
+            pGroupField = value
+        End Set
+    End Property
 
     Public Overridable Property LegendColor() As Color
         Get

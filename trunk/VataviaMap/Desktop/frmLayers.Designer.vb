@@ -42,12 +42,14 @@ Partial Class frmLayers
         Me.ZoomToToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.DetailsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.grpLabel = New System.Windows.Forms.GroupBox
+        Me.cboLayerZoom = New System.Windows.Forms.ComboBox
+        Me.lblLabelMinZoom = New System.Windows.Forms.Label
         Me.lblLabelFont = New System.Windows.Forms.Label
         Me.txtLabelFont = New System.Windows.Forms.TextBox
         Me.cboLabelField = New System.Windows.Forms.ComboBox
         Me.lblLabelField = New System.Windows.Forms.Label
-        Me.lblLabelMinZoom = New System.Windows.Forms.Label
-        Me.cboLayerZoom = New System.Windows.Forms.ComboBox
+        Me.cboGroupField = New System.Windows.Forms.ComboBox
+        Me.lblGroup = New System.Windows.Forms.Label
         Me.grpColor.SuspendLayout()
         Me.LayerGridRightContextMenuStrip.SuspendLayout()
         Me.grpLabel.SuspendLayout()
@@ -200,18 +202,18 @@ Partial Class frmLayers
         '
         Me.LayerGridRightContextMenuStrip.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ZoomToToolStripMenuItem, Me.DetailsToolStripMenuItem})
         Me.LayerGridRightContextMenuStrip.Name = "LayerGridRightContextMenuStrip"
-        Me.LayerGridRightContextMenuStrip.Size = New System.Drawing.Size(124, 48)
+        Me.LayerGridRightContextMenuStrip.Size = New System.Drawing.Size(155, 52)
         '
         'ZoomToToolStripMenuItem
         '
         Me.ZoomToToolStripMenuItem.Name = "ZoomToToolStripMenuItem"
-        Me.ZoomToToolStripMenuItem.Size = New System.Drawing.Size(123, 22)
+        Me.ZoomToToolStripMenuItem.Size = New System.Drawing.Size(154, 24)
         Me.ZoomToToolStripMenuItem.Text = "ZoomTo"
         '
         'DetailsToolStripMenuItem
         '
         Me.DetailsToolStripMenuItem.Name = "DetailsToolStripMenuItem"
-        Me.DetailsToolStripMenuItem.Size = New System.Drawing.Size(123, 22)
+        Me.DetailsToolStripMenuItem.Size = New System.Drawing.Size(154, 24)
         Me.DetailsToolStripMenuItem.Text = "Details"
         '
         'grpLabel
@@ -225,10 +227,27 @@ Partial Class frmLayers
         Me.grpLabel.Controls.Add(Me.lblLabelField)
         Me.grpLabel.Location = New System.Drawing.Point(258, 522)
         Me.grpLabel.Name = "grpLabel"
-        Me.grpLabel.Size = New System.Drawing.Size(200, 135)
+        Me.grpLabel.Size = New System.Drawing.Size(200, 102)
         Me.grpLabel.TabIndex = 14
         Me.grpLabel.TabStop = False
         Me.grpLabel.Text = "Label"
+        '
+        'cboLayerZoom
+        '
+        Me.cboLayerZoom.FormattingEnabled = True
+        Me.cboLayerZoom.Location = New System.Drawing.Point(46, 77)
+        Me.cboLayerZoom.Name = "cboLayerZoom"
+        Me.cboLayerZoom.Size = New System.Drawing.Size(68, 21)
+        Me.cboLayerZoom.TabIndex = 14
+        '
+        'lblLabelMinZoom
+        '
+        Me.lblLabelMinZoom.AutoSize = True
+        Me.lblLabelMinZoom.Location = New System.Drawing.Point(6, 82)
+        Me.lblLabelMinZoom.Name = "lblLabelMinZoom"
+        Me.lblLabelMinZoom.Size = New System.Drawing.Size(34, 13)
+        Me.lblLabelMinZoom.TabIndex = 13
+        Me.lblLabelMinZoom.Text = "Zoom"
         '
         'lblLabelFont
         '
@@ -243,9 +262,9 @@ Partial Class frmLayers
         '
         Me.txtLabelFont.Anchor = CType(((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Left) _
                     Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.txtLabelFont.Location = New System.Drawing.Point(41, 51)
+        Me.txtLabelFont.Location = New System.Drawing.Point(46, 51)
         Me.txtLabelFont.Name = "txtLabelFont"
-        Me.txtLabelFont.Size = New System.Drawing.Size(153, 20)
+        Me.txtLabelFont.Size = New System.Drawing.Size(148, 20)
         Me.txtLabelFont.TabIndex = 11
         '
         'cboLabelField
@@ -253,9 +272,9 @@ Partial Class frmLayers
         Me.cboLabelField.Anchor = CType(((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Left) _
                     Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.cboLabelField.FormattingEnabled = True
-        Me.cboLabelField.Location = New System.Drawing.Point(41, 19)
+        Me.cboLabelField.Location = New System.Drawing.Point(46, 19)
         Me.cboLabelField.Name = "cboLabelField"
-        Me.cboLabelField.Size = New System.Drawing.Size(153, 21)
+        Me.cboLabelField.Size = New System.Drawing.Size(148, 21)
         Me.cboLabelField.TabIndex = 10
         '
         'lblLabelField
@@ -267,28 +286,32 @@ Partial Class frmLayers
         Me.lblLabelField.TabIndex = 9
         Me.lblLabelField.Text = "Field"
         '
-        'lblLabelMinZoom
+        'cboGroupField
         '
-        Me.lblLabelMinZoom.AutoSize = True
-        Me.lblLabelMinZoom.Location = New System.Drawing.Point(6, 82)
-        Me.lblLabelMinZoom.Name = "lblLabelMinZoom"
-        Me.lblLabelMinZoom.Size = New System.Drawing.Size(34, 13)
-        Me.lblLabelMinZoom.TabIndex = 13
-        Me.lblLabelMinZoom.Text = "Zoom"
+        Me.cboGroupField.Anchor = CType(((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Left) _
+                    Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.cboGroupField.FormattingEnabled = True
+        Me.cboGroupField.Location = New System.Drawing.Point(304, 630)
+        Me.cboGroupField.Name = "cboGroupField"
+        Me.cboGroupField.Size = New System.Drawing.Size(148, 21)
+        Me.cboGroupField.TabIndex = 16
         '
-        'cboLayerZoom
+        'lblGroup
         '
-        Me.cboLayerZoom.FormattingEnabled = True
-        Me.cboLayerZoom.Location = New System.Drawing.Point(46, 77)
-        Me.cboLayerZoom.Name = "cboLayerZoom"
-        Me.cboLayerZoom.Size = New System.Drawing.Size(68, 21)
-        Me.cboLayerZoom.TabIndex = 14
+        Me.lblGroup.AutoSize = True
+        Me.lblGroup.Location = New System.Drawing.Point(257, 633)
+        Me.lblGroup.Name = "lblGroup"
+        Me.lblGroup.Size = New System.Drawing.Size(36, 13)
+        Me.lblGroup.TabIndex = 15
+        Me.lblGroup.Text = "Group"
         '
         'frmLayers
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(631, 669)
+        Me.Controls.Add(Me.cboGroupField)
+        Me.Controls.Add(Me.lblGroup)
         Me.Controls.Add(Me.grpLabel)
         Me.Controls.Add(Me.grpColor)
         Me.Controls.Add(Me.chkAllVisible)
@@ -333,4 +356,6 @@ Partial Class frmLayers
     Friend WithEvents txtLabelFont As System.Windows.Forms.TextBox
     Friend WithEvents cboLayerZoom As System.Windows.Forms.ComboBox
     Friend WithEvents lblLabelMinZoom As System.Windows.Forms.Label
+    Friend WithEvents cboGroupField As System.Windows.Forms.ComboBox
+    Friend WithEvents lblGroup As System.Windows.Forms.Label
 End Class

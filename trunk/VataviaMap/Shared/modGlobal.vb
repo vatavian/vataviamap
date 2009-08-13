@@ -48,6 +48,8 @@ Module modGlobal
 
     Public g_WaypointIcons As New Generic.Dictionary(Of String, Drawing.Bitmap)
 
+    Public g_Random As New Random
+
     Public Enum EnumDegreeFormat
         DecimalDegrees = 0
         DegreesDecimalMinutes = 1
@@ -563,6 +565,14 @@ EndFound:
 #Else
         Return Double.TryParse(aString, aDouble)
 #End If
+    End Function
+
+    ' Return a random RGB color.
+    Public Function RandomRGBColor(Optional ByVal aAlpha As Integer = 255) As Color
+        Return Color.FromArgb(aAlpha, _
+                              g_Random.Next(0, 255), _
+                              g_Random.Next(0, 255), _
+                              g_Random.Next(0, 255))
     End Function
 
 #Region "GMap code from http://www.codeplex.com/gmap4dotnet"

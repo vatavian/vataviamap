@@ -12,6 +12,9 @@ Public Class clsCellLayer
     Private pCenterLat As Double
     Private pCenterLon As Double
 
+    Private pGroupBy As Integer = 0 '0=no grouping, 1=MCC, 2=MCC+MNC, 3=MCC+MNC+LAC, 4=MCC+MNC+LAC+ID
+    Private pGroups As Generic.Dictionary(Of String, clsCellLayer)
+
     ''' <summary>
     ''' Create a new cell layer from a binary file
     ''' </summary>
@@ -34,6 +37,63 @@ Public Class clsCellLayer
         SetDefaults()
     End Sub
 
+    Public Overrides Property GroupField() As String
+        Get
+            Return pGroupField
+        End Get
+        Set(ByVal value As String)
+            If pGroupField Is Nothing OrElse pGroupField <> value Then
+                pGroupField = value
+                Select Case pGroupField
+                    Case "MobileCountryCode" : GroupBy = 1
+                    Case "MobileNetworkCode" : GroupBy = 2
+                    Case "LocalAreaCode" : GroupBy = 3
+                    Case "CellID" : GroupBy = 4
+                    Case "Filename" : GroupBy = 5
+                    Case Else : GroupBy = 0
+                End Select
+            End If
+        End Set
+    End Property
+
+    Public Property GroupBy() As Integer
+        Get
+            Return pGroupBy
+        End Get
+        Set(ByVal value As Integer)
+            If value <> pGroupBy Then
+                pGroupBy = value
+                If pGroups Is Nothing Then
+                    pGroups = New Generic.Dictionary(Of String, clsCellLayer)
+                Else
+                    pGroups.Clear()
+                End If
+                If pGroupBy > 0 Then
+                    Dim lKey As String = ""
+                    Dim lGroup As clsCellLayer
+                    For Each lCell As clsCell In pCells
+                        With lCell
+                            Select Case pGroupBy
+                                Case 1 : lKey = .MCC
+                                Case 2 : lKey = .MCC & "." & .MNC
+                                Case 3 : lKey = .MCC & "." & .MNC & "." & .LAC
+                                Case 4 : lKey = .MCC & "." & .MNC & "." & .LAC & "." & .ID
+                            End Select                            
+                        End With
+                        If pGroups.ContainsKey(lKey) Then
+                            lGroup = pGroups.Item(lKey)
+                        Else
+                            lGroup = New clsCellLayer(MapForm)
+                            lGroup.LegendColor = RandomRGBColor(100)
+                            pGroups.Add(lKey, lGroup)
+                        End If
+                        lGroup.AddCell(lCell, False)
+                    Next
+                End If
+            End If
+        End Set
+    End Property
+
 #Region "Drawing Code"
 
     Public SymbolSize As Integer
@@ -43,7 +103,6 @@ Public Class clsCellLayer
                                    "MobileNetworkCode", _
                                    "LocalAreaCode", _
                                    "CellID", _
-                                   "L.C", _
                                    "Filename"}
 
     Private Sub SetDefaults()
@@ -69,51 +128,86 @@ Public Class clsCellLayer
                     End If
                 End With
             End If
-            If Not pCenterComputed Then
-                pCenterLat = 0
-                pCenterLon = 0
-                For Each lCell As clsCell In pCells
-                    pCenterLat += lCell.Latitude
-                    pCenterLon += lCell.Longitude
-                Next
-                pCenterLat /= pCells.Count
-                pCenterLon /= pCells.Count
-            End If
+
             If lDrawLayer Then
-                SymbolPen = New Pen(Me.LegendColor, 1)
+                If pGroups IsNot Nothing AndAlso pGroups.Count > 0 Then
+                    For Each lGroup As clsLayer In pGroups.Values
+                        lGroup.Render(g, aTopLeftTile, aOffsetToCenter)
+                    Next
+                Else
+                    Dim lCell As clsCell = Nothing
+                    If Not pCenterComputed Then
+                        'pCenterLat = 0
+                        'pCenterLon = 0
+                        'For Each lCell In pCells
+                        '    pCenterLat += lCell.Latitude
+                        '    pCenterLon += lCell.Longitude
+                        'Next
+                        'pCenterLat /= pCells.Count
+                        'pCenterLon /= pCells.Count
 
-                Dim lTileXY As Point 'Which tile this point belongs in
-                Dim lTileOffset As Point 'Offset within lTileXY in pixels
-                lTileXY = CalcTileXY(pCenterLat, pCenterLon, MapForm.Zoom, lTileOffset)
-                Dim lCenterX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileSize + aOffsetToCenter.X + lTileOffset.X
-                Dim lCenterY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileSize + aOffsetToCenter.Y + lTileOffset.Y
-                Dim lCell As clsCell
-                For Each lCell In pCells
-                    With lCell
-                        lTileXY = CalcTileXY(.Latitude, .Longitude, MapForm.Zoom, lTileOffset)
-                        Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileSize + aOffsetToCenter.X + lTileOffset.X
-                        Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileSize + aOffsetToCenter.Y + lTileOffset.Y
+                        Dim lMinLat As Double = pCells(0).Latitude
+                        Dim lMaxLat As Double = lMinLat
+                        Dim lMinLon As Double = pCells(0).Longitude
+                        Dim lMaxLon As Double = lMinLon
 
-                        g.DrawLine(SymbolPen, lX, lY, lCenterX, lCenterY)
+                        For Each lCell In pCells
+                            If lCell.Latitude < lMinLat Then
+                                lMinLat = lCell.Latitude
+                            ElseIf lCell.Latitude > lMaxLat Then
+                                lMaxLat = lCell.Latitude
+                            End If
+                            If lCell.Longitude < lMinLon Then
+                                lMinLon = lCell.Longitude
+                            ElseIf lCell.Longitude > lMaxLon Then
+                                lMaxLon = lCell.Longitude
+                            End If
+                        Next
+                        pCenterLat = (lMinLat + lMaxLat) / 2
+                        pCenterLon = (lMinLon + lMaxLon) / 2
 
-                    End With
-                Next
-                If MapForm.Zoom >= LabelMinZoom Then
-                    Try
-                        Dim lLabelText As String = Nothing
-                        Select Case LabelField
-                            Case "MobileCountryCode" : lLabelText = lCell.MCC
-                            Case "MobileNetworkCode" : lLabelText = lCell.MNC
-                            Case "LocalAreaCode" : lLabelText = lCell.LAC
-                            Case "CellID" : lLabelText = lCell.ID
-                            Case "L.C" : lLabelText = IO.Path.GetFileNameWithoutExtension(Filename).Replace("Imported.310.410.", "")
-                            Case "Filename" : lLabelText = IO.Path.GetFileNameWithoutExtension(Filename)
-                        End Select
-                        If lLabelText IsNot Nothing AndAlso lLabelText.Length > 0 Then
-                            g.DrawString(lLabelText, FontLabel, BrushLabel, lCenterX, lCenterY)
+                    End If
+                    SymbolPen = New Pen(Me.LegendColor, 1)
+
+                    Dim lTileXY As Point 'Which tile this point belongs in
+                    Dim lTileOffset As Point 'Offset within lTileXY in pixels
+                    lTileXY = CalcTileXY(pCenterLat, pCenterLon, MapForm.Zoom, lTileOffset)
+                    Dim lCenterX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileSize + aOffsetToCenter.X + lTileOffset.X
+                    Dim lCenterY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileSize + aOffsetToCenter.Y + lTileOffset.Y
+
+                    Dim lSkip As Integer = pCells.Count / 200
+                    Dim lSkipped As Integer = 0
+                    For Each lCell In pCells
+                        If lSkip > lSkipped Then
+                            lSkipped += 1
+                        Else
+                            lSkipped = 0
+                            With lCell
+                                lTileXY = CalcTileXY(.Latitude, .Longitude, MapForm.Zoom, lTileOffset)
+                                Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileSize + aOffsetToCenter.X + lTileOffset.X
+                                Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileSize + aOffsetToCenter.Y + lTileOffset.Y
+
+                                g.DrawLine(SymbolPen, lX, lY, lCenterX, lCenterY)
+
+                            End With
                         End If
-                    Catch
-                    End Try
+                    Next
+                    If MapForm.Zoom >= LabelMinZoom Then
+                        Try
+                            Dim lLabelText As String = Nothing
+                            Select Case LabelField
+                                Case "MobileCountryCode" : lLabelText = lCell.MCC
+                                Case "MobileNetworkCode" : lLabelText = lCell.MNC
+                                Case "LocalAreaCode" : lLabelText = lCell.LAC
+                                Case "CellID" : lLabelText = lCell.ID
+                                Case "Filename" : lLabelText = IO.Path.GetFileNameWithoutExtension(Filename)
+                            End Select
+                            If lLabelText IsNot Nothing AndAlso lLabelText.Length > 0 Then
+                                g.DrawString(lLabelText, FontLabel, BrushLabel, lCenterX, lCenterY)
+                            End If
+                        Catch
+                        End Try
+                    End If
                 End If
             End If
         End If
@@ -181,6 +275,8 @@ Public Class clsCellLayer
     <CLSCompliant(False)> _
     Public Sub AddCell(ByVal aCell As clsCell, ByVal aSaveNow As Boolean)
         pCells.Add(aCell)
+        pBounds.Expand(aCell.Latitude, aCell.Longitude)
+        pCenterComputed = False
         If aSaveNow Then
             Dim lNeedsMagic As Boolean = Not IO.File.Exists(Filename)
             If lNeedsMagic Then IO.Directory.CreateDirectory(IO.Path.GetDirectoryName(Filename))
