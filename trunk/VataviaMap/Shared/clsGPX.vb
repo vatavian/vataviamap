@@ -489,8 +489,8 @@ Public Class clsGPXwaypoint
 
     Public Overrides Function ToString() As String
         Dim lXML As String = "<" & tagField _
-            & " lat=""" & latField.ToString("#.########") & """" _
-            & " lon=""" & lonField.ToString("#.########") & """>" & ControlChars.Lf
+            & " lat=""" & latField.ToString("#.#######") & """" _
+            & " lon=""" & lonField.ToString("#.#######") & """>" & ControlChars.Lf
         If eleFieldSpecified Then lXML &= "<ele>" & Format(eleField, "0.###") & "</ele>" & ControlChars.Lf
         If timeFieldSpecified Then lXML &= "<time>" & timeField.ToString("yyyy-MM-ddTHH:mm:ss.fff") & "Z</time>" & ControlChars.Lf
         If nameField IsNot Nothing AndAlso nameField.Length > 0 Then lXML &= "<name>" & nameField & "</name>" & ControlChars.Lf
