@@ -111,6 +111,11 @@ Public Class clsDownloader
     Public Sub DeleteTile(ByVal aTileFilename As String)
         TileRAMcacheForgetTile(aTileFilename)
 
+        Try
+            IO.File.Delete(aTileFilename)
+        Catch ex As Exception
+        End Try
+
         For Each lFilename As String In IO.Directory.GetFiles(IO.Path.GetDirectoryName(aTileFilename), IO.Path.GetFileName(aTileFilename) & ".*")
             Try
                 IO.File.Delete(lFilename)

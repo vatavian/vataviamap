@@ -569,10 +569,16 @@ EndFound:
 
     ' Return a random RGB color.
     Public Function RandomRGBColor(Optional ByVal aAlpha As Integer = 255) As Color
+#If Smartphone Then 'Window Mobile does not have FromArgb with Alpha
+        Return Color.FromArgb(g_Random.Next(0, 255), _
+                              g_Random.Next(0, 255), _
+                              g_Random.Next(0, 255))
+#Else
         Return Color.FromArgb(aAlpha, _
                               g_Random.Next(0, 255), _
                               g_Random.Next(0, 255), _
                               g_Random.Next(0, 255))
+#End If
     End Function
 
 #Region "GMap code from http://www.codeplex.com/gmap4dotnet"
