@@ -42,7 +42,9 @@ Module modGlobal
     Public g_TileCacheFolder As String = ""
 
     ' URL of server to upload points to
-    Public g_UploadURL As String = "http://vatavia.net/cgi-bin/gps?u=unknown&y=#Lat#&x=#Lon#&e=#Alt#&s=#Speed#&h=#Heading#&t=#Time#&l=#Label#&c=#CellID#"
+    Public g_UploadPointURL As String = "http://vatavia.net/cgi-bin/gps?u=unknown&y=#Lat#&x=#Lon#&e=#Alt#&s=#Speed#&h=#Heading#&t=#Time#&l=#Label#&c=#CellID#"
+    ' URL of server to upload points to
+    Public g_UploadTrackURL As String = "http://vatavia.net/cgi-bin/trk?u=unknown"
 
     Public g_DegreeFormat As EnumDegreeFormat = EnumDegreeFormat.DegreesDecimalMinutes
 
