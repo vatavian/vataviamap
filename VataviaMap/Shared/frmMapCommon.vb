@@ -113,6 +113,7 @@ Partial Class frmMap
 
     Private pUploadOnStart As Boolean = False  ' True to upload point when GPS starts
     Private pUploadOnStop As Boolean = False   ' True to upload point when GPS stops
+    Private pUploadTrackOnStop As Boolean = False   ' True to upload track when GPS stops
     Private pUploadPeriodic As Boolean = False ' True to upload point periodically
 
     ' Set to false when another form is covering main form, skip redrawing
@@ -254,7 +255,8 @@ Partial Class frmMap
 
                     'TileCacheFolder gets set earlier
                     g_TileServerName = .GetValue("TileServer", g_TileServerName)
-                    g_UploadURL = .GetValue("UploadURL", g_UploadURL)
+                    g_UploadPointURL = .GetValue("UploadPointURL", g_UploadPointURL)
+                    g_UploadTrackURL = .GetValue("UploadTrackURL", g_UploadTrackURL)
 
                     'Tiles older than this will be downloaded again as needed. TileCacheDays = 0 to never refresh old tiles
                     Dim lTileCacheDays As Integer = .GetValue("TileCacheDays", 0)
@@ -297,9 +299,9 @@ Partial Class frmMap
                     pDisplayTrack = .GetValue("DisplayTrack", pDisplayTrack)
                     pUploadOnStart = .GetValue("UploadOnStart", pUploadOnStart)
                     pUploadOnStop = .GetValue("UploadOnStop", pUploadOnStop)
+                    pUploadTrackOnStop = .GetValue("UploadTrackOnStop", pUploadTrackOnStop)
                     pUploadPeriodic = .GetValue("UploadPeriodic", pUploadPeriodic)
                     pUploadMinInterval = New TimeSpan(0, 0, .GetValue("UploadPeriodicSeconds", pUploadMinInterval.TotalSeconds))
-                    g_UploadURL = .GetValue("UploadURL", g_UploadURL)
                 End With
             End If
         End If
@@ -396,9 +398,11 @@ Partial Class frmMap
                     .SetValue("DisplayTrack", pDisplayTrack)
                     .SetValue("UploadOnStart", pUploadOnStart)
                     .SetValue("UploadOnStop", pUploadOnStop)
+                    .SetValue("UploadTrackOnStop", pUploadTrackOnStop)
                     .SetValue("UploadPeriodic", pUploadPeriodic)
                     .SetValue("UploadPeriodicSeconds", pUploadMinInterval.TotalSeconds)
-                    .SetValue("UploadURL", g_UploadURL)
+                    .SetValue("UploadPointURL", g_UploadPointURL)
+                    .SetValue("UploadTrackURL", g_UploadTrackURL)
                 End With
             End If
         End If

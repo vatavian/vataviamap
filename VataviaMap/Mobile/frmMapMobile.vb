@@ -323,6 +323,10 @@ RestartRedraw:
             Dim lFile As System.IO.StreamWriter = System.IO.File.AppendText(pTrackLogFilename)
             lFile.Write("</trkseg>" & vbLf & "</trk>" & vbLf & "</gpx>" & vbLf)
             lFile.Close()
+            If pUploadOnStop AndAlso pUploader.Enabled Then
+                pUploader.Enqueue(g_UploadTrackURL, pTrackLogFilename, QueueItemType.FileItem, 0)
+            End If
+
             pTrackLogFilename = ""
         End If
         pTrackMutex.ReleaseMutex()
@@ -523,7 +527,7 @@ SetCenter:
            AndAlso GPS_POSITION.SatellitesInSolutionValid _
            AndAlso GPS_POSITION.SatelliteCount > 2 Then
             Try
-                Dim lURL As String = g_UploadURL
+                Dim lURL As String = g_UploadPointURL
                 If lURL IsNot Nothing AndAlso lURL.Length > 0 Then
                     BuildURL(lURL, "Time", GPS_POSITION.Time.ToString("yyyy-MM-ddTHH:mm:ss.fff") & "Z", "", GPS_POSITION.TimeValid)
                     BuildURL(lURL, "Lat", GPS_POSITION.Latitude.ToString("#.########"), "", GPS_POSITION.LatitudeValid)
@@ -826,7 +830,7 @@ SetCenter:
             .DegreeFormat = g_DegreeFormat
             .Latitude = CenterLat
             .Longitude = CenterLon
-            .txtUploadURL.Text = g_UploadURL
+            .txtUploadURL.Text = g_UploadPointURL
             .chkUploadOnStart.Checked = pUploadOnStart
             .chkUploadOnStop.Checked = pUploadOnStop
             .chkUploadInterval.Checked = pUploadPeriodic
@@ -844,9 +848,9 @@ SetCenter:
                 CenterLat = .Latitude
                 CenterLon = .Longitude
 
-                g_UploadURL = .txtUploadURL.Text
-                If g_UploadURL.Length > 0 AndAlso g_UploadURL.IndexOf(":/") = -1 Then
-                    g_UploadURL = "http://" & g_UploadURL
+                g_UploadPointURL = .txtUploadURL.Text
+                If g_UploadPointURL.Length > 0 AndAlso g_UploadPointURL.IndexOf(":/") = -1 Then
+                    g_UploadPointURL = "http://" & g_UploadPointURL
                 End If
 
                 pUploadMinInterval = Nothing
