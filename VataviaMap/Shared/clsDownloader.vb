@@ -102,7 +102,10 @@ Public Class clsDownloader
 
     Private Sub TileRAMcacheForgetTile(ByVal aTileFilename As String)
         If pTileRAMcache.ContainsKey(aTileFilename) Then
-            pTileRAMcache.Item(aTileFilename).Dispose()
+            Try
+                pTileRAMcache.Item(aTileFilename).Dispose()
+            Catch
+            End Try
             pTileRAMcache.Remove(aTileFilename)
             pTileRAMcacheRecent.Remove(aTileFilename)
         End If
