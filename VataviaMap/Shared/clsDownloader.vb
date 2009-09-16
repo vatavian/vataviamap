@@ -26,19 +26,27 @@ Public Class clsDownloader
     ''' <remarks>This is where pTileRAMcacheLimit is enforced</remarks>
     Private Function TileRAMcacheAddTile(ByVal aTileFilename As String, ByVal aBitmap As Bitmap) As Boolean
         Try
-            If aTileFilename Is Nothing Then Stop
-            TileRAMcacheForgetTile(aTileFilename)
-            pTileRAMcache.Add(aTileFilename, aBitmap)
-            pTileRAMcacheRecent.Insert(0, aTileFilename)
-            'Make space in tile cache for new tile
-            While pTileRAMcache.Count > pTileRAMcacheLimit
-                Dim lVictimFilename As String = pTileRAMcacheRecent.Item(pTileRAMcacheRecent.Count - 1)
-                pTileRAMcacheRecent.RemoveAt(pTileRAMcacheRecent.Count - 1)
-                Dim lVictimTile As Bitmap = pTileRAMcache.Item(lVictimFilename)
-                If lVictimTile IsNot Nothing Then lVictimTile.Dispose()
-                pTileRAMcache.Remove(lVictimFilename)
-            End While
-            Return True
+            If aTileFilename IsNot Nothing Then
+                TileRAMcacheForgetTile(aTileFilename)
+                If aBitmap IsNot Nothing Then
+                    pTileRAMcache.Add(aTileFilename, aBitmap)
+                    pTileRAMcacheRecent.Insert(0, aTileFilename)
+                    'Make space in tile cache for new tile
+                    While pTileRAMcache.Count > pTileRAMcacheLimit
+                        Dim lVictimFilename As String = pTileRAMcacheRecent.Item(pTileRAMcacheRecent.Count - 1)
+                        pTileRAMcacheRecent.RemoveAt(pTileRAMcacheRecent.Count - 1)
+                        Dim lVictimTile As Bitmap = pTileRAMcache.Item(lVictimFilename)
+                        If lVictimTile IsNot Nothing Then
+                            Try
+                                lVictimTile.Dispose()
+                            Catch
+                            End Try
+                        End If
+                        pTileRAMcache.Remove(lVictimFilename)
+                    End While
+                    Return True
+                End If
+            End If
         Catch
         End Try
         Return False
