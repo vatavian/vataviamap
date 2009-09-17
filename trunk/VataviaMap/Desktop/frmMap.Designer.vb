@@ -70,6 +70,7 @@ Partial Class frmMap
         Me.RightClickMenu = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.RefreshFromServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.GetAllDescendantsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.WaypointsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.MenuStripMain.SuspendLayout()
         Me.RightClickMenu.SuspendLayout()
         Me.SuspendLayout()
@@ -160,7 +161,7 @@ Partial Class frmMap
         '
         'ViewToolStripMenuItem
         '
-        Me.ViewToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.TileOutlinesToolStripMenuItem, Me.TileNamesToolStripMenuItem, Me.TileImagesToolStripMenuItem, Me.PanToGPXToolStripMenuItem, Me.ZoomToGPXToolStripMenuItem, Me.UseMarkedTilesToolStripMenuItem, Me.CoordinatesToolStripMenuItem})
+        Me.ViewToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.TileOutlinesToolStripMenuItem, Me.TileNamesToolStripMenuItem, Me.TileImagesToolStripMenuItem, Me.PanToGPXToolStripMenuItem, Me.ZoomToGPXToolStripMenuItem, Me.UseMarkedTilesToolStripMenuItem, Me.CoordinatesToolStripMenuItem, Me.WaypointsToolStripMenuItem})
         Me.ViewToolStripMenuItem.Name = "ViewToolStripMenuItem"
         Me.ViewToolStripMenuItem.Size = New System.Drawing.Size(55, 23)
         Me.ViewToolStripMenuItem.Text = "View"
@@ -363,6 +364,12 @@ Partial Class frmMap
         Me.GetAllDescendantsToolStripMenuItem.Size = New System.Drawing.Size(239, 24)
         Me.GetAllDescendantsToolStripMenuItem.Text = "Get All Descendants"
         '
+        'WaypointsToolStripMenuItem
+        '
+        Me.WaypointsToolStripMenuItem.Name = "WaypointsToolStripMenuItem"
+        Me.WaypointsToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
+        Me.WaypointsToolStripMenuItem.Text = "Waypoints..."
+        '
         'frmMap
         '
         Me.AllowDrop = True
@@ -427,4 +434,5 @@ Partial Class frmMap
     Friend WithEvents OpenCellIDToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents CoordinatesToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents CopyToClipboardToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents WaypointsToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
 End Class

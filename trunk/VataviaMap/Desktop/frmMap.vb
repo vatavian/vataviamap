@@ -3,6 +3,7 @@ Public Class frmMap
     WithEvents pLayersForm As frmLayers
     WithEvents pBuddyAlarmForm As frmBuddyAlarm
     WithEvents pBuddyListForm As frmBuddyList
+    WithEvents pWaypointsListForm As frmWaypoints
     WithEvents pCoordinatesForm As frmCoordinates
     WithEvents pTileServerForm As frmEditNameURL
     WithEvents pOpenCellIDForm As frmOpenCellID
@@ -113,10 +114,10 @@ Public Class frmMap
         If pBuddyAlarmEnabled OrElse pBuddyAlarmForm IsNot Nothing Then
             Dim lWaypoint As New clsGPXwaypoint("wpt", pBuddyAlarmLat, pBuddyAlarmLon)
             lWaypoint.sym = "circle"
-            Dim pBuddyAlarmLayer As clsLayerGPX = New clsLayerGPX("cursor", Me)
-            pBuddyAlarmLayer.SymbolPen = New Pen(Color.Red)
-            pBuddyAlarmLayer.SymbolSize = pBuddyAlarmMeters / MetersPerPixel(pZoom)
-            pBuddyAlarmLayer.DrawTrackpoint(g, lWaypoint, aTopLeft, aOffsetToCenter, -1, -1)
+            Dim lBuddyAlarmLayer As clsLayerGPX = New clsLayerGPX("cursor", Me)
+            lBuddyAlarmLayer.SymbolPen = New Pen(Color.Red)
+            lBuddyAlarmLayer.SymbolSize = pBuddyAlarmMeters / MetersPerPixel(pZoom)
+            lBuddyAlarmLayer.DrawTrackpoint(g, lWaypoint, aTopLeft, aOffsetToCenter, -1, -1)
         End If
     End Sub
 
@@ -450,21 +451,30 @@ Public Class frmMap
         pTileServerForm.AskUser("Edit Tile Server", lItemClicked.Text, pTileServers.Item(lItemClicked.Text), g_TileServerExampleLabel, g_TileServerExampleFile)
     End Sub
 
-    Private Sub pTileServerForm_Ok(ByVal aName As String, ByVal aURL As String) Handles pTileServerForm.Ok
-        pTileServers.Remove(aName)
-        If aURL.Length > 0 Then
-            If aURL.Length > 0 AndAlso Not aURL.EndsWith("/") Then aURL &= "/"
-            pTileServers.Add(aName, aURL)
+    Private Sub pTileServerForm_Ok(ByVal aOriginalName As String, ByVal aName As String, ByVal aURL As String) Handles pTileServerForm.Ok
+        pTileServers.Remove(aOriginalName)
+
+        If aURL.Length > 0 AndAlso Not aURL.EndsWith("/") Then aURL &= "/"
+        pTileServers.Add(aName, aURL)
+        TileServerName = aName
+        If g_TileServerName = aOriginalName Then
             TileServerName = aName
-        ElseIf g_TileServerName = aName AndAlso pTileServers.Count > 0 Then
+        End If
+        BuildTileServerMenu()
+        Redraw()
+    End Sub
+
+    Private Sub pTileServerForm_Remove(ByVal aOriginalName As String) Handles pTileServerForm.Remove
+        pTileServers.Remove(aOriginalName)
+        If g_TileServerName = aOriginalName AndAlso pTileServers.Count > 0 Then
             'If we just removed the current tile server, set to the first one left
             For Each lName As String In pTileServers.Keys
                 TileServerName = lName
                 Exit For
             Next
+            Redraw()
         End If
         BuildTileServerMenu()
-        Redraw()
     End Sub
 
     Private Sub BuildTileServerMenu()
@@ -699,7 +709,7 @@ Public Class frmMap
         pBuddyListForm.AskUser(pBuddies)
     End Sub
 
-    Private Sub pBuddyListForm_Center(ByVal aLatitude As Double, ByVal aLongitude As Double) Handles pBuddyListForm.Center
+    Private Sub SetCenter(ByVal aLatitude As Double, ByVal aLongitude As Double) Handles pBuddyListForm.Center, pWaypointsListForm.Center
         CenterLat = aLatitude
         CenterLon = aLongitude
         SanitizeCenterLatLon()
@@ -805,4 +815,27 @@ Public Class frmMap
     Private Sub pCoordinatesForm_FormClosing(ByVal sender As Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles pCoordinatesForm.FormClosing
         pCoordinatesForm = Nothing
     End Sub
+
+    Private Sub WaypointsToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles WaypointsToolStripMenuItem.Click
+        If pWaypointsListForm IsNot Nothing Then
+            Try
+                pWaypointsListForm.Close()
+            Catch
+            End Try
+        End If
+        pWaypointsListForm = New frmWaypoints
+        pWaypointsListForm.Icon = Me.Icon
+
+        Dim lAllWaypoints As New Generic.List(Of clsGPXwaypoint)
+        For Each lLayer As clsLayer In Layers
+            Try
+                Dim lGpx As clsLayerGPX = lLayer
+                lAllWaypoints.AddRange(lGpx.GPX.wpt)
+            Catch ex As Exception
+
+            End Try
+        Next
+        pWaypointsListForm.AskUser(lAllWaypoints)
+    End Sub
+
 End Class

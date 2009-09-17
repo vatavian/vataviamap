@@ -1,12 +1,15 @@
 Public Class frmEditNameURL
 
     ''' <summary>
-    ''' Event is raised when user presses Ok or Remove
+    ''' Event is raised when user presses Ok
     ''' </summary>
     ''' <param name="aName">Name currently displayed</param>
-    ''' <param name="aURL">URL currently displayed. If blank, user requested removal from list</param>
+    ''' <param name="aURL">URL to get buddy location</param>
     ''' <remarks></remarks>
-    Public Event Ok(ByVal aName As String, ByVal aURL As String)
+    Public Event Ok(ByVal aOriginalName As String, ByVal aName As String, ByVal aURL As String)
+    Public Event Remove(ByVal aOriginalName As String)
+
+    Private pOrigName As String
 
     ''' <summary>
     ''' Ask the user for a Name and URL
@@ -17,6 +20,7 @@ Public Class frmEditNameURL
     ''' <remarks></remarks>
     Public Sub AskUser(ByVal aTitle As String, ByVal aName As String, ByVal aURL As String, _
                        ByVal aLabelExamples As String, ByVal aButtonExamples As String)
+        pOrigName = aName
         Me.Text = aTitle
         txtName.Text = aName
         txtURL.Text = aURL
@@ -37,7 +41,7 @@ Public Class frmEditNameURL
     ''' </summary>
     Private Sub btnOk_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnOk.Click
         Me.Hide()
-        RaiseEvent Ok(txtName.Text, txtURL.Text)
+        RaiseEvent Ok(pOrigName, txtName.Text, txtURL.Text)
         Me.Close()
     End Sub
 
@@ -46,7 +50,7 @@ Public Class frmEditNameURL
     ''' </summary>
     Private Sub btnRemove_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnRemove.Click
         Me.Hide()
-        RaiseEvent Ok(txtName.Text, "")
+        RaiseEvent Remove(pOrigName)
         Me.Close()
     End Sub
 End Class

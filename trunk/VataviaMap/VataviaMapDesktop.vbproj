@@ -65,6 +65,12 @@
     <Compile Include="Desktop\frmOpenCellID.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Desktop\frmWaypoints.Designer.vb">
+      <DependentUpon>frmWaypoints.vb</DependentUpon>
+    </Compile>
+    <Compile Include="Desktop\frmWaypoints.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Shared\clsCell.vb" />
     <Compile Include="Shared\clsCellLayer.vb" />
     <Compile Include="Shared\clsCellLocationOpenCellID.vb" />
@@ -146,6 +152,10 @@
     <EmbeddedResource Include="Desktop\frmOpenCellID.resx">
       <SubType>Designer</SubType>
       <DependentUpon>frmOpenCellID.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Desktop\frmWaypoints.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>frmWaypoints.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Desktop\My Project\Resources.resx">
       <Generator>VbMyResourcesResXFileCodeGenerator</Generator>
