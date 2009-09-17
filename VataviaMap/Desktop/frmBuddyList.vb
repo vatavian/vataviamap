@@ -62,20 +62,27 @@ Public Class frmBuddyList
         Me.Close()
     End Sub
 
-    Private Sub pEditBuddyForm_Ok(ByVal aName As String, ByVal aURL As String) Handles pEditBuddyForm.Ok
-        If aURL.Length > 0 Then
-            Dim lBuddy As clsBuddy
-            If pBuddies.ContainsKey(aName) Then
-                lBuddy = pBuddies(aName)
-            Else
-                lBuddy = New clsBuddy
-                lBuddy.Name = aName
+    Private Sub pEditBuddyForm_Ok(ByVal aOriginalName As String, ByVal aName As String, ByVal aURL As String) Handles pEditBuddyForm.Ok
+        Dim lBuddy As clsBuddy
+        If pBuddies.ContainsKey(aOriginalName) Then
+            lBuddy = pBuddies(aOriginalName)
+            If aOriginalName <> aName Then
+                pBuddies.Remove(aOriginalName)
+                If pBuddies.ContainsKey(aName) Then pBuddies.Remove(aName)
                 pBuddies.Add(aName, lBuddy)
             End If
-            lBuddy.LocationURL = aURL
         Else
-            pBuddies.Remove(aName)
+            lBuddy = New clsBuddy
+            lBuddy.Name = aName
+            pBuddies.Add(aName, lBuddy)
         End If
+        lBuddy.LocationURL = aURL
+        lBuddy.Name = aName
+        PopulateList()
+    End Sub
+
+    Private Sub pEditBuddyForm_Remove(ByVal aName As String) Handles pEditBuddyForm.Remove
+        pBuddies.Remove(aName)
         PopulateList()
     End Sub
 
