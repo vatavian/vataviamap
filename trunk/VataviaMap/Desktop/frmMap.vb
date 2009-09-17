@@ -544,7 +544,7 @@ Public Class frmMap
 
     Private Sub OpenOSMWebsiteToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles OpenOSMWebsiteToolStripMenuItem.Click
         Try
-            Process.Start("http://www.openstreetmap.org/index.html?mlat=" & CenterLat & "&mlon=" & CenterLon & "&zoom=" & pZoom)
+            Process.Start("http://www.openstreetmap.org/?lat=" & CenterLat.ToString("#.#######") & "&lon=" & CenterLon.ToString("#.#######") & "&zoom=" & pZoom)
         Catch ex As System.ComponentModel.Win32Exception
             'This happens when Firefox takes a moment to start due to updates, ignore it
         End Try
@@ -738,10 +738,10 @@ Public Class frmMap
 
     Private Sub GetOSMBugsToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles GetOSMBugsToolStripMenuItem.Click
         Dim lBugsGPXurl As String = "http://openstreetbugs.schokokeks.org/api/0.1/getGPX?" _
-            & "b=" & LatMin _
-            & "&t=" & LatMax _
-            & "&l=" & LonMin _
-            & "&r=" & LonMax _
+            & "b=" & LatMin.ToString("#.#######") _
+            & "&t=" & LatMax.ToString("#.#######") _
+            & "&l=" & LonMin.ToString("#.#######") _
+            & "&r=" & LonMax.ToString("#.#######") _
             & "&open=yes"
         Dim lBugsGPXfilename As String = IO.Path.Combine(My.Computer.FileSystem.SpecialDirectories.MyDocuments, "bugs.gpx")
         If pDownloader.DownloadFile(lBugsGPXurl, lBugsGPXfilename, False) Then OpenGPX(lBugsGPXfilename) 'TODO: set .LabelField = "desc"
