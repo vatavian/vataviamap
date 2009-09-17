@@ -976,6 +976,12 @@ Partial Class frmMap
     End Function
 
     Private Sub SanitizeCenterLatLon()
+
+        If Math.Abs(CenterLat) > 1000 OrElse Math.Abs(CenterLon) > 1000 Then
+            CenterLat = 33.8
+            CenterLon = -84.3
+        End If
+
         While CenterLon > 180
             CenterLon -= 360
         End While
