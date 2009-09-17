@@ -8,6 +8,7 @@ Public Class frmMap
     WithEvents pOpenCellIDForm As frmOpenCellID
 
     Public Sub New()
+        Application.CurrentCulture = New Globalization.CultureInfo("")
         InitializeComponent()
 
         'Create zoom level menu items

@@ -501,10 +501,10 @@ Public Class clsGPXwaypoint
         If typeField IsNot Nothing AndAlso typeField.Length > 0 Then lXML &= "<type>" & typeField & "</type>" & ControlChars.Lf
         If fixFieldSpecified Then lXML &= "<fix>" & fixField & "</fix>" & ControlChars.Lf
         If satField IsNot Nothing AndAlso satField.Length > 0 Then lXML &= "<sat>" & satField & "</sat>" & ControlChars.Lf
-        If hdopFieldSpecified Then lXML &= "<hdop>" & hdopField & "</hdop>" & ControlChars.Lf
-        If vdopFieldSpecified Then lXML &= "<vdop>" & vdopField & "</vdop>" & ControlChars.Lf
-        If pdopFieldSpecified Then lXML &= "<pdop>" & pdopField & "</pdop>" & ControlChars.Lf
-        If ageofdgpsdataFieldSpecified Then lXML &= "<ageofdgpsdata>" & ageofdgpsdataField & "</ageofdgpsdata>" & ControlChars.Lf
+        If hdopFieldSpecified Then lXML &= "<hdop>" & Format(hdopField, "0.###") & "</hdop>" & ControlChars.Lf
+        If vdopFieldSpecified Then lXML &= "<vdop>" & Format(vdopField, "0.###") & "</vdop>" & ControlChars.Lf
+        If pdopFieldSpecified Then lXML &= "<pdop>" & Format(pdopField, "0.###") & "</pdop>" & ControlChars.Lf
+        If ageofdgpsdataFieldSpecified Then lXML &= "<ageofdgpsdata>" & Format(ageofdgpsdataField, "0.#") & "</ageofdgpsdata>" & ControlChars.Lf
         If dgpsidField IsNot Nothing AndAlso dgpsidField.Length > 0 Then lXML &= "<dgpsid>" & dgpsidField & "</dgpsid>" & ControlChars.Lf
         'If speedFieldSpecified OrElse courseFieldSpecified OrElse extensionsField IsNot Nothing Then
         '    lXML &= "<extensions>" & ControlChars.Lf
