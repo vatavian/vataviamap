@@ -194,7 +194,12 @@ RestartRedraw:
             If Not pRecordTrack Then lDetails &= vbLf & "Logging Off"
         End If
         If pRecordCellID Then
-            lDetails &= vbLf & GPS_API.RIL.GetCellTowerString
+            Dim lCurrentCellInfo As New clsCell(GPS_API.RIL.GetCellTowerInfo)
+            If lCurrentCellInfo.IsValid Then
+                lDetails &= vbLf & lCurrentCellInfo.ToString
+            Else
+                lDetails &= vbLf & "no cell"
+            End If
         End If
         'If pUsedCacheCount + pAddedCacheCount > 0 Then
         '    lDetails &= " Cache " & Format(pUsedCacheCount / (pUsedCacheCount + pAddedCacheCount), "0.0 %") & " " & pDownloader.TileRAMcacheLimit
@@ -395,7 +400,7 @@ RestartRedraw:
 
     Private Function SetCenterFromCellLocation() As Boolean
         Dim lCurrentCellInfo As New clsCell(GPS_API.RIL.GetCellTowerInfo)
-        If lCurrentCellInfo IsNot Nothing AndAlso lCurrentCellInfo.ID > 0 AndAlso (pLastCellTower Is Nothing OrElse lCurrentCellInfo.ID <> pLastCellTower.ID) Then
+        If lCurrentCellInfo.IsValid AndAlso (pLastCellTower Is Nothing OrElse lCurrentCellInfo.ID <> pLastCellTower.ID) Then
             pLastCellTower = lCurrentCellInfo
             With lCurrentCellInfo
                 If GetCellLocation(pTileCacheFolder & "cells", lCurrentCellInfo) Then
@@ -477,7 +482,13 @@ SetCenter:
                     lTrackPoint.course = GPS_POSITION.Heading
                 End If
 
-                If pRecordCellID Then lTrackPoint.SetExtension("celltower", GPS_API.RIL.GetCellTowerString)
+                If pRecordCellID Then
+                    Dim lCurrentCellInfo As New clsCell(GPS_API.RIL.GetCellTowerInfo)
+                    If lCurrentCellInfo.IsValid Then
+                        'Original tag was celltower, order was ID LAC MCC MNC
+                        lTrackPoint.SetExtension("cellid", lCurrentCellInfo.ToString)
+                    End If
+                End If
                 lTrackPoint.SetExtension("phonesignal", Microsoft.WindowsMobile.Status.SystemState.PhoneSignalStrength)
 
                 If pRecordTrack Then
@@ -542,7 +553,8 @@ SetCenter:
                         BuildURL(lURL, "Label", g_AppName, "", True)
                     End If
                     If lURL.IndexOf("CellID") > -1 Then
-                        BuildURL(lURL, "CellID", GPS_API.RIL.GetCellTowerString, "", True)
+                        Dim lCurrentCellInfo As New clsCell(GPS_API.RIL.GetCellTowerInfo)
+                        BuildURL(lURL, "CellID", lCurrentCellInfo.ToString, "", True)
                     End If
 
                     pUploader.ClearQueue(0)

@@ -200,6 +200,7 @@ Public Class clsCellLayer
                                 Case "MobileNetworkCode" : lLabelText = lCell.MNC
                                 Case "LocalAreaCode" : lLabelText = lCell.LAC
                                 Case "CellID" : lLabelText = lCell.ID
+                                Case "CellLabel" : lLabelText = lCell.ToString
                                 Case "Filename" : lLabelText = IO.Path.GetFileNameWithoutExtension(Filename)
                             End Select
                             If lLabelText IsNot Nothing AndAlso lLabelText.Length > 0 Then
@@ -241,7 +242,7 @@ Public Class clsCellLayer
 
                 If MapForm.Zoom > 15 Then
                     Try
-                        g.DrawString(.Label, FontLabel, BrushLabel, lX, lY)
+                        g.DrawString(.ToString, FontLabel, BrushLabel, lX, lY)
                     Catch
                     End Try
                 End If
@@ -343,7 +344,7 @@ Public Class clsCellLayer
                         Case 1 : lNewFilename = IO.Path.ChangeExtension(aSaveAs, .MCC) & lExtension
                         Case 2 : lNewFilename = IO.Path.ChangeExtension(aSaveAs, .MCC & "." & .MNC) & lExtension
                         Case 3 : lNewFilename = IO.Path.ChangeExtension(aSaveAs, .MCC & "." & .MNC & "." & .LAC) & lExtension
-                        Case 4 : lNewFilename = IO.Path.ChangeExtension(aSaveAs, .Label) & lExtension
+                        Case 4 : lNewFilename = IO.Path.ChangeExtension(aSaveAs, .ToString) & lExtension
                     End Select
                     If lNewFilename <> lLastFilename Then
                         If lWriter IsNot Nothing Then lWriter.Close()
@@ -465,8 +466,12 @@ Public Class clsCellLayer
                     For Each lTrackPoint As clsGPXwaypoint In lTrackSegment.trkpt
                         Try
                             lCell = Nothing
-                            lCell = clsCell.Parse(lTrackPoint.name, "I.L.C.N")
+                            'VataviaMap at first put cell tower information in the name field, then in extension "celltower", then in extension "cellid".
+                            'We check for what the latest version writes first, then if not found we check for older ways it has been written
+                            lCell = clsCell.Parse(lTrackPoint.GetExtension("cellid")) 'Default order of "C.N.L.I" when using this extension
                             If lCell Is Nothing Then lCell = clsCell.Parse(lTrackPoint.GetExtension("celltower"), "I.L.C.N")
+                            If lCell Is Nothing Then lCell = clsCell.Parse(lTrackPoint.name, "I.L.C.N")
+
                             If lCell IsNot Nothing Then
                                 If lAllMCCs OrElse Array.IndexOf(lMCCs, lCell.MCC) > -1 Then
                                     lCell.Latitude = lTrackPoint.lat

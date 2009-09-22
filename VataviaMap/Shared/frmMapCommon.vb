@@ -40,6 +40,7 @@ Partial Class frmMap
     Private pFontCopyright As New Font(FontFamily.GenericSansSerif, 7, FontStyle.Regular)
     Private pBrushCopyright As New SolidBrush(Color.Black)
     Private pShowCopyright As Boolean = True
+    Private pShowDate As Boolean = False
 
     Private pMouseDragging As Boolean = False
     Private pMouseDragStartLocation As Point
@@ -700,6 +701,8 @@ Partial Class frmMap
 
         If pShowCopyright AndAlso pShowTileImages Then g.DrawString(g_TileCopyright, pFontCopyright, pBrushCopyright, 3, pBitmap.Height - 20)
 
+        If pShowDate Then g.DrawString(DateTime.Now.ToString("yyyy-MM-dd HH:mm"), pFontTileLabel, pBrushBlack, 3, 3)
+
         If pRedrawPending Then Exit Sub
 
         DrewTiles(g, lTopLeft, lOffsetToCenter)
@@ -1272,7 +1275,10 @@ Partial Class frmMap
     End Sub
     Private Sub StopBuddyTimer()
         If pBuddyTimer IsNot Nothing Then
-            pBuddyTimer.Dispose()
+            Try
+                pBuddyTimer.Dispose()
+            Catch
+            End Try
             pBuddyTimer = Nothing
         End If
     End Sub
