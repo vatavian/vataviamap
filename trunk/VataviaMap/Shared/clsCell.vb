@@ -23,12 +23,16 @@ Public Class clsCell
 #If Smartphone Then
 
     Public Sub New(ByVal aTowerInfo As GPS_API.RIL.RILCELLTOWERINFO)
-        With aTowerInfo
-            MCC = .dwMobileCountryCode
-            MNC = .dwMobileNetworkCode
-            LAC = .dwLocationAreaCode
-            ID = .dwCellID
-        End With
+        Try
+            With aTowerInfo
+                MCC = .dwMobileCountryCode
+                MNC = .dwMobileNetworkCode
+                LAC = .dwLocationAreaCode
+                ID = .dwCellID
+            End With
+        Catch e As Exception 'Probably an invalid cell tower
+            Clear()
+        End Try
     End Sub
 
 #End If
@@ -41,6 +45,10 @@ Public Class clsCell
         Latitude = -999
         Longitude = -999
     End Sub
+
+    Public Function IsValid() As Boolean
+        Return (ID > 0)
+    End Function
 
     Private Shared Function GetFirstInt(ByRef aSource As String) As String
         Dim lInt As String = ""
@@ -99,7 +107,7 @@ Public Class clsCell
         End With
     End Function
 
-    Public Function Label() As String
+    Public Overrides Function ToString() As String
         Return MCC & "." & MNC & "." & LAC & "." & ID
     End Function
 

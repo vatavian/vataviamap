@@ -260,20 +260,26 @@ Public Class frmMap
     End Sub
 
     Private Sub TileOutlinesToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles TileOutlinesToolStripMenuItem.Click
-        TileOutlinesToolStripMenuItem.Checked = Not TileOutlinesToolStripMenuItem.Checked
-        pShowTileOutlines = TileOutlinesToolStripMenuItem.Checked
+        pShowTileOutlines = Not pShowTileOutlines
+        TileOutlinesToolStripMenuItem.Checked = pShowTileOutlines
         Redraw()
     End Sub
 
     Private Sub TileNamesToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles TileNamesToolStripMenuItem.Click
-        TileNamesToolStripMenuItem.Checked = Not TileNamesToolStripMenuItem.Checked
-        pShowTileNames = TileNamesToolStripMenuItem.Checked
+        pShowTileNames = Not pShowTileNames
+        TileNamesToolStripMenuItem.Checked = pShowTileNames
         Redraw()
     End Sub
 
     Private Sub TileImagesToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles TileImagesToolStripMenuItem.Click
-        TileImagesToolStripMenuItem.Checked = Not TileImagesToolStripMenuItem.Checked
-        pShowTileImages = TileImagesToolStripMenuItem.Checked
+        pShowTileImages = Not pShowTileImages
+        TileImagesToolStripMenuItem.Checked = pShowTileImages
+        Redraw()
+    End Sub
+
+    Private Sub TimestampToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles TimestampToolStripMenuItem.Click
+        pShowDate = Not pShowDate
+        TimestampToolStripMenuItem.Checked = pShowDate
         Redraw()
     End Sub
 
@@ -526,13 +532,13 @@ Public Class frmMap
     End Sub
 
     Private Sub PanToGPXToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles PanToGPXToolStripMenuItem.Click
-        PanToGPXToolStripMenuItem.Checked = Not PanToGPXToolStripMenuItem.Checked
-        pGPXPanTo = PanToGPXToolStripMenuItem.Checked
+        pGPXPanTo = Not pGPXPanTo
+        PanToGPXToolStripMenuItem.Checked = pGPXPanTo
     End Sub
 
     Private Sub ZoomToGPXToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles ZoomToGPXToolStripMenuItem.Click
-        ZoomToGPXToolStripMenuItem.Checked = Not ZoomToGPXToolStripMenuItem.Checked
-        pGPXZoomTo = ZoomToGPXToolStripMenuItem.Checked
+        pGPXZoomTo = Not pGPXZoomTo
+        ZoomToGPXToolStripMenuItem.Checked = pGPXZoomTo
         If pGPXZoomTo AndAlso Not pGPXPanTo Then 'If they want to zoom, they must want to pan too
             pGPXPanTo = True
             PanToGPXToolStripMenuItem.Checked = True
@@ -548,8 +554,8 @@ Public Class frmMap
     End Sub
 
     Private Sub UseMarkedTilesToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles UseMarkedTilesToolStripMenuItem.Click
-        UseMarkedTilesToolStripMenuItem.Checked = Not UseMarkedTilesToolStripMenuItem.Checked
-        pUseMarkedTiles = UseMarkedTilesToolStripMenuItem.Checked
+        pUseMarkedTiles = Not pUseMarkedTiles
+        UseMarkedTilesToolStripMenuItem.Checked = pUseMarkedTiles
         Redraw()
     End Sub
 
