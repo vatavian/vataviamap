@@ -413,7 +413,11 @@ CheckCache:
                 Dim lStartMoving As DateTime = DateTime.Now
                 While IO.File.Exists(aFileName)
                     Try
-                        DeleteTile(aFileName)
+                        If aIsTile Then
+                            DeleteTile(aFileName)
+                        Else
+                            IO.File.Delete(aFileName)
+                        End If
                     Catch
                         If DateTime.Now.Subtract(lStartMoving).TotalSeconds > 2 Then
                             Try 'target tile file busy too long, delete new version and report failure
@@ -431,7 +435,7 @@ CheckCache:
                         IO.File.Move(lDownloadAs, lMoveTo)
                         WriteTextFile(lMoveTo & pLastCheckedExtension, Format(Date.UtcNow, "yyyy-MM-dd HH:mm:ss"))
                         TileRAMcacheAddTile(aFileName, lMoveTo, Nothing, -1, -1, False)
-                    ElseIf Not lError Then
+                    Else
                         IO.File.Move(lDownloadAs, aFileName)
                     End If
                     lSuccess = True
