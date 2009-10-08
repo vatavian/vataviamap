@@ -1270,7 +1270,7 @@ Partial Class frmMap
     ''' <remarks></remarks>
     Private Sub StartBuddyTimer()
         If pBuddyTimer Is Nothing Then
-            pBuddyTimer = New System.Threading.Timer(New Threading.TimerCallback(AddressOf RequestBuddyPoint), Nothing, 0, 600000)
+            pBuddyTimer = New System.Threading.Timer(New Threading.TimerCallback(AddressOf RequestBuddyPoint), Nothing, 0, 60000)
         End If
     End Sub
     Private Sub StopBuddyTimer()
