@@ -2,6 +2,16 @@
 Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "VataviaMapMobile", "VataviaMapMobile.vbproj", "{101575A0-1E71-4FB8-8E6C-EE2CC7430A0E}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
+EndProject
+Project("{B900F1C2-3D47-4FEC-85B3-04AAF18C3634}") = "VataviaMapMobileInstaller", "VataviaMapMobileInstaller\VataviaMapMobileInstaller.vddproj", "{A3807EE9-E678-4EFD-9C67-7267A72358FB}"
+	ProjectSection(WebsiteProperties) = preProject
+		Debug.AspNetCompiler.Debug = "True"
+		Release.AspNetCompiler.Debug = "False"
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +25,8 @@ Global
 		{101575A0-1E71-4FB8-8E6C-EE2CC7430A0E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{101575A0-1E71-4FB8-8E6C-EE2CC7430A0E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{101575A0-1E71-4FB8-8E6C-EE2CC7430A0E}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{A3807EE9-E678-4EFD-9C67-7267A72358FB}.Debug|Any CPU.ActiveCfg = Debug
+		{A3807EE9-E678-4EFD-9C67-7267A72358FB}.Release|Any CPU.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
