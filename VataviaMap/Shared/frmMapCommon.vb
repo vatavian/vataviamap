@@ -1105,8 +1105,9 @@ Partial Class frmMap
         Dim lCurFile As Integer = 1
         For Each lFilename As String In aFilenames
             Me.Text = "Loading " & lCurFile & "/" & lNumFiles & " '" & IO.Path.GetFileNameWithoutExtension(lFilename) & "'"
-            Select Case IO.Path.GetExtension(lFilename)
+            Select Case IO.Path.GetExtension(lFilename).ToLower
                 Case ".cell" : OpenCell(lFilename)
+                Case ".jpg", ".jpeg" : OpenPhoto(lFilename)
                 Case Else : OpenGPX(lFilename)
             End Select
             lCurFile += 1
@@ -1125,6 +1126,20 @@ Partial Class frmMap
         Dim lLayer As New clsCellLayer(aFilename, Me)
         Layers.Add(lLayer)
         NeedRedraw()
+    End Sub
+
+    Public Sub OpenPhoto(ByVal aFilename As String)
+        Dim lExif As New clsExif(aFilename)
+        Dim lLatitude As Double = lExif.Latitude
+        If Double.IsNaN(lLatitude) Then Exit Sub
+        Dim lLongitude As Double = lExif.Longitude
+        If Double.IsNaN(lLongitude) Then Exit Sub
+        If pGPXPanTo Then
+            CenterLat = lLatitude
+            CenterLon = lLongitude
+            SanitizeCenterLatLon()
+            Redraw()
+        End If
     End Sub
 
     Private Sub OpenGPX(ByVal aFilename As String, Optional ByVal aInsertAt As Integer = -1)

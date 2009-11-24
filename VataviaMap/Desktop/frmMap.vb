@@ -324,9 +324,10 @@ Public Class frmMap
                 'SaveTiles(IO.Path.GetDirectoryName(.FileName) & "\" & IO.Path.GetFileNameWithoutExtension(.FileName) & "\")
                 pBitmapMutex.ReleaseMutex()
                 ''CreateGeoReferenceFile(LatitudeToMeters(pCenterLat - pLatHeight * 1.66), _
-                'CreateGeoReferenceFile(LatitudeToMeters(LatMax), _
-                '                       LongitudeToMeters(LonMin), _
-                '                       pZoom, ImageWorldFilename(.FileName))
+                CreateGeoReferenceFile(LatitudeToMeters(LatMax), _
+                                       LongitudeToMeters(LonMin), _
+                                       pZoom, ImageWorldFilename(.FileName))
+                IO.File.WriteAllText(IO.Path.ChangeExtension(.FileName, "prj"), g_TileProjection)
                 'IO.File.WriteAllText(IO.Path.ChangeExtension(.FileName, "prj"), "PROJCS[""unnamed"", GEOGCS[""unnamed ellipse"", DATUM[""unknown"", SPHEROID[""unnamed"",6378137,0]], PRIMEM[""Greenwich"",0], UNIT[""degree"",0.0174532925199433]], PROJECTION[""Mercator_2SP""], PARAMETER[""standard_parallel_1"",0], PARAMETER[""central_meridian"",0], PARAMETER[""false_easting"",0], PARAMETER[""false_northing"",0], UNIT[""Meter"",1], EXTENSION[""PROJ4"",""+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs""]]")
                 ''IO.File.WriteAllText(IO.Path.ChangeExtension(.FileName, "prj"), "PROJCS[""Mercator"",GEOGCS[""unnamed ellipse"",DATUM[""D_unknown"",SPHEROID[""Unknown"",6371000,0]],PRIMEM[""Greenwich"",0],UNIT[""Degree"",0.017453292519943295]],PROJECTION[""Mercator""],PARAMETER[""standard_parallel_1"",0],PARAMETER[""central_meridian"",0],PARAMETER[""scale_factor"",1],PARAMETER[""false_easting"",0],PARAMETER[""false_northing"",0],UNIT[""Meter"",1]]")
                 ''IO.File.WriteAllText(IO.Path.ChangeExtension(.FileName, "prj2"), "PROJCS[""Mercator Spheric"", GEOGCS[""WGS84basedSpheric_GCS"", DATUM[""WGS84basedSpheric_Datum"", SPHEROID[""WGS84based_Sphere"", 6378137, 0], TOWGS84[0, 0, 0, 0, 0, 0, 0]], PRIMEM[""Greenwich"", 0, AUTHORITY[""EPSG"", ""8901""]], UNIT[""degree"", 0.0174532925199433, AUTHORITY[""EPSG"", ""9102""]], AXIS[""E"", EAST], AXIS[""N"", NORTH]], PROJECTION[""Mercator""], PARAMETER[""False_Easting"", 0], PARAMETER[""False_Northing"", 0], PARAMETER[""Central_Meridian"", 0], PARAMETER[""Latitude_of_origin"", 0], UNIT[""metre"", 1, AUTHORITY[""EPSG"", ""9001""]], AXIS[""East"", EAST], AXIS[""North"", NORTH]]")

@@ -71,6 +71,7 @@
     <Compile Include="Desktop\frmWaypoints.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Shared\clsExif.vb" />
     <Compile Include="Shared\clsCell.vb" />
     <Compile Include="Shared\clsCellLayer.vb" />
     <Compile Include="Shared\clsCellLocationOpenCellID.vb" />
