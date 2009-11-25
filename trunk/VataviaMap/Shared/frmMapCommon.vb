@@ -1129,17 +1129,32 @@ Partial Class frmMap
     End Sub
 
     Public Sub OpenPhoto(ByVal aFilename As String)
-        Dim lExif As New clsExif(aFilename)
+#If Not Smartphone Then
+        Dim lExif As New ExifWorks(aFilename)
         Dim lLatitude As Double = lExif.Latitude
         If Double.IsNaN(lLatitude) Then Exit Sub
         Dim lLongitude As Double = lExif.Longitude
         If Double.IsNaN(lLongitude) Then Exit Sub
+
+        Dim lWaypoints As New Generic.List(Of clsGPXwaypoint)
+        Dim lWaypoint As New clsGPXwaypoint("photo", lLatitude, lLongitude)
+        lWaypoint.name = IO.Path.GetFileNameWithoutExtension(aFilename)
+        lWaypoint.url = aFilename
+        lWaypoints.Add(lWaypoint)
+
+        Dim lLayer As New clsLayerGPX(lWaypoints, Me)
+        lLayer.LabelField = "name"
+        Me.Layers.Add(lLayer)
+
         If pGPXPanTo Then
             CenterLat = lLatitude
             CenterLon = lLongitude
             SanitizeCenterLatLon()
             Redraw()
+        Else
+            NeedRedraw()
         End If
+#End If
     End Sub
 
     Private Sub OpenGPX(ByVal aFilename As String, Optional ByVal aInsertAt As Integer = -1)

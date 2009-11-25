@@ -60,7 +60,7 @@ Public Class clsGPX
             pXMLdoc.Load(aFilename)
 LoadedXML:
             For Each lChild As XmlNode In pXMLdoc.ChildNodes(1).ChildNodes
-                Select Case lChild.Name
+                Select Case lChild.Name.ToLower
                     Case "extensions"
                         SetExtensions(lChild)
                     Case "link"
