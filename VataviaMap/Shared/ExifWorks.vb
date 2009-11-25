@@ -3,23 +3,29 @@ Imports System
 Imports System.Text
 Imports System.Drawing
 Imports System.IO
-
-' Utility class for working with EXIF data in images. Provides abstraction
-' for most common data and generic utilities for work with all other.
-'
-' Copyright (c) Michal A. Valášek - Altair Communications, 2003-2005
-' Copmany: http://software.altaircom.net, E-mail: support@altaircom.net
-' Private: http://www.rider.cz, E-mail: rider@rider.cz
-' This is free software licensed under GNU Lesser General Public License
-'
-' [altair] 10.09.2003 Created
-' [altair] 12.06.2004 Added capability to write EXIF data
-' [altair] 11.07.2004 Added option to change encoding
-' [altair] 04.09.2005 Changed source of Width and Height properties from EXIF to image
-' [altair] 05.09.2005 Code clean-up and minor changes
-' [marco.ridoni@virgilio.it] 02-11-2006 C# translation
-'
-Public Class clsExif
+''' <summary>
+''' Utility class for working with EXIF data in images. Provides abstraction
+''' for most common data and generic utilities for work with all other. 
+''' </summary>
+''' <remarks>
+''' Copyright (c) Michal A. Valášek - Altair Communications, 2003-2005
+''' Copmany: http://software.altaircom.net, E-mail: support@altaircom.net
+''' Private: http://www.rider.cz, E-mail: rider@rider.cz
+''' This is free software licensed under GNU Lesser General Public License
+''' </remarks>
+''' <history>
+''' [altair] 10.09.2003 Created
+''' [altair] 12.06.2004 Added capability to write EXIF data
+''' [altair] 11.07.2004 Added option to change encoding
+''' [altair] 04.09.2005 Changed source of Width and Height properties from EXIF to image
+''' [altair] 05.09.2005 Code clean-up and minor changes
+''' [marco.ridoni@virgilio.it] 02-11-2006 C# translation
+''' [mark-vataviamap@vatavia.net] 2009-11-25: found code at http://www.codeproject.com/KB/vb/exif_reader.aspx
+'''                                           converted back to VB.Net
+'''                                           changed to use System.BitConverter as suggested by Fabian Tuender, www.fabita.nl
+'''                                           started to convert comments to standard format
+''' </history>
+Public Class ExifWorks
     Implements IDisposable
     Private _Stream As FileStream
     Private _Image As Bitmap
@@ -27,15 +33,14 @@ Public Class clsExif
 
 #Region "Type declarations"
 
-    '
-    ' Contains possible values of EXIF tag names (ID)
-    '
-    ' See GdiPlusImaging.h
-    '
-    ' [altair] 10.09.2003 Created
-    '
-
-    Public Enum TagNames
+    ''' <summary>
+    ''' Contains possible values of EXIF tag names (ID)
+    ''' </summary>
+    ''' <remarks>See GdiPlusImaging.h</remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
+    Public Enum TagNames As Integer
         ExifIFD = &H8769
         GpsIFD = &H8825
         NewSubfileType = &HFE
@@ -252,15 +257,13 @@ Public Class clsExif
         GpsDestDist = &H1A
     End Enum
 
-
-    '
-    ' Real position of 0th row and column of picture
-    '
-    '
-    '
-    ' [altair] 10.09.2003 Created
-    '
-
+    ''' <summary>
+    ''' Real position of 0th row and column of picture
+    ''' </summary>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public Enum Orientations
         TopLeft = 1
         TopRight = 2
@@ -272,15 +275,13 @@ Public Class clsExif
         LftBottom = 8
     End Enum
 
-
-    '
-    ' Exposure programs
-    '
-    '
-    '
-    ' [altair] 10.09.2003 Created
-    '
-
+    ''' <summary>
+    ''' Exposure programs
+    ''' </summary>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public Enum ExposurePrograms
         Manual = 1
         Normal = 2
@@ -292,15 +293,13 @@ Public Class clsExif
         Landscape = 8
     End Enum
 
-
-    '
-    ' Exposure metering modes
-    '
-    '
-    '
-    ' [altair] 10.09.2003 Created
-    '
-
+    ''' <summary>
+    ''' Exposure metering modes
+    ''' </summary>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public Enum ExposureMeteringModes
         Unknown = 0
         Average = 1
@@ -312,15 +311,13 @@ Public Class clsExif
         Other = 255
     End Enum
 
-
-    '
-    ' Flash activity modes
-    '
-    '
-    '
-    ' [altair] 10.09.2003 Created
-    '
-
+    ''' <summary>
+    ''' Flash activity modes
+    ''' </summary>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public Enum FlashModes
         NotFired = 0
         Fired = 1
@@ -328,15 +325,13 @@ Public Class clsExif
         FiredAndStrobeReturned = 7
     End Enum
 
-
-    '
-    ' Possible light sources (white balance)
-    '
-    '
-    '
-    ' [altair] 10.09.2003 Created
-    '
-
+    ''' <summary>
+    ''' Possible light sources (white balance)
+    ''' </summary>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public Enum LightSources
         Unknown = 0
         Daylight = 1
@@ -352,14 +347,13 @@ Public Class clsExif
         Other = 255
     End Enum
 
-
-    '
-    ' EXIF data types
-    '
-    '
-    '
-    ' [altair] 12.6.2004 Created
-    '
+    ''' <summary>
+    ''' EXIF data types
+    ''' </summary>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 12.6.2004 Created
+    ''' </history>
     Public Enum ExifDataTypes As Short
         UnsignedByte = 1
         AsciiString = 2
@@ -375,45 +369,40 @@ Public Class clsExif
         DoubleFloat = 12
     End Enum
 
-
-    '
-    ' Represents rational which is type of some Exif properties
-    '
-    '
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Represents rational which is type of some Exif properties
+    ''' </summary>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public Structure Rational
         Public Numerator As Int32
         Public Denominator As Int32
 
+        ''' <summary>
+        ''' Converts rational to string representation
+        ''' </summary>
+        ''' <param name="Delimiter">Optional, default "/". String to be used as delimiter of components.</param>
+        ''' <returns>String representation of the rational.</returns>
+        ''' <remarks></remarks>
+        ''' <history>
+        ''' [altair] 10.09.2003 Created
+        ''' </history>
 
-        '
-        ' Converts rational to string representation
-        '
-        ' Optional, default "/". String to be used as delimiter of components.
-        ' String representation of the rational.
-        '
-        '
-        ' [altair] 10.09.2003 Created
-        '
-
-        Public Overloads Overrides Function ToString() As String
-            Return ToString("/")
+        Shadows Function ToString(Optional ByVal Delimiter As String = "/") As String
+            Return Numerator & Delimiter & Denominator
         End Function
 
-        Public Overloads Function ToString(ByVal Delimiter As String) As String
-            Return (Numerator & "/") + Denominator
-        End Function
 
-        '
-        ' Converts rational to double precision real number
-        '
-        ' The rational as double precision real number.
-        '
-        '
-        ' [altair] 10.09.2003 Created
-        '
+        ''' <summary>
+        ''' Converts rational to double precision real number
+        ''' </summary>
+        ''' <returns>The rational as double precision real number.</returns>
+        ''' <remarks></remarks>
+        ''' <history>
+        ''' [altair] 10.09.2003 Created
+        ''' </history>
 
         Public Function ToDouble() As Double
             Return CDbl(Numerator) / Denominator
@@ -422,27 +411,29 @@ Public Class clsExif
 
 #End Region
 
-    '
-    ' Initializes new instance of this class.
-    '
-    ' Bitmap to read exif information from
-    '
-    ' [altair] 10.09.2003 Created
-    '
-    Public Sub New(ByVal Bitmap As Bitmap)
-        If Bitmap Is Nothing Then
+    ''' <summary>
+    ''' Initializes new instance of this class from a Bitmap
+    ''' </summary>
+    ''' <param name="SourceBitmap">Bitmap to read exif information from</param>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
+    Public Sub New(ByRef SourceBitmap As Bitmap)
+        If SourceBitmap Is Nothing Then
             Throw New ArgumentNullException("Bitmap")
         End If
-        _Image = Bitmap
+        _Image = SourceBitmap
     End Sub
 
-    '
-    ' Initializes new instance of this class.
-    '
-    ' Name of file to be loaded
-    '
-    ' [altair] 13.06.2004 Created
-    '
+    ''' <summary>
+    ''' Initializes new instance of this class from a file name
+    ''' </summary>
+    ''' <param name="FileName">Name of file to be loaded</param>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 13.06.2004 Created
+    ''' </history>
     Public Sub New(ByVal FileName As String)
         If FileName Is Nothing Then
             Throw New ArgumentNullException("FileName")
@@ -454,15 +445,15 @@ Public Class clsExif
         _Image = DirectCast(Image.FromStream(_Stream, True, False), Bitmap)
     End Sub
 
-    '
-    ' Get or set encoding used for string metadata
-    '
-    ' Encoding used for string metadata
-    ' Default encoding is UTF-8
-    '
-    ' [altair] 11.07.2004 Created
-    ' [altair] 05.09.2005 Changed from shared to instance member
-    '
+    ''' <summary>
+    ''' Get or set encoding used for string metadata
+    ''' </summary>
+    ''' <value>Encoding used for string metadata</value>
+    ''' <remarks>Default encoding is UTF-8</remarks>
+    ''' <history>
+    ''' [altair] 11.07.2004 Created
+    ''' [altair] 05.09.2005 Changed from shared to instance member
+    ''' </history>
     Public Property Encoding() As Encoding
         Get
             Return _Encoding
@@ -475,21 +466,23 @@ Public Class clsExif
         End Set
     End Property
 
-    '
-    ' Returns copy of bitmap this instance is working on
-    '
-    ' [altair] 13.06.2004 Created
-    '
+    ''' <summary>
+    ''' Returns copy of bitmap this instance is working on
+    ''' </summary>
+    ''' <history>
+    ''' [altair] 13.06.2004 Created
+    ''' </history>
     Public Function GetBitmap() As Bitmap
         Return DirectCast(_Image.Clone(), Bitmap)
     End Function
 
-    '
-    ' Returns all available data in formatted string form
-    '
-    ' [altair] 10.09.2003 Created
-    '
-    Public Overloads Overrides Function ToString() As String
+    ''' <summary>
+    ''' Returns all available data in formatted string form
+    ''' </summary>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
+    Public Overrides Function ToString() As String
         Dim SB As New StringBuilder()
 
         SB.Append("Image:")
@@ -508,7 +501,7 @@ Public Class clsExif
         SB.Append(vbLf & vbTab & "Original: " & DateTimeOriginal.ToString())
         SB.Append(vbLf & vbTab & "Digitized: " & DateTimeDigitized.ToString())
         SB.Append(vbLf & "Shooting conditions:")
-        SB.Append(vbLf & vbTab & "Exposure time: " & ExposureTime.ToString("N4") & " s")
+        SB.Append(vbLf & vbTab & "Exposure time: " & ExposureTimeRational.ToString() & " s")
         SB.Append(vbLf & vbTab & "Exposure program: " & [Enum].GetName(GetType(ExposurePrograms), ExposureProgram))
         SB.Append(vbLf & vbTab & "Exposure mode: " & [Enum].GetName(GetType(ExposureMeteringModes), ExposureMeteringMode))
         SB.Append(vbLf & vbTab & "Aperture: F" & Aperture.ToString("N2"))
@@ -517,51 +510,64 @@ Public Class clsExif
         SB.Append(vbLf & vbTab & "Focal length: " & FocalLength)
         SB.Append(vbLf & vbTab & "Flash: " & [Enum].GetName(GetType(FlashModes), FlashMode))
         SB.Append(vbLf & vbTab & "Light source (WB): " & [Enum].GetName(GetType(LightSources), LightSource))
-        'SB.Replace("\n", vbCrLf);
-        'SB.Replace("\t", vbTab);
+        SB.Append(vbLf & "Location:")
+        SB.Append(vbLf & vbTab & "Latitude: " & Latitude)
+        SB.Append(vbLf & vbTab & "Longitude: " & Longitude)
         Return SB.ToString()
     End Function
 
 #Region "Nicely formatted well-known properties"
 
-    '
-    ' Brand of equipment (EXIF EquipMake)
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Brand of equipment (EXIF EquipMake)
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public ReadOnly Property EquipmentMaker() As String
         Get
             Return GetPropertyString(TagNames.EquipMake)
         End Get
     End Property
 
-    '
-    ' Model of equipment (EXIF EquipModel)
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Model of equipment (EXIF EquipModel)
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public ReadOnly Property EquipmentModel() As String
         Get
             Return GetPropertyString(TagNames.EquipModel)
         End Get
     End Property
 
-    '
-    ' Software used for processing (EXIF Software)
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Software used for processing (EXIF Software)
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public ReadOnly Property Software() As String
         Get
             Return GetPropertyString(TagNames.SoftwareUsed)
         End Get
     End Property
 
-    '
-    ' Orientation of image (position of row 0, column 0) (EXIF Orientation)
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Orientation of image (position of row 0, column 0) (EXIF Orientation)
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public ReadOnly Property Orientation() As Orientations
         Get
             Dim X As Int32 = GetPropertyInt16(TagNames.Orientation)
@@ -569,16 +575,19 @@ Public Class clsExif
             If Not [Enum].IsDefined(GetType(Orientations), X) Then
                 Return Orientations.TopLeft
             Else
-                Return DirectCast([Enum].Parse(GetType(Orientations), [Enum].GetName(GetType(Orientations), X)), Orientations)
+                Return CType([Enum].Parse(GetType(Orientations), [Enum].GetName(GetType(Orientations), X)), Orientations)
             End If
         End Get
     End Property
 
-    '
-    ' Time when image was last modified (EXIF DateTime).
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Time when image was last modified (EXIF DateTime).
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public Property DateTimeLastModified() As DateTime
         Get
             Try
@@ -589,17 +598,20 @@ Public Class clsExif
         End Get
         Set(ByVal value As DateTime)
             Try
-                SetPropertyString(CInt(TagNames.DateTime), value.ToString("yyyy\:MM\:dd HH\:mm\:ss"))
+                SetPropertyString(TagNames.DateTime, value.ToString("yyyy\:MM\:dd HH\:mm\:ss"))
             Catch
             End Try
         End Set
     End Property
 
-    '
-    ' Time when image was taken (EXIF DateTimeOriginal).
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Time when image was taken (EXIF DateTimeOriginal).
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public Property DateTimeOriginal() As DateTime
         Get
             Try
@@ -610,17 +622,20 @@ Public Class clsExif
         End Get
         Set(ByVal value As DateTime)
             Try
-                SetPropertyString(CInt(TagNames.ExifDTOrig), value.ToString("yyyy\:MM\:dd HH\:mm\:ss"))
+                SetPropertyString(TagNames.ExifDTOrig, value.ToString("yyyy\:MM\:dd HH\:mm\:ss"))
             Catch
             End Try
         End Set
     End Property
 
-    '
-    ' Time when image was digitized (EXIF DateTimeDigitized).
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Time when image was digitized (EXIF DateTimeDigitized).
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public Property DateTimeDigitized() As DateTime
         Get
             Try
@@ -631,41 +646,50 @@ Public Class clsExif
         End Get
         Set(ByVal value As DateTime)
             Try
-                SetPropertyString(CInt(TagNames.ExifDTDigitized), value.ToString("yyyy\:MM\:dd HH\:mm\:ss"))
+                SetPropertyString(TagNames.ExifDTDigitized, value.ToString("yyyy\:MM\:dd HH\:mm\:ss"))
             Catch
             End Try
         End Set
     End Property
 
-    '
-    ' Image width
-    '
-    ' [altair] 10.09.2003 Created
-    ' [altair] 04.09.2005 Changed output to Int32, load from image instead of EXIF
-    '
+    ''' <summary>
+    ''' Image width
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' [altair] 04.09.2005 Changed output to Int32, load from image instead of EXIF
+    ''' </history>
     Public ReadOnly Property Width() As Int32
         Get
             Return _Image.Width
         End Get
     End Property
 
-    '
-    ' Image height
-    '
-    ' [altair] 10.09.2003 Created
-    ' [altair] 04.09.2005 Changed output to Int32, load from image instead of EXIF
-    '
+    ''' <summary>
+    ''' Image height
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' [altair] 04.09.2005 Changed output to Int32, load from image instead of EXIF
+    ''' </history>
     Public ReadOnly Property Height() As Int32
         Get
             Return _Image.Height
         End Get
     End Property
 
-    '
-    ' X resolution in dpi (EXIF XResolution/ResolutionUnit)
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' X resolution in dpi (EXIF XResolution/ResolutionUnit)
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public ReadOnly Property ResolutionX() As Double
         Get
             Dim R As Double = GetPropertyRational(TagNames.XResolution).ToDouble()
@@ -680,11 +704,14 @@ Public Class clsExif
         End Get
     End Property
 
-    '
-    ' Y resolution in dpi (EXIF YResolution/ResolutionUnit)
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Y resolution in dpi (EXIF YResolution/ResolutionUnit)
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public ReadOnly Property ResolutionY() As Double
         Get
             Dim R As Double = GetPropertyRational(TagNames.YResolution).ToDouble()
@@ -699,103 +726,122 @@ Public Class clsExif
         End Get
     End Property
 
-    '
-    ' Image title (EXIF ImageTitle)
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Image title (EXIF ImageTitle)
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public Property Title() As String
         Get
             Return GetPropertyString(TagNames.ImageTitle)
         End Get
         Set(ByVal value As String)
             Try
-                SetPropertyString(CInt(TagNames.ImageTitle), value)
+                SetPropertyString(TagNames.ImageTitle, value)
             Catch
             End Try
         End Set
     End Property
 
-    '
-    ' User comment (EXIF UserComment)
-    '
-    ' [altair] 13.06.2004 Created
-    '
+    ''' <summary>
+    ''' User comment (EXIF UserComment)
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 13.06.2004 Created
+    ''' </history>
     Public Property UserComment() As String
         Get
             Return GetPropertyString(TagNames.ExifUserComment)
         End Get
         Set(ByVal value As String)
             Try
-                SetPropertyString(CInt(TagNames.ExifUserComment), value)
+                SetPropertyString(TagNames.ExifUserComment, value)
             Catch
             End Try
         End Set
     End Property
 
-    ' Artist name (EXIF Artist)
-    '
-    ' [altair] 13.06.2004 Created
-    '
+    ''' <summary>
+    ''' Artist name (EXIF Artist)
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 13.06.2004 Created
+    ''' </history>
     Public Property Artist() As String
         Get
             Return GetPropertyString(TagNames.Artist)
         End Get
         Set(ByVal value As String)
             Try
-                SetPropertyString(CInt(TagNames.Artist), value)
+                SetPropertyString(TagNames.Artist, value)
             Catch
             End Try
         End Set
     End Property
 
-    '
-    ' Image description (EXIF ImageDescription)
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Image description (EXIF ImageDescription)
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public Property Description() As String
         Get
             Return GetPropertyString(TagNames.ImageDescription)
         End Get
         Set(ByVal value As String)
             Try
-                SetPropertyString(CInt(TagNames.ImageDescription), value)
+                SetPropertyString(TagNames.ImageDescription, value)
             Catch
             End Try
         End Set
     End Property
 
-    '
-    ' Image copyright (EXIF Copyright)
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Image copyright (EXIF Copyright)
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public Property Copyright() As String
         Get
             Return GetPropertyString(TagNames.Copyright)
         End Get
         Set(ByVal value As String)
             Try
-                SetPropertyString(CInt(TagNames.Copyright), value)
+                SetPropertyString(TagNames.Copyright, value)
             Catch
             End Try
         End Set
     End Property
 
-    '
-    ' Exposure time in seconds (EXIF ExifExposureTime/ExifShutterSpeed)
-    '
-    ' [altair] 10.09.2003 Created
-    '
-    Public ReadOnly Property ExposureTimeAbs() As Double
+    ''' <summary>
+    ''' Exposure time in seconds (EXIF ExifExposureTime/ExifShutterSpeed)
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
+    Public ReadOnly Property ExposureTimeDouble() As Double
         Get
             If IsPropertyDefined(TagNames.ExifExposureTime) Then
                 ' -- Exposure time is explicitly specified
                 Return GetPropertyRational(TagNames.ExifExposureTime).ToDouble()
             ElseIf IsPropertyDefined(TagNames.ExifShutterSpeed) Then
-                ''-- Compute exposure time from shutter spee
-                Return (1 / Math.Pow(2, GetPropertyRational(TagNames.ExifShutterSpeed).ToDouble()))
+                '-- Compute exposure time from shutter speed
+                Return 1 / (2 ^ GetPropertyRational(TagNames.ExifShutterSpeed).ToDouble)
             Else
                 ' -- Can't figure out
                 Return 0
@@ -803,7 +849,7 @@ Public Class clsExif
         End Get
     End Property
 
-    Public ReadOnly Property ExposureTime() As Rational
+    Public ReadOnly Property ExposureTimeRational() As Rational
         Get
             If IsPropertyDefined(TagNames.ExifExposureTime) Then
                 ' -- Exposure time is explicitly specified
@@ -814,126 +860,142 @@ Public Class clsExif
         End Get
     End Property
 
-    '
-    ' Aperture value as F number (EXIF ExifFNumber/ExifApertureValue)
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Aperture value as F number (EXIF ExifFNumber/ExifApertureValue)
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public ReadOnly Property Aperture() As Double
         Get
             If IsPropertyDefined(TagNames.ExifFNumber) Then
                 Return GetPropertyRational(TagNames.ExifFNumber).ToDouble()
             ElseIf IsPropertyDefined(TagNames.ExifAperture) Then
-                Return Math.Pow(System.Math.Sqrt(2), GetPropertyRational(TagNames.ExifAperture).ToDouble())
+                Return System.Math.Sqrt(2) ^ GetPropertyRational(TagNames.ExifAperture).ToDouble()
             Else
                 Return 0
             End If
         End Get
     End Property
 
-    '
-    ' Exposure program used (EXIF ExifExposureProg)
-    '
-    ' If not specified, returns Normal (2)
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Exposure program used (EXIF ExifExposureProg)
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks>If not specified, returns Normal (2)</remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public ReadOnly Property ExposureProgram() As ExposurePrograms
         Get
             Dim X As Int32 = GetPropertyInt16(TagNames.ExifExposureProg)
 
             If [Enum].IsDefined(GetType(ExposurePrograms), X) Then
-                Return DirectCast([Enum].Parse(GetType(ExposurePrograms), [Enum].GetName(GetType(ExposurePrograms), X)), ExposurePrograms)
+                Return CType([Enum].Parse(GetType(ExposurePrograms), [Enum].GetName(GetType(ExposurePrograms), X)), ExposurePrograms)
             Else
                 Return ExposurePrograms.Normal
             End If
         End Get
     End Property
 
-    '
-    ' ISO sensitivity
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' ISO sensitivity
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public ReadOnly Property ISO() As Int16
         Get
             Return GetPropertyInt16(TagNames.ExifISOSpeed)
         End Get
     End Property
 
-    '
-    ' Subject distance in meters (EXIF SubjectDistance)
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Subject distance in meters (EXIF SubjectDistance)
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public ReadOnly Property SubjectDistance() As Double
         Get
             Return GetPropertyRational(TagNames.ExifSubjectDist).ToDouble()
         End Get
     End Property
 
-    '
-    ' Exposure method metering mode used (EXIF MeteringMode)
-    '
-    ' If not specified, returns Unknown (0)
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Exposure method metering mode used (EXIF MeteringMode)
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks>If not specified, returns Unknown (0)</remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public ReadOnly Property ExposureMeteringMode() As ExposureMeteringModes
         Get
             Dim X As Int32 = GetPropertyInt16(TagNames.ExifMeteringMode)
 
             If [Enum].IsDefined(GetType(ExposureMeteringModes), X) Then
-                Return DirectCast([Enum].Parse(GetType(ExposureMeteringModes), [Enum].GetName(GetType(ExposureMeteringModes), X)), ExposureMeteringModes)
+                Return CType([Enum].Parse(GetType(ExposureMeteringModes), [Enum].GetName(GetType(ExposureMeteringModes), X)), ExposureMeteringModes)
             Else
                 Return ExposureMeteringModes.Unknown
             End If
         End Get
     End Property
 
-    '
-    ' Focal length of lenses in mm (EXIF FocalLength)
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Focal length of lenses in mm (EXIF FocalLength)
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public ReadOnly Property FocalLength() As Double
         Get
             Return GetPropertyRational(TagNames.ExifFocalLength).ToDouble()
         End Get
     End Property
 
-    '
-    ' Flash mode (EXIF Flash)
-    '
-    ' If not present, value NotFired (0) is returned
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Flash mode (EXIF Flash)
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks>If not present, value NotFired (0) is returned</remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public ReadOnly Property FlashMode() As FlashModes
         Get
             Dim X As Int32 = GetPropertyInt16(TagNames.ExifFlash)
 
             If [Enum].IsDefined(GetType(FlashModes), X) Then
-                Return DirectCast([Enum].Parse(GetType(FlashModes), [Enum].GetName(GetType(FlashModes), X)), FlashModes)
+                Return CType([Enum].Parse(GetType(FlashModes), [Enum].GetName(GetType(FlashModes), X)), FlashModes)
             Else
                 Return FlashModes.NotFired
             End If
         End Get
     End Property
 
-    '
-    ' Light source / white balance (EXIF LightSource)
-    '
-    ' If not specified, returns Unknown (0).
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Light source / white balance (EXIF LightSource)
+    ''' </summary>
+    ''' <value></value>
+    ''' <remarks>If not specified, returns Unknown (0).</remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public ReadOnly Property LightSource() As LightSources
         Get
             Dim X As Int32 = GetPropertyInt16(TagNames.ExifLightSource)
 
             If [Enum].IsDefined(GetType(LightSources), X) Then
-                Return DirectCast([Enum].Parse(GetType(LightSources), [Enum].GetName(GetType(LightSources), X)), LightSources)
+                Return CType([Enum].Parse(GetType(LightSources), [Enum].GetName(GetType(LightSources), X)), LightSources)
             Else
                 Return LightSources.Unknown
             End If
@@ -944,115 +1006,101 @@ Public Class clsExif
 
 #Region "Support methods for working with EXIF properties"
 
-    '
-    ' Checks if current image has specified certain property
-    '
-    ' True if image has specified property, False otherwise.
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Checks if current image has specified certain property
+    ''' </summary>
+    ''' <param name="PID">Property ID</param>
+    ''' <returns>True if image has specified property, False otherwise.</returns>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public Function IsPropertyDefined(ByVal PID As TagNames) As Boolean
         Return (Array.IndexOf(_Image.PropertyIdList, CInt(PID)) > -1)
     End Function
 
-    '
-    ' Gets specified Int32 property
-    '
-    ' Property ID
-    ' Optional, default 0. Default value returned if property is not present.
-    ' Value of property or DefaultValue if property is not present.
-    '
-    ' [altair] 10.09.2003 Created
-    '
-    Public Function GetPropertyInt32(ByVal PID As TagNames) As Int32
-        Return GetPropertyInt32(PID, 0)
-    End Function
-
-    Public Function GetPropertyInt32(ByVal PID As TagNames, ByVal DefaultValue As Int32) As Int32
+    ''' <summary>
+    ''' Gets specified Int32 property
+    ''' </summary>
+    ''' <param name="PID">Property ID</param>
+    ''' <param name="DefaultValue">Optional, default 0. Default value returned if property is not present.</param>
+    ''' <remarks>Value of property or DefaultValue if property is not present.</remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
+    Public Function GetPropertyInt32(ByVal PID As TagNames, Optional ByVal DefaultValue As Int32 = 0) As Int32
         If IsPropertyDefined(PID) Then
-            Return GetInt32(_Image.GetPropertyItem(CInt(PID)).Value)
+            Return GetInt32(_Image.GetPropertyItem(PID).Value)
         Else
             Return DefaultValue
         End If
     End Function
 
-    '
-    ' Gets specified Int16 property
-    '
-    ' Property ID
-    ' Optional, default 0. Default value returned if property is not present.
-    ' Value of property or DefaultValue if property is not present.
-    '
-    ' [altair] 10.09.2003 Created
-    '
-    Public Function GetPropertyInt16(ByVal PID As TagNames) As Int16
-        Return GetPropertyInt16(PID, 0)
-    End Function
-
-    Public Function GetPropertyInt16(ByVal PID As TagNames, ByVal DefaultValue As Int16) As Int16
+    ''' <summary>
+    ''' Gets specified Int16 property
+    ''' </summary>
+    ''' <param name="PID">Property ID</param>
+    ''' <param name="DefaultValue">Optional, default 0. Default value returned if property is not present.</param>
+    ''' <remarks>Value of property or DefaultValue if property is not present.</remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
+    Public Function GetPropertyInt16(ByVal PID As TagNames, Optional ByVal DefaultValue As Int16 = 0) As Int16
         If IsPropertyDefined(PID) Then
-            Return GetInt16(_Image.GetPropertyItem(CInt(PID)).Value)
+            Return GetInt16(_Image.GetPropertyItem(PID).Value)
         Else
             Return DefaultValue
         End If
     End Function
 
-    '
-    ' Gets specified string property
-    '
-    ' Property ID
-    ' Optional, default String.Empty. Default value returned if property is not present.
-    '
-    ' Value of property or DefaultValue if property is not present.
-    '
-    ' [altair] 10.09.2003 Created
-    '
-    Public Function GetPropertyString(ByVal PID As TagNames) As String
-        Return GetPropertyString(PID, "")
-    End Function
-
-    Public Function GetPropertyString(ByVal PID As TagNames, ByVal DefaultValue As String) As String
+    ''' <summary>
+    ''' Gets specified string property
+    ''' </summary>
+    ''' <param name="PID">Property ID</param>
+    ''' <param name="DefaultValue">Optional, default String.Empty. Default value returned if property is not present.</param>
+    ''' <returns></returns>
+    ''' <remarks>Value of property or DefaultValue if property is not present.</remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
+    Public Function GetPropertyString(ByVal PID As TagNames, Optional ByVal DefaultValue As String = "") As String
         If IsPropertyDefined(PID) Then
-            Return GetString(_Image.GetPropertyItem(CInt(PID)).Value)
+            Return GetString(_Image.GetPropertyItem(PID).Value)
         Else
             Return DefaultValue
         End If
     End Function
 
-    '
-    ' Gets specified property in raw form
-    '
-    ' Property ID
-    ' Optional, default Nothing. Default value returned if property is not present.
-    '
-    ' Is recommended to use typed methods (like etc.) instead, when possible.
-    '
-    ' [altair] 05.09.2005 Created
-    '
-    Public Function GetProperty(ByVal PID As TagNames, ByVal DefaultValue As Byte()) As Byte()
+    ''' <summary>
+    ''' Gets specified property in raw form
+    ''' </summary>
+    ''' <param name="PID">Property ID</param>
+    ''' <param name="DefaultValue">Optional, default Nothing. Default value returned if property is not present.</param>
+    ''' <returns></returns>
+    ''' <remarks>Is recommended to use typed methods (like <see cref="GetPropertyString" /> etc.) instead, when possible.</remarks>
+    ''' <history>
+    ''' [altair] 05.09.2005 Created
+    ''' </history>
+    Public Function GetProperty(ByVal PID As TagNames, Optional ByVal DefaultValue As Byte() = Nothing) As Byte()
         If IsPropertyDefined(PID) Then
-            Return _Image.GetPropertyItem(CInt(PID)).Value
+            Return _Image.GetPropertyItem(PID).Value
         Else
             Return DefaultValue
         End If
     End Function
 
-    Public Function GetProperty(ByVal PID As TagNames) As Byte()
-        Return GetProperty(PID, Nothing)
-    End Function
-
-    '
-    ' Gets specified rational property
-    '
-    ' Property ID
-    '
-    ' Value of property or 0/1 if not present.
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Gets specified rational property
+    ''' </summary>
+    ''' <param name="PID">Property ID</param>
+    ''' <returns></returns>
+    ''' <remarks>Value of property or 0/1 if not present.</remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public Function GetPropertyRational(ByVal PID As TagNames) As Rational
         If IsPropertyDefined(PID) Then
-            Return GetRational(_Image.GetPropertyItem(CInt(PID)).Value)
+            Return GetRational(_Image.GetPropertyItem(PID).Value)
         Else
             Dim R As Rational
             R.Numerator = 0
@@ -1061,110 +1109,118 @@ Public Class clsExif
         End If
     End Function
 
-    '
-    ' Sets specified string property
-    '
-    ' Property ID
-    ' Value to be set
-    '
-    ' [altair] 12.6.2004 Created
-    '
+    ''' <summary>
+    ''' Sets specified string property
+    ''' </summary>
+    ''' <param name="PID">Property ID</param>
+    ''' <param name="Value">Value to be set</param>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 12.6.2004 Created
+    ''' </history>
     Public Sub SetPropertyString(ByVal PID As Int32, ByVal Value As String)
-        Dim Data As Byte() = _Encoding.GetBytes(Value + ControlChars.NullChar)
+        Dim Data As Byte() = _Encoding.GetBytes(Value & ControlChars.NullChar)
         SetProperty(PID, Data, ExifDataTypes.AsciiString)
     End Sub
 
-    '
-    ' Sets specified Int16 property
-    '
-    ' Property ID
-    ' Value to be set
-    '
-    ' [altair] 12.6.2004 Created
-    '
+    ''' <summary>
+    ''' Sets specified Int16 property
+    ''' </summary>
+    ''' <param name="PID">Property ID</param>
+    ''' <param name="Value">Value to be set</param>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 12.6.2004 Created
+    ''' </history>
     Public Sub SetPropertyInt16(ByVal PID As Int32, ByVal Value As Int16)
-        Dim Data As Byte() = New Byte(1) {}
-        Data(0) = CByte((Value And &HFF))
-        Data(1) = CByte(((Value And &HFF00) >> 8))
+        Dim Data(1) As Byte
+        Data(0) = CType(Value And &HFF, Byte)
+        Data(1) = CType((Value And &HFF00) >> 8, Byte)
         SetProperty(PID, Data, ExifDataTypes.SignedShort)
     End Sub
 
-    '
-    ' Sets specified Int32 property
-    '
-    ' Property ID
-    ' Value to be set
-    '
-    ' [altair] 13.06.2004 Created
-    '
+    ''' <summary>
+    ''' Set specified Int32 property
+    ''' </summary>
+    ''' <param name="PID">Property ID</param>
+    ''' <param name="Value">Value to be set</param>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 13.06.2004 Created
+    ''' </history>
     Public Sub SetPropertyInt32(ByVal PID As Int32, ByVal Value As Int32)
-        Dim Data As Byte() = New Byte(3) {}
-        For I As Integer = 0 To 3
-            Data(I) = CByte((Value And &HFF))
+        Dim Data(3) As Byte
+        For I As Int32 = 0 To 3
+            Data(I) = CType(Value And &HFF, Byte)
             Value >>= 8
         Next
         SetProperty(PID, Data, ExifDataTypes.SignedLong)
     End Sub
 
-    '
-    ' Sets specified property in raw form
-    '
-    ' Property ID
-    ' Raw data
-    ' EXIF data type
-    ' Is recommended to use typed methods (like etc.) instead, when possible.
-    '
-    ' [altair] 12.6.2004 Created
-    '
+    ''' <summary>
+    ''' Set specified propery in raw form
+    ''' </summary>
+    ''' <param name="PID">Property ID</param>
+    ''' <param name="Data">Raw data</param>
+    ''' <param name="Type">EXIF data type</param>
+    ''' <remarks>Is recommended to use typed methods (like <see cref="SetPropertyString" /> etc.) instead, when possible.</remarks>
+    ''' <history>
+    ''' [altair] 12.6.2004 Created
+    ''' </history>
     Public Sub SetProperty(ByVal PID As Int32, ByVal Data As Byte(), ByVal Type As ExifDataTypes)
         Dim P As System.Drawing.Imaging.PropertyItem = _Image.PropertyItems(0)
         P.Id = PID
         P.Value = Data
-        P.Type = DirectCast(Type, Int16)
+        P.Type = Type
         P.Len = Data.Length
         _Image.SetPropertyItem(P)
     End Sub
 
-    '
-    ' Reads Int32 from EXIF bytearray.
-    '
-    ' EXIF bytearray to process
-    '
-    ' [altair] 10.09.2003 Created
-    ' [altair] 05.09.2005 Changed from public shared to private instance method
-    '
+    ''' <summary>
+    ''' Read Int32 from EXIF bytearray.
+    ''' </summary>
+    ''' <param name="B">EXIF bytearray to process</param>
+    ''' <returns></returns>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' [altair] 05.09.2005 Changed from public shared to private instance method
+    ''' </history>
     Private Shared Function GetInt32(ByVal B As Byte()) As Int32
         If B.Length < 4 Then
             Throw New ArgumentException("Data too short (4 bytes expected)", "B")
         End If
-
-        Return CInt(B(3)) << 24 Or CInt(B(2)) << 16 Or CInt(B(1)) << 8 Or CInt(B(0))
+        Return System.BitConverter.ToInt32(B, 0)
     End Function
 
-    '
-    ' Reads Int16 from EXIF bytearray.
-    '
-    ' EXIF bytearray to process
-    '
-    ' [altair] 10.09.2003 Created
-    ' [altair] 05.09.2005 Changed from public shared to private instance method
-    '
+    ''' <summary>
+    ''' Read Int16 from EXIF bytearray.
+    ''' </summary>
+    ''' <param name="B">EXIF bytearray to process</param>
+    ''' <returns></returns>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' [altair] 05.09.2005 Changed from public shared to private instance method
+    ''' </history>
     Private Shared Function GetInt16(ByVal B As Byte()) As Int16
         If B.Length < 2 Then
             Throw New ArgumentException("Data too short (2 bytes expected)", "B")
         End If
 
-        Return CShort((B(1) << 8 Or B(0)))
+        Return System.BitConverter.ToInt16(B, 0)
     End Function
 
-    '
-    ' Reads string from EXIF bytearray.
-    '
-    ' EXIF bytearray to process
-    '
-    ' [altair] 10.09.2003 Created
-    ' [altair] 05.09.2005 Changed from public shared to private instance method
-    '
+    ''' <summary>
+    ''' Read string from EXIF bytearray.
+    ''' </summary>
+    ''' <param name="B">EXIF bytearray to process</param>
+    ''' <returns></returns>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' [altair] 05.09.2005 Changed from public shared to private instance method
+    ''' </history>
     Private Function GetString(ByVal B As Byte()) As String
         Dim R As String = _Encoding.GetString(B)
         If R.EndsWith(vbNullChar) Then
@@ -1173,38 +1229,36 @@ Public Class clsExif
         Return R
     End Function
 
-    '
-    ' Reads rational from EXIF bytearray.
-    '
-    ' EXIF bytearray to process
-    '
-    ' [altair] 10.09.2003 Created
-    ' [altair] 05.09.2005 Changed from public shared to private instance method
-    '
+    ''' <summary>
+    ''' Read rational from EXIF bytearray.
+    ''' </summary>
+    ''' <param name="B">EXIF bytearray to process</param>
+    ''' <returns></returns>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' [altair] 05.09.2005 Changed from public shared to private instance method
+    ''' </history>
     Private Shared Function GetRational(ByVal B As Byte()) As Rational
-        Dim R As New Rational()
-        Dim N As Byte() = New Byte(3) {}
-        Dim D As Byte() = New Byte(3) {}
-        Array.Copy(B, 0, N, 0, 4)
-        Array.Copy(B, 4, D, 0, 4)
-        R.Denominator = GetInt32(D)
-        R.Numerator = GetInt32(N)
+        Dim R As New Rational
+        R.Denominator = System.BitConverter.ToInt32(B, 4)
+        R.Numerator = System.BitConverter.ToInt32(B, 0)
         Return R
     End Function
 
-    '
-    ' Gets specified rational property
-    '
-    ' Property ID
-    '
-    ' Value of property or 0/1 if not present.
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Get specified rational property
+    ''' </summary>
+    ''' <param name="PID">Property ID</param>
+    ''' <param name="rank"></param>
+    ''' <returns>Value of property or 0/1 if not present</returns>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public Function GetPropertyRational(ByVal PID As TagNames, ByVal rank As Integer) As Rational
         If IsPropertyDefined(PID) Then
             Dim N As Byte() = New Byte(7) {}
-            Array.Copy(_Image.GetPropertyItem(CInt(PID)).Value, rank * 8, N, 0, 8)
+            Array.Copy(_Image.GetPropertyItem(PID).Value, rank * 8, N, 0, 8)
             Return GetRational(N)
         Else
             Dim R As New Rational()
@@ -1212,15 +1266,27 @@ Public Class clsExif
         End If
     End Function
 
-    Private Shared Function DMStoDD(ByVal vDeg As Double, ByVal vMin As Double, ByVal vSec As Double) As Double
-        Dim lFraction As Double = (vMin / 60) + (vSec / 3600)
-        If vDeg > 0 Then
-            Return vDeg + lFraction
+    ''' <summary>
+    ''' Degrees, Minutes, Seconds to Decimal Degrees
+    ''' </summary>
+    ''' <param name="Deg">Degrees</param>
+    ''' <param name="Min">Minutes</param>
+    ''' <param name="Sec">Seconds</param>
+    ''' <returns>Decimal Degrees</returns>
+    ''' <remarks>in EXIF, Deg is always positive, but added case for negative degrees in case this routine is reused</remarks>
+    Private Shared Function DMStoDD(ByVal Deg As Double, ByVal Min As Double, ByVal Sec As Double) As Double
+        Dim lFraction As Double = (Min / 60) + (Sec / 3600)
+        If Deg > 0 Then
+            Return Deg + lFraction
         Else
-            Return vDeg - lFraction
+            Return Deg - lFraction
         End If
     End Function
 
+    ''' <summary>
+    ''' GPS Latitude
+    ''' </summary>
+    ''' <returns>Decimal degrees of latitude</returns>
     Public ReadOnly Property Latitude() As Double
         Get
             If IsPropertyDefined(TagNames.GpsLatitude) Then
@@ -1239,6 +1305,10 @@ Public Class clsExif
         End Get
     End Property
 
+    ''' <summary>
+    ''' GPS Longitude
+    ''' </summary>
+    ''' <returns>Decimal degrees of longitude</returns>
     Public ReadOnly Property Longitude() As Double
         Get
             If IsPropertyDefined(TagNames.GpsLongitude) Then
@@ -1261,14 +1331,16 @@ Public Class clsExif
 
 #Region " IDisposable implementation "
 
-    '
-    ' Disposes unmanaged resources of this class
-    '
-    ' [altair] 10.09.2003 Created
-    '
+    ''' <summary>
+    ''' Disposes unmanaged resources of this class
+    ''' </summary>
+    ''' <remarks></remarks>
+    ''' <history>
+    ''' [altair] 10.09.2003 Created
+    ''' </history>
     Public Sub Dispose() Implements IDisposable.Dispose
-        _Image.Dispose()
-        _Stream.Dispose()
+        if _Image IsNot Nothing Then _Image.Dispose()
+        if _Stream IsNot Nothing Then _Stream.Dispose()
     End Sub
 
 #End Region

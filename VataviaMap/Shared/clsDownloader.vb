@@ -439,7 +439,8 @@ CheckCache:
                         IO.File.Move(lDownloadAs, aFileName)
                     End If
                     lSuccess = True
-                Catch
+                Catch eMove As Exception
+                    Debug.WriteLine("Could not move '" & lDownloadAs & "' to '" & aFileName & "' : " & eMove.Message)
                 End Try
             End If
         End If
