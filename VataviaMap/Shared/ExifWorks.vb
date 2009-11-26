@@ -27,9 +27,10 @@ Imports System.IO
 ''' </history>
 Public Class ExifWorks
     Implements IDisposable
-    Private _Stream As FileStream
-    Private _Image As Bitmap
+    Private Properties As Imaging.PropertyItem()
+    Private PropertyIdList As Integer()
     Private _Encoding As Encoding = Encoding.UTF8
+    Private _Image As Image
 
 #Region "Type declarations"
 
@@ -424,25 +425,32 @@ Public Class ExifWorks
             Throw New ArgumentNullException("Bitmap")
         End If
         _Image = SourceBitmap
+        Properties = _Image.PropertyItems
+        PropertyIdList = _Image.PropertyIdList
     End Sub
 
     ''' <summary>
     ''' Initializes new instance of this class from a file name
     ''' </summary>
     ''' <param name="FileName">Name of file to be loaded</param>
-    ''' <remarks></remarks>
+    ''' <remarks>
+    ''' This creation method cannot be used when intending to modify properties.
+    ''' Use New(Bitmap) if intending to modify properties.
+    ''' </remarks>
     ''' <history>
     ''' [altair] 13.06.2004 Created
+    ''' [mark] 2009-11-25 optimized to read properties only, not image itself
     ''' </history>
     Public Sub New(ByVal FileName As String)
         If FileName Is Nothing Then
             Throw New ArgumentNullException("FileName")
         End If
-        _Stream = New FileStream(FileName, FileMode.Open, FileAccess.Read)
-        'avoid loading here!
-
-        ' _Image = (System.Drawing.Bitmap)System.Drawing.Bitmap.FromFile(FileName);
-        _Image = DirectCast(Image.FromStream(_Stream, True, False), Bitmap)
+        Dim fStream As New FileStream(FileName, FileMode.Open, FileAccess.Read)
+        _Image = Image.FromStream(fStream, True, False) 'optimized to read properties only, not image
+        Properties = _Image.PropertyItems
+        PropertyIdList = _Image.PropertyIdList
+        fStream.Close() 'Closing the stream right away preserves system file handles, but also cuts us off if we wanted to finish reading the image
+        _Image = Nothing 'make sure setting properties does not seem to work
     End Sub
 
     ''' <summary>
@@ -465,16 +473,6 @@ Public Class ExifWorks
             _Encoding = value
         End Set
     End Property
-
-    ''' <summary>
-    ''' Returns copy of bitmap this instance is working on
-    ''' </summary>
-    ''' <history>
-    ''' [altair] 13.06.2004 Created
-    ''' </history>
-    Public Function GetBitmap() As Bitmap
-        Return DirectCast(_Image.Clone(), Bitmap)
-    End Function
 
     ''' <summary>
     ''' Returns all available data in formatted string form
@@ -663,7 +661,7 @@ Public Class ExifWorks
     ''' </history>
     Public ReadOnly Property Width() As Int32
         Get
-            Return _Image.Width
+            Return GetPropertyInt32(TagNames.ImageWidth)
         End Get
     End Property
 
@@ -678,7 +676,7 @@ Public Class ExifWorks
     ''' </history>
     Public ReadOnly Property Height() As Int32
         Get
-            Return _Image.Height
+            Return GetPropertyInt32(TagNames.ImageHeight)
         End Get
     End Property
 
@@ -1016,7 +1014,11 @@ Public Class ExifWorks
     ''' [altair] 10.09.2003 Created
     ''' </history>
     Public Function IsPropertyDefined(ByVal PID As TagNames) As Boolean
-        Return (Array.IndexOf(_Image.PropertyIdList, CInt(PID)) > -1)
+        Return (PropertyIndex(PID) > -1)
+    End Function
+
+    Private Function PropertyIndex(ByVal PID As Integer) As Integer
+        Return (Array.IndexOf(PropertyIdList, PID))
     End Function
 
     ''' <summary>
@@ -1029,8 +1031,9 @@ Public Class ExifWorks
     ''' [altair] 10.09.2003 Created
     ''' </history>
     Public Function GetPropertyInt32(ByVal PID As TagNames, Optional ByVal DefaultValue As Int32 = 0) As Int32
-        If IsPropertyDefined(PID) Then
-            Return GetInt32(_Image.GetPropertyItem(PID).Value)
+        Dim lIndex As Integer = PropertyIndex(PID)
+        If lIndex > -1 Then
+            Return GetInt32(Properties(lIndex).Value)
         Else
             Return DefaultValue
         End If
@@ -1046,8 +1049,9 @@ Public Class ExifWorks
     ''' [altair] 10.09.2003 Created
     ''' </history>
     Public Function GetPropertyInt16(ByVal PID As TagNames, Optional ByVal DefaultValue As Int16 = 0) As Int16
-        If IsPropertyDefined(PID) Then
-            Return GetInt16(_Image.GetPropertyItem(PID).Value)
+        Dim lIndex As Integer = PropertyIndex(PID)
+        If lIndex > -1 Then
+            Return GetInt16(Properties(lIndex).Value)
         Else
             Return DefaultValue
         End If
@@ -1064,8 +1068,9 @@ Public Class ExifWorks
     ''' [altair] 10.09.2003 Created
     ''' </history>
     Public Function GetPropertyString(ByVal PID As TagNames, Optional ByVal DefaultValue As String = "") As String
-        If IsPropertyDefined(PID) Then
-            Return GetString(_Image.GetPropertyItem(PID).Value)
+        Dim lIndex As Integer = PropertyIndex(PID)
+        If lIndex > -1 Then
+            Return GetString(Properties(lIndex).Value)
         Else
             Return DefaultValue
         End If
@@ -1082,8 +1087,9 @@ Public Class ExifWorks
     ''' [altair] 05.09.2005 Created
     ''' </history>
     Public Function GetProperty(ByVal PID As TagNames, Optional ByVal DefaultValue As Byte() = Nothing) As Byte()
-        If IsPropertyDefined(PID) Then
-            Return _Image.GetPropertyItem(PID).Value
+        Dim lIndex As Integer = PropertyIndex(PID)
+        If lIndex > -1 Then
+            Return Properties(lIndex).Value
         Else
             Return DefaultValue
         End If
@@ -1099,8 +1105,9 @@ Public Class ExifWorks
     ''' [altair] 10.09.2003 Created
     ''' </history>
     Public Function GetPropertyRational(ByVal PID As TagNames) As Rational
-        If IsPropertyDefined(PID) Then
-            Return GetRational(_Image.GetPropertyItem(PID).Value)
+        Dim lIndex As Integer = PropertyIndex(PID)
+        If lIndex > -1 Then
+            Return GetRational(Properties(lIndex).Value)
         Else
             Dim R As Rational
             R.Numerator = 0
@@ -1166,9 +1173,13 @@ Public Class ExifWorks
     ''' <remarks>Is recommended to use typed methods (like <see cref="SetPropertyString" /> etc.) instead, when possible.</remarks>
     ''' <history>
     ''' [altair] 12.6.2004 Created
+    ''' [mark] 2009-11-25 added check for _Image Is Nothing and exception if it is.
     ''' </history>
     Public Sub SetProperty(ByVal PID As Int32, ByVal Data As Byte(), ByVal Type As ExifDataTypes)
-        Dim P As System.Drawing.Imaging.PropertyItem = _Image.PropertyItems(0)
+        If _Image Is Nothing Then
+            Throw New ApplicationException("Cannot set properties unless ExifWorks was created with a Bitmap")
+        End If
+        Dim P As System.Drawing.Imaging.PropertyItem = Properties(0)
         P.Id = PID
         P.Value = Data
         P.Type = Type
@@ -1256,9 +1267,10 @@ Public Class ExifWorks
     ''' [altair] 10.09.2003 Created
     ''' </history>
     Public Function GetPropertyRational(ByVal PID As TagNames, ByVal rank As Integer) As Rational
-        If IsPropertyDefined(PID) Then
+        Dim lIndex As Integer = PropertyIndex(PID)
+        If lIndex > -1 Then
             Dim N As Byte() = New Byte(7) {}
-            Array.Copy(_Image.GetPropertyItem(PID).Value, rank * 8, N, 0, 8)
+            Array.Copy(Properties(lIndex).Value, rank * 8, N, 0, 8)
             Return GetRational(N)
         Else
             Dim R As New Rational()
@@ -1334,13 +1346,13 @@ Public Class ExifWorks
     ''' <summary>
     ''' Disposes unmanaged resources of this class
     ''' </summary>
-    ''' <remarks></remarks>
     ''' <history>
     ''' [altair] 10.09.2003 Created
     ''' </history>
     Public Sub Dispose() Implements IDisposable.Dispose
-        if _Image IsNot Nothing Then _Image.Dispose()
-        if _Stream IsNot Nothing Then _Stream.Dispose()
+        If PropertyIdList IsNot Nothing Then ReDim PropertyIdList(-1)
+        If Properties IsNot Nothing Then ReDim Properties(-1)
+        If _Image IsNot Nothing Then _Image.Dispose()
     End Sub
 
 #End Region
