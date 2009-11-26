@@ -91,12 +91,13 @@ Public Class clsDownloader
                 'IO.File.Move(aActualFilename, aActualFilename & ".error")
             End Try
 
-            'Try tile with error again?
-            If aPriority > -1 AndAlso Enabled AndAlso TileLastCheckedDate(aActualFilename).AddDays(1) < Date.UtcNow Then
-                Enqueue(aTilePoint, aZoom, aPriority, True) 'Request error tile replacement
-            End If
             'Add dummy tile for now so we know we can't draw it, will be replaced soon if enqueued
             TileRAMcacheAddTile(aTileFilename, Nothing)
+
+            'Try tile with error again?
+            If aPriority > -1 AndAlso Enabled AndAlso TileLastCheckedDate(aActualFilename).AddMinutes(5) < Date.UtcNow Then
+                Enqueue(aTilePoint, aZoom, aPriority, True) 'Request error tile replacement
+            End If
             Return False
 
         End If
@@ -265,7 +266,7 @@ CheckCache:
                 Dim lActualFilename As String = LatestTileFileName(lFileName)
                 If aReplaceExisting _
                     OrElse Not IO.File.Exists(lActualFilename) _
-                    OrElse (TileCacheOldest > Date.MinValue AndAlso IO.File.GetCreationTime(lActualFilename) < TileCacheOldest) Then
+                    OrElse (TileCacheOldest > Date.MinValue AndAlso TileLastCheckedDate(lActualFilename) < TileCacheOldest) Then
                     'Debug.WriteLine("Downloading Tile " & aZoom & "/" & aTilePoint.X & "/" & aTilePoint.Y)
                     Dim lSuffix As String = lActualFilename.Substring(lFileName.Length).Replace(".png", "")
                     If DownloadFile(MakeImageUrl(g_TileServerType, aTilePoint, aZoom), lFileName, True, lSuffix) Then
@@ -324,126 +325,152 @@ CheckCache:
     ' This function should not be used from outside this class for downloading tiles points, or icons, those should use DownloadTile and DownloadItem above
     Friend Function DownloadFile(ByVal aUrl As String, ByVal aFileName As String, ByVal aIsTile As Boolean, Optional ByVal aSuffix As String = Nothing) As Boolean
         Dim lSuccess As Boolean = False
-        If EnsureDirForFile(aFileName) Then
-            Dim request As Net.WebRequest
-            Dim response As Net.WebResponse = Nothing
-            Dim input As IO.Stream = Nothing
-            Dim output As IO.FileStream = Nothing
-            Dim count As Long = 128 * 1024 ' 128k at a time
-            Dim buffer(count - 1) As Byte
-            Dim ext As String = Nothing
-            Dim lDownloadAs As String = aFileName & pPartialDownloadExtension
-            Dim lError As Boolean = False
-            Dim lCachedETag As String = ""
-            'Debug.WriteLine(strUrl)
-            'Dim lNewLastModified As String = Nothing
+        Try
+            If EnsureDirForFile(aFileName) Then
+                Dim request As Net.WebRequest
+                Dim response As Net.WebResponse = Nothing
+                Dim input As IO.Stream = Nothing
+                Dim output As IO.FileStream = Nothing
+                Dim count As Long = 128 * 1024 ' 128k at a time
+                Dim buffer(count - 1) As Byte
+                Dim lDownloadAs As String = aFileName & pPartialDownloadExtension
+                Dim lError As Boolean = False
+                Dim lSkipped As Boolean = False
+                Dim lCachedETag As String = ""
+                Dim lMoveTo As String = aFileName
+                'Debug.WriteLine(strUrl)
+                'Dim lNewLastModified As String = Nothing
 
-            Try
-                request = Net.WebRequest.Create(aUrl)
-                If request IsNot Nothing Then
-                    If (aSuffix IsNot Nothing) AndAlso (aSuffix.Length > 0) Then
-                        Dim lETagStart As Integer = aSuffix.IndexOf(pETagExt)
-                        If lETagStart > -1 Then
-                            lCachedETag = aSuffix.Substring(lETagStart + pETagExt.Length)
-                            request.Headers.Set("If-None-Match", """" & lCachedETag & """")
-                        End If
-                    End If
-                    response = request.GetResponse()
-                    If response IsNot Nothing Then
-                        Dim lContentLength As String = response.Headers.Item("Content-Length")
-                        If lContentLength = "0" Then ' Nothing can be ok, but zero means there is no tile
-                            lError = True
-                        Else
-                            'lNewLastModified = response.Headers.Item("Last-Modified")
-                            'If lNewLastModified Is Nothing Then
-                            '    lNewLastModified = Format(Date.UtcNow, "ddd, dd MMM yyyy HH:mm:ss") & " GMT"
-                            'End If
-
-                            Dim lNewETag As String = response.Headers.Item("ETag")
-                            If lNewETag IsNot Nothing Then
-                                lNewETag = lNewETag.Replace("""", "")
-                                ext = pETagExt & lNewETag
-                                If lNewETag.Length > 1 AndAlso lNewETag = lCachedETag Then
-                                    ' Cached ETag matches response ETag, no need to download.
-                                    ' Should not reach here, should have caused 304 exception at GetResponse above.
-                                    response.Close()
-                                    WriteTextFile(aFileName & ext & pLastCheckedExtension, Format(Date.UtcNow, "yyyy-MM-dd HH:mm:ss"))
-                                    lSuccess = True
-                                End If
-                            End If
-                            If ext Is Nothing Then ext = ""
-                            lDownloadAs = aFileName & ext & pPartialDownloadExtension
-                            input = response.GetResponseStream()
-                            If input IsNot Nothing Then
-                                output = New IO.FileStream(lDownloadAs, IO.FileMode.Create)
-                                If output IsNot Nothing Then
-                                    Do
-                                        count = input.Read(buffer, 0, count)
-                                        If count = 0 Then Exit Do 'finished download
-                                        output.Write(buffer, 0, count)
-                                    Loop
-                                End If
+                Try
+                    request = Net.WebRequest.Create(aUrl)
+                    If request IsNot Nothing Then
+                        If (aSuffix IsNot Nothing) AndAlso (aSuffix.Length > 0) Then
+                            Dim lETagStart As Integer = aSuffix.IndexOf(pETagExt)
+                            If lETagStart > -1 Then
+                                lCachedETag = aSuffix.Substring(lETagStart + pETagExt.Length)
+                                request.Headers.Set("If-None-Match", """" & lCachedETag & """")
                             End If
                         End If
+                        response = request.GetResponse()
+                        If response IsNot Nothing Then
+                            Dim lContentLength As String = response.Headers.Item("Content-Length")
+                            If lContentLength = "0" Then ' Nothing can be ok, but zero means there is no tile
+                                lError = True
+                            Else
+                                'lNewLastModified = response.Headers.Item("Last-Modified")
+                                'If lNewLastModified Is Nothing Then
+                                '    lNewLastModified = Format(Date.UtcNow, "ddd, dd MMM yyyy HH:mm:ss") & " GMT"
+                                'End If
+
+                                Dim lNewETag As String = response.Headers.Item("ETag")
+                                If lNewETag IsNot Nothing Then
+                                    lNewETag = lNewETag.Replace("""", "")
+                                    lMoveTo &= pETagExt & lNewETag
+                                    lDownloadAs = lMoveTo & pPartialDownloadExtension
+                                    If lNewETag.Length > 1 AndAlso _
+                                        (lNewETag = lCachedETag OrElse _
+                                            (IO.File.Exists(lMoveTo) AndAlso New IO.FileInfo(lMoveTo).Length > 0)) Then
+                                        ' Cached ETag matches response ETag or other existing file, no need to download.
+                                        ' Should not reach here, should have caused 304 exception at GetResponse above.
+                                        lSuccess = True
+                                        lSkipped = True
+                                        GoTo AfterDownload
+                                    End If
+                                Else
+                                    lDownloadAs = aFileName & pPartialDownloadExtension
+                                End If
+                                input = response.GetResponseStream()
+                                If input IsNot Nothing Then
+                                    output = New IO.FileStream(lDownloadAs, IO.FileMode.Create)
+                                    If output IsNot Nothing Then
+                                        Do
+                                            count = input.Read(buffer, 0, count)
+                                            If count = 0 Then Exit Do 'finished download
+                                            output.Write(buffer, 0, count)
+                                        Loop
+                                    End If
+                                End If
+                            End If
+                        End If
                     End If
-                End If
-            Catch ex As Exception
-                If ex.Message.IndexOf("(304) Not Modified") > -1 Then
-                    'Not an error, this means we don't need to download new file
-                    WriteTextFile(aFileName & ext & pLastCheckedExtension, Format(Date.UtcNow, "yyyy-MM-dd HH:mm:ss"))
-                    lSuccess = True
-                Else
-                    lError = True
-                    Debug.WriteLine("Error downloading '" & aUrl & "' " & ex.Message)
-                End If
-            End Try
-            If input IsNot Nothing Then input.Close()
-            If output IsNot Nothing Then output.Close()
-            If response IsNot Nothing Then response.Close()
-            If lError Then
-                If aIsTile AndAlso lDownloadAs.Length > 0 AndAlso Not IO.File.Exists(aFileName) Then
+                Catch ex As Exception
+                    If ex.Message.IndexOf("(304) Not Modified") > -1 Then
+                        'Not an error, this means we don't need to download new file
+                        lMoveTo &= pETagExt & lCachedETag
+                        lSuccess = True
+                        lSkipped = True
+                    Else
+                        lError = True
+                        Debug.WriteLine("Error downloading '" & aUrl & "' " & ex.Message)
+                    End If
+                End Try
+AfterDownload:
+                If input IsNot Nothing Then
                     Try
-                        IO.File.Create(aFileName).Close()
-                    Catch
+                        input.Close()
+                    Catch exInput As Exception
                     End Try
-                    TileRAMcacheAddTile(aFileName, aFileName, Nothing, -1, -1, False)
                 End If
-                Return False
-            ElseIf IO.File.Exists(lDownloadAs) Then
-                Dim lStartMoving As DateTime = DateTime.Now
-                While IO.File.Exists(aFileName)
+                If output IsNot Nothing Then
+                    Try
+                        output.Close()
+                    Catch exOutput As Exception
+                    End Try
+                End If
+                If response IsNot Nothing Then
+                    Try
+                        response.Close()
+                    Catch exResponse As Exception
+                    End Try
+                End If
+                If lError Then
+                    If aIsTile AndAlso lDownloadAs.Length > 0 AndAlso Not IO.File.Exists(aFileName) Then
+                        Try
+                            IO.File.Create(aFileName).Close()
+                        Catch
+                        End Try
+                        TileRAMcacheAddTile(aFileName, aFileName, Nothing, -1, -1, False)
+                    End If
+                    Return False
+                ElseIf lSkipped Then
+                    WriteTextFile(lMoveTo & pLastCheckedExtension, Format(Date.UtcNow, "yyyy-MM-dd HH:mm:ss"))
+                ElseIf IO.File.Exists(lDownloadAs) Then
+                    Dim lStartMoving As DateTime = DateTime.Now
+                    While IO.File.Exists(lMoveTo)
+                        Try
+                            If aIsTile Then
+                                DeleteTile(lMoveTo)
+                            Else
+                                IO.File.Delete(aFileName)
+                            End If
+                        Catch
+                            If DateTime.Now.Subtract(lStartMoving).TotalSeconds > 2 Then
+                                Try 'target tile file busy too long, delete new version and report failure
+                                    IO.File.Delete(lDownloadAs)
+                                Catch
+                                End Try
+                                Return False
+                            End If
+                            Application.DoEvents()
+                        End Try
+                    End While
                     Try
                         If aIsTile Then
-                            DeleteTile(aFileName)
+                            IO.File.Move(lDownloadAs, lMoveTo)
+                            WriteTextFile(lMoveTo & pLastCheckedExtension, Format(Date.UtcNow, "yyyy-MM-dd HH:mm:ss"))
+                            TileRAMcacheAddTile(aFileName, lMoveTo, Nothing, -1, -1, False)
                         Else
-                            IO.File.Delete(aFileName)
+                            IO.File.Move(lDownloadAs, aFileName)
                         End If
-                    Catch
-                        If DateTime.Now.Subtract(lStartMoving).TotalSeconds > 2 Then
-                            Try 'target tile file busy too long, delete new version and report failure
-                                IO.File.Delete(lDownloadAs)
-                            Catch
-                            End Try
-                            Return False
-                        End If
-                        Application.DoEvents()
+                        lSuccess = True
+                    Catch eMove As Exception
+                        Debug.WriteLine("Could not move '" & lDownloadAs & "' to '" & aFileName & "' : " & eMove.Message)
                     End Try
-                End While
-                Try
-                    If aIsTile Then
-                        Dim lMoveTo As String = lDownloadAs.Substring(0, lDownloadAs.Length - pPartialDownloadExtension.Length)
-                        IO.File.Move(lDownloadAs, lMoveTo)
-                        WriteTextFile(lMoveTo & pLastCheckedExtension, Format(Date.UtcNow, "yyyy-MM-dd HH:mm:ss"))
-                        TileRAMcacheAddTile(aFileName, lMoveTo, Nothing, -1, -1, False)
-                    Else
-                        IO.File.Move(lDownloadAs, aFileName)
-                    End If
-                    lSuccess = True
-                Catch eMove As Exception
-                    Debug.WriteLine("Could not move '" & lDownloadAs & "' to '" & aFileName & "' : " & eMove.Message)
-                End Try
+                End If
             End If
-        End If
+        Catch exMisc As Exception
+            Debug.WriteLine("DownloadFile '" & aUrl & "' to '" & aFileName & "' : " & exMisc.Message)
+        End Try
         Return lSuccess
     End Function
 

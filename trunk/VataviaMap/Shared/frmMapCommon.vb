@@ -260,6 +260,7 @@ Partial Class frmMap
                     g_UploadTrackURL = .GetValue("UploadTrackURL", g_UploadTrackURL)
 
                     'Tiles older than this will be downloaded again as needed. TileCacheDays = 0 to never refresh old tiles
+                    'TODO: different expiration time for different tiles - satellite photos seldom updated, OSM tiles often
                     Dim lTileCacheDays As Integer = .GetValue("TileCacheDays", 0)
                     If lTileCacheDays > 0 Then
                         pDownloader.TileCacheOldest = DateTime.Now.ToUniversalTime.AddDays(-lTileCacheDays)
@@ -1144,6 +1145,15 @@ Partial Class frmMap
 
         Dim lLayer As New clsLayerGPX(lWaypoints, Me)
         lLayer.LabelField = "name"
+        Dim lBounds As New clsGPXbounds()
+        With lBounds
+            .maxlat = lLatitude
+            .minlat = lLatitude
+            .maxlon = lLongitude
+            .minlon = lLongitude
+        End With
+        lLayer.Bounds = lBounds
+
         Me.Layers.Add(lLayer)
 
         If pGPXPanTo Then
