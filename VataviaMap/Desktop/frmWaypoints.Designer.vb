@@ -24,10 +24,8 @@ Partial Class frmWaypoints
     Private Sub InitializeComponent()
         Me.lst = New System.Windows.Forms.CheckedListBox
         Me.btnCenter = New System.Windows.Forms.Button
-        Me.btnEdit = New System.Windows.Forms.Button
-        Me.btnRemove = New System.Windows.Forms.Button
+        Me.btnSaveGPX = New System.Windows.Forms.Button
         Me.btnOk = New System.Windows.Forms.Button
-        Me.btnAdd = New System.Windows.Forms.Button
         Me.SuspendLayout()
         '
         'lst
@@ -46,32 +44,22 @@ Partial Class frmWaypoints
         'btnCenter
         '
         Me.btnCenter.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
-        Me.btnCenter.Location = New System.Drawing.Point(255, 240)
+        Me.btnCenter.Location = New System.Drawing.Point(12, 240)
         Me.btnCenter.Name = "btnCenter"
         Me.btnCenter.Size = New System.Drawing.Size(75, 23)
         Me.btnCenter.TabIndex = 11
         Me.btnCenter.Text = "Center"
         Me.btnCenter.UseVisualStyleBackColor = True
         '
-        'btnEdit
+        'btnSaveGPX
         '
-        Me.btnEdit.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
-        Me.btnEdit.Location = New System.Drawing.Point(174, 240)
-        Me.btnEdit.Name = "btnEdit"
-        Me.btnEdit.Size = New System.Drawing.Size(75, 23)
-        Me.btnEdit.TabIndex = 10
-        Me.btnEdit.Text = "Edit"
-        Me.btnEdit.UseVisualStyleBackColor = True
-        '
-        'btnRemove
-        '
-        Me.btnRemove.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
-        Me.btnRemove.Location = New System.Drawing.Point(93, 240)
-        Me.btnRemove.Name = "btnRemove"
-        Me.btnRemove.Size = New System.Drawing.Size(75, 23)
-        Me.btnRemove.TabIndex = 9
-        Me.btnRemove.Text = "Remove"
-        Me.btnRemove.UseVisualStyleBackColor = True
+        Me.btnSaveGPX.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
+        Me.btnSaveGPX.Location = New System.Drawing.Point(93, 240)
+        Me.btnSaveGPX.Name = "btnSaveGPX"
+        Me.btnSaveGPX.Size = New System.Drawing.Size(94, 23)
+        Me.btnSaveGPX.TabIndex = 10
+        Me.btnSaveGPX.Text = "Save to GPX"
+        Me.btnSaveGPX.UseVisualStyleBackColor = True
         '
         'btnOk
         '
@@ -83,26 +71,14 @@ Partial Class frmWaypoints
         Me.btnOk.Text = "Ok"
         Me.btnOk.UseVisualStyleBackColor = True
         '
-        'btnAdd
-        '
-        Me.btnAdd.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
-        Me.btnAdd.Location = New System.Drawing.Point(12, 240)
-        Me.btnAdd.Name = "btnAdd"
-        Me.btnAdd.Size = New System.Drawing.Size(75, 23)
-        Me.btnAdd.TabIndex = 7
-        Me.btnAdd.Text = "Add"
-        Me.btnAdd.UseVisualStyleBackColor = True
-        '
         'frmWaypoints
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(503, 266)
         Me.Controls.Add(Me.btnCenter)
-        Me.Controls.Add(Me.btnEdit)
-        Me.Controls.Add(Me.btnRemove)
+        Me.Controls.Add(Me.btnSaveGPX)
         Me.Controls.Add(Me.btnOk)
-        Me.Controls.Add(Me.btnAdd)
         Me.Controls.Add(Me.lst)
         Me.Name = "frmWaypoints"
         Me.Text = "frmWaypoints"
@@ -111,8 +87,6 @@ Partial Class frmWaypoints
     End Sub
     Friend WithEvents lst As System.Windows.Forms.CheckedListBox
     Friend WithEvents btnCenter As System.Windows.Forms.Button
-    Friend WithEvents btnEdit As System.Windows.Forms.Button
-    Friend WithEvents btnRemove As System.Windows.Forms.Button
+    Friend WithEvents btnSaveGPX As System.Windows.Forms.Button
     Friend WithEvents btnOk As System.Windows.Forms.Button
-    Friend WithEvents btnAdd As System.Windows.Forms.Button
 End Class

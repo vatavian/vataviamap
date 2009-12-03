@@ -5,6 +5,7 @@ Public Class frmLayers
 
     Private pPopulating As Boolean = False
     Private pLayers As New Generic.List(Of clsLayer)
+    Private pRightClickedIndex As Integer = -1
 
     Private Sub RaiseChanged(ByVal aIndex As Integer, ByVal aChecked As Boolean)
         If Not pPopulating AndAlso Me.Visible Then
@@ -27,7 +28,13 @@ Public Class frmLayers
     Private Sub lstLayers_MouseDown(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles lstLayers.MouseDown
         Select Case e.Button
             Case Windows.Forms.MouseButtons.Right
-                'TODO: put menu at the selected layer
+                pRightClickedIndex = -1
+                For lIndex As Integer = 0 To lstLayers.Items.Count
+                    If e.Y < lstLayers.Items(lIndex).Bounds.Bottom Then
+                        pRightClickedIndex = lIndex
+                        Exit For
+                    End If
+                Next
                 Me.LayerGridRightContextMenuStrip.Show(Me, e.Location)
         End Select
     End Sub
@@ -261,12 +268,19 @@ Public Class frmLayers
     End Sub
 
     Private Sub ZoomToToolStripMenuItem_Click(ByVal sender As Object, ByVal e As System.EventArgs) Handles ZoomToToolStripMenuItem.Click
-        'TODO: figure out closest layer to mouse
-        RaiseEvent ZoomTo(pLayers(0).Bounds)
+        If pRightClickedIndex > -1 Then
+            RaiseEvent ZoomTo(pLayers(pRightClickedIndex).Bounds)
+        End If
     End Sub
 
     Private Sub DetailsToolStripMenuItem_Click(ByVal sender As Object, ByVal e As System.EventArgs) Handles DetailsToolStripMenuItem.Click
-        MsgBox("Open Details Form Here")
+        If pRightClickedIndex > -1 Then
+            With pLayers(pRightClickedIndex)
+                If IO.Path.GetExtension(.Filename).ToLower = ".jpg" Then
+                    OpenFile(.Filename)
+                End If
+            End With
+        End If
     End Sub
 
     Private Sub txtLabelFont_KeyPress(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles txtLabelFont.KeyPress

@@ -19,6 +19,7 @@ Module modGlobal
 
     Public Const g_LatMin As Double = -85.0511
     Public Const g_LatMax As Double = 85.0511
+    Public g_IconMaxSize As Integer = 150
 
     Private g_LimitY As Double = ProjectF(g_LatMax)
     Private g_RangeY As Double = 2 * g_LimitY
