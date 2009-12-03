@@ -533,8 +533,8 @@ Public Class clsLayerGPX
                             Catch
                             End Try
                             If lBitmap Is Nothing Then 'Draw empty outline of icon if we could not get one the right size
-                                g.DrawLine(PenWaypoint, lX - g_IconMaxSize / 3, lY - g_IconMaxSize / 3, lX + g_IconMaxSize / 3, lY + g_IconMaxSize / 3)
-                                g.DrawLine(PenWaypoint, lX - g_IconMaxSize / 3, lY + g_IconMaxSize / 3, lX + g_IconMaxSize / 3, lY - g_IconMaxSize / 3)
+                                Dim lSize As Integer = g_IconMaxSize / 2
+                                g.DrawRectangle(PenWaypoint, lX - lSize >> 1, lY - lSize >> 1, lSize, lSize)
                             Else
                                 g_WaypointIcons.Add(.sym.ToLower, lBitmap)
                             End If

@@ -607,86 +607,108 @@ Partial Class frmMap
         'TODO: check available memory before deciding how many tiles to keep in RAM
         pDownloader.TileRAMcacheLimit = (lBotRight.X - lTopLeft.X + 1) * (lBotRight.Y - lTopLeft.Y + 1) * 2
 
+        Dim lTilePoints As New SortedList(Of Single, Point)
+        Dim x, y As Integer
+        Dim lMidX As Integer = (lTopLeft.X + lBotRight.X) / 2
+        Dim lMidY As Integer = (lTopLeft.Y + lBotRight.Y) / 2
+        Dim lDistance As Single
+
         'Loop through each visible tile
-        For x As Integer = lTopLeft.X To lBotRight.X
-            For y As Integer = lTopLeft.Y To lBotRight.Y
-
-                If pRedrawPending Then Exit Sub
-
-                lTilePoint = New Point(x, y)
-
-                lOffsetFromWindowCorner.X = (x - lTopLeft.X) * g_TileSize + lOffsetToCenter.X
-                lOffsetFromWindowCorner.Y = (y - lTopLeft.Y) * g_TileSize + lOffsetToCenter.Y
-
-                Dim lDrewTile As Boolean = DrawTile(lTilePoint, pZoom, g, lOffsetFromWindowCorner, 0)
-
-                If Not lDrewTile Then ' search for cached tiles at other zoom levels to substitute
-                    'First try tiles zoomed farther out
-                    Dim lZoom As Integer
-                    Dim lX As Integer = x
-                    Dim lY As Integer = y
-                    Dim lNextX As Integer
-                    Dim lNextY As Integer
-                    Dim lZoomedTilePortion As Integer = g_TileSize
-                    Dim lFromX As Integer = 0
-                    Dim lFromY As Integer = 0
-                    Dim lRectOrigTile As New Rectangle(lOffsetFromWindowCorner.X, lOffsetFromWindowCorner.Y, g_TileSize, g_TileSize)
-                    Dim lZoomMin As Integer = Math.Max(g_ZoomMin, pZoom - 4)
-                    For lZoom = pZoom - 1 To lZoomMin Step -1
-                        'Tile coordinates of next zoom out are half
-                        lNextX = lX >> 1
-                        lNextY = lY >> 1
-
-                        'Half as much of next zoomed tile width and height will fit 
-                        lZoomedTilePortion >>= 1
-
-                        'Offset within the tile counts half as much in next zoom out
-                        lFromX >>= 1
-                        lFromY >>= 1
-
-                        'If zoomed from an odd-numbered tile, it was in the right and/or bottom half of next zoom out
-                        If lX > lNextX << 1 Then lFromX += g_HalfTile
-                        If lY > lNextY << 1 Then lFromY += g_HalfTile
-
-                        If DrawTile(New Drawing.Point(lNextX, lNextY), lZoom, g, lRectOrigTile, _
-                                    New Rectangle(lFromX, lFromY, lZoomedTilePortion, lZoomedTilePortion), -1) Then
-                            Exit For 'found a zoomed out tile to draw, don't keep looking for one zoomed out farther
-                        End If
-                        lX = lNextX
-                        lY = lNextY
-                    Next
-
-                    If pZoom < g_ZoomMax Then ' Try to draw tiles within this tile at finer zoom level
-                        lZoom = pZoom + 1
-                        Dim lDoubleX As Integer = x << 1
-                        Dim lFineTilePoint As New Drawing.Point(lDoubleX, y << 1)
-                        ' Portion of the tile covered by a finer zoom tile
-                        Dim lRectDestination As New Rectangle(lOffsetFromWindowCorner.X, _
-                                                              lOffsetFromWindowCorner.Y, _
-                                                              g_HalfTile, g_HalfTile)
-
-                        ' upper left tile
-                        If Not DrawTile(lFineTilePoint, lZoom, g, lRectDestination, g_TileSizeRect, -1) Then
-                            'TODO: four tiles at next finer zoom level, at this and other three DrawTile below
-                        End If
-
-                        ' upper right tile
-                        lFineTilePoint.X += 1
-                        lRectDestination.X = lOffsetFromWindowCorner.X + g_HalfTile
-                        DrawTile(lFineTilePoint, lZoom, g, lRectDestination, g_TileSizeRect, -1)
-
-                        ' lower right tile
-                        lFineTilePoint.Y += 1
-                        lRectDestination.Y = lOffsetFromWindowCorner.Y + g_HalfTile
-                        DrawTile(lFineTilePoint, lZoom, g, lRectDestination, g_TileSizeRect, -1)
-
-                        ' lower left tile
-                        lFineTilePoint.X = lDoubleX
-                        lRectDestination.X = lOffsetFromWindowCorner.X
-                        DrawTile(lFineTilePoint, lZoom, g, lRectDestination, g_TileSizeRect, -1)
-                    End If
-                End If
+        For x = lTopLeft.X To lBotRight.X
+            For y = lTopLeft.Y To lBotRight.Y
+                Try
+                    lDistance = (x - lMidX) ^ 2 + (y - lMidY) ^ 2
+                    While lTilePoints.ContainsKey(lDistance)
+                        lDistance += 0.1
+                    End While
+                    lTilePoints.Add(lDistance, New Point(x, y))
+                Catch
+                    lDistance = 11
+                    While lTilePoints.ContainsKey(lDistance)
+                        lDistance += 0.1
+                    End While
+                    lTilePoints.Add(lDistance, New Point(x, y))
+                End Try
             Next
+        Next
+
+        For Each lTilePoint In lTilePoints.Values
+            If pRedrawPending Then Exit Sub
+
+            x = lTilePoint.X
+            y = lTilePoint.Y
+
+            lOffsetFromWindowCorner.X = (x - lTopLeft.X) * g_TileSize + lOffsetToCenter.X
+            lOffsetFromWindowCorner.Y = (y - lTopLeft.Y) * g_TileSize + lOffsetToCenter.Y
+
+            Dim lDrewTile As Boolean = DrawTile(lTilePoint, pZoom, g, lOffsetFromWindowCorner, 0)
+
+            If Not lDrewTile Then ' search for cached tiles at other zoom levels to substitute
+                'First try tiles zoomed farther out
+                Dim lZoom As Integer
+                Dim lX As Integer = x
+                Dim lY As Integer = y
+                Dim lNextX As Integer
+                Dim lNextY As Integer
+                Dim lZoomedTilePortion As Integer = g_TileSize
+                Dim lFromX As Integer = 0
+                Dim lFromY As Integer = 0
+                Dim lRectOrigTile As New Rectangle(lOffsetFromWindowCorner.X, lOffsetFromWindowCorner.Y, g_TileSize, g_TileSize)
+                Dim lZoomMin As Integer = Math.Max(g_ZoomMin, pZoom - 4)
+                For lZoom = pZoom - 1 To lZoomMin Step -1
+                    'Tile coordinates of next zoom out are half
+                    lNextX = lX >> 1
+                    lNextY = lY >> 1
+
+                    'Half as much of next zoomed tile width and height will fit 
+                    lZoomedTilePortion >>= 1
+
+                    'Offset within the tile counts half as much in next zoom out
+                    lFromX >>= 1
+                    lFromY >>= 1
+
+                    'If zoomed from an odd-numbered tile, it was in the right and/or bottom half of next zoom out
+                    If lX > lNextX << 1 Then lFromX += g_HalfTile
+                    If lY > lNextY << 1 Then lFromY += g_HalfTile
+
+                    If DrawTile(New Drawing.Point(lNextX, lNextY), lZoom, g, lRectOrigTile, _
+                                New Rectangle(lFromX, lFromY, lZoomedTilePortion, lZoomedTilePortion), -1) Then
+                        Exit For 'found a zoomed out tile to draw, don't keep looking for one zoomed out farther
+                    End If
+                    lX = lNextX
+                    lY = lNextY
+                Next
+
+                If pZoom < g_ZoomMax Then ' Try to draw tiles within this tile at finer zoom level
+                    lZoom = pZoom + 1
+                    Dim lDoubleX As Integer = x << 1
+                    Dim lFineTilePoint As New Drawing.Point(lDoubleX, y << 1)
+                    ' Portion of the tile covered by a finer zoom tile
+                    Dim lRectDestination As New Rectangle(lOffsetFromWindowCorner.X, _
+                                                          lOffsetFromWindowCorner.Y, _
+                                                          g_HalfTile, g_HalfTile)
+
+                    ' upper left tile
+                    If Not DrawTile(lFineTilePoint, lZoom, g, lRectDestination, g_TileSizeRect, -1) Then
+                        'TODO: four tiles at next finer zoom level, at this and other three DrawTile below
+                    End If
+
+                    ' upper right tile
+                    lFineTilePoint.X += 1
+                    lRectDestination.X = lOffsetFromWindowCorner.X + g_HalfTile
+                    DrawTile(lFineTilePoint, lZoom, g, lRectDestination, g_TileSizeRect, -1)
+
+                    ' lower right tile
+                    lFineTilePoint.Y += 1
+                    lRectDestination.Y = lOffsetFromWindowCorner.Y + g_HalfTile
+                    DrawTile(lFineTilePoint, lZoom, g, lRectDestination, g_TileSizeRect, -1)
+
+                    ' lower left tile
+                    lFineTilePoint.X = lDoubleX
+                    lRectDestination.X = lOffsetFromWindowCorner.X
+                    DrawTile(lFineTilePoint, lZoom, g, lRectDestination, g_TileSizeRect, -1)
+                End If
+            End If
         Next
 
         If pRedrawPending Then Exit Sub
