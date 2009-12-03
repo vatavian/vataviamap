@@ -1138,12 +1138,14 @@ Partial Class frmMap
         If Double.IsNaN(lLongitude) Then Exit Sub
 
         Dim lWaypoints As New Generic.List(Of clsGPXwaypoint)
-        Dim lWaypoint As New clsGPXwaypoint("photo", lLatitude, lLongitude)
+        Dim lWaypoint As New clsGPXwaypoint("wpt", lLatitude, lLongitude)
         lWaypoint.name = IO.Path.GetFileNameWithoutExtension(aFilename)
+        lWaypoint.sym = aFilename
         lWaypoint.url = aFilename
         lWaypoints.Add(lWaypoint)
 
         Dim lLayer As New clsLayerGPX(lWaypoints, Me)
+        lLayer.Filename = aFilename
         lLayer.LabelField = "name"
         Dim lBounds As New clsGPXbounds()
         With lBounds

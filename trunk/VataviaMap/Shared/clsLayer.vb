@@ -495,8 +495,8 @@ Public Class clsLayerGPX
 
                 Select Case .sym
                     Case Nothing, "" 'Small X for no symbol
-                        g.DrawLine(PenTrack, lX - 3, lY - 3, lX + 3, lY + 3)
-                        g.DrawLine(PenTrack, lX - 3, lY + 3, lX + 3, lY - 3)
+                        g.DrawLine(PenWaypoint, lX - 3, lY - 3, lX + 3, lY + 3)
+                        g.DrawLine(PenWaypoint, lX - 3, lY + 3, lX + 3, lY - 3)
                     Case "Geocache"
                         If MapForm.Zoom > 10 AndAlso .type IsNot Nothing AndAlso g_WaypointIcons.ContainsKey(.type.ToLower) Then
                             lBitmap = g_WaypointIcons.Item(.type.ToLower)
@@ -511,10 +511,35 @@ Public Class clsLayerGPX
                         If g_WaypointIcons.ContainsKey(.sym.ToLower) Then
                             lBitmap = g_WaypointIcons.Item(.sym.ToLower)
                         ElseIf IO.File.Exists(.sym) Then
-                            lBitmap = New Drawing.Bitmap(.sym)
-                            g_WaypointIcons.Add(.sym.ToLower, lBitmap)
+                            Try
+                                lBitmap = New Drawing.Bitmap(.sym)
+                                If lBitmap.Width > g_IconMaxSize OrElse lBitmap.Height > g_IconMaxSize Then
+#If Smartphone Then
+                                    lBitmap.Dispose()
+                                    lBitmap = Nothing
+#Else
+                                    Dim lNewWidth As Integer = g_IconMaxSize
+                                    Dim lNewHeight As Integer = g_IconMaxSize
+                                    If lBitmap.Width > lBitmap.Height Then
+                                        lNewHeight = lBitmap.Height * lNewWidth / lBitmap.Width
+                                    Else
+                                        lNewWidth = lBitmap.Width * lNewHeight / lBitmap.Height
+                                    End If
+                                    Dim lThumbnail as New Drawing.Bitmap(lBitmap, lNewWidth, lNewHeight)
+                                    lBitmap.Dispose()
+                                    lBitmap = lThumbnail
+#End If
+                                End If
+                            Catch
+                            End Try
+                            If lBitmap Is Nothing Then 'Draw empty outline of icon if we could not get one the right size
+                                g.DrawLine(PenWaypoint, lX - g_IconMaxSize / 3, lY - g_IconMaxSize / 3, lX + g_IconMaxSize / 3, lY + g_IconMaxSize / 3)
+                                g.DrawLine(PenWaypoint, lX - g_IconMaxSize / 3, lY + g_IconMaxSize / 3, lX + g_IconMaxSize / 3, lY - g_IconMaxSize / 3)
+                            Else
+                                g_WaypointIcons.Add(.sym.ToLower, lBitmap)
+                            End If
                         Else
-                            g.DrawEllipse(PenTrack, lX - 5, lY - 5, 10, 10)
+                            g.DrawEllipse(PenWaypoint, lX - 5, lY - 5, 10, 10)
                         End If
                 End Select
                 If lBitmap IsNot Nothing Then

@@ -116,16 +116,15 @@ LoadedXML:
     End Sub
 
     Public Overrides Function ToString() As String
-        Dim lXML As String = "<gpx xmlns=""http://www.topografix.com/GPX/1/1"" version=""1.1"" creator=""" _
-            & creator & ">"
+        Dim lXML As String = "<?xml version=""1.0"" encoding=""utf-8""?>" & vbLf _
+                           & "<gpx xmlns=""http://www.topografix.com/GPX/1/1"" version=""1.1"" creator=""" & creator & """>"
 
-        If pWaypoints.Count > 0 Then
-            lXML &= "<wpt>"
-            For Each lWpt As clsGPXwaypoint In pWaypoints
-                lXML &= lWpt.ToString
-            Next
-            lXML &= "</wpt>"
-        End If
+        For Each lWpt As clsGPXwaypoint In pWaypoints
+            lXML &= lWpt.ToString
+        Next
+        For Each lTrack As clsGPXtrack In pTracks
+            lXML &= lTrack.ToString
+        Next
         lXML &= extensionsString()
         lXML &= linkString()
         Return lXML & "</gpx>"
@@ -303,6 +302,15 @@ Public Class clsGPXtracksegment
         End Set
     End Property
 
+    Public Overrides Function ToString() As String
+        Dim lXML As String = "<trkseg>" & ControlChars.Lf
+        lXML &= extensionsString()
+        lXML &= linkString()
+        For Each lPt As clsGPXwaypoint In trkptField
+            lXML &= lPt.ToString
+        Next
+        Return lXML & "</trkseg>" & ControlChars.Lf
+    End Function
 End Class
 
 Public Class clsGroundspeakLog
@@ -434,6 +442,13 @@ Public Class clsGPXwaypoint
     Private courseField As Double
     Private courseFieldSpecified As Boolean
 
+    ''' <summary>
+    ''' New point with tag and location
+    ''' </summary>
+    ''' <param name="aTag">wpt or trkpt</param>
+    ''' <param name="aLatitude">Latitude, decimal degrees</param>
+    ''' <param name="aLongitude">Longitude, decimal degrees</param>
+    ''' <remarks></remarks>
     Public Sub New(ByVal aTag As String, ByVal aLatitude As Double, ByVal aLongitude As Double)
         tagField = aTag
         latField = aLatitude
@@ -983,6 +998,23 @@ Partial Public Class clsGPXtrack
             End Try
         Next
     End Sub
+
+    Public Overrides Function ToString() As String
+        Dim lXML As String = "<trk>" & ControlChars.Lf
+        If nameField IsNot Nothing AndAlso nameField.Length > 0 Then lXML &= "<name>" & nameField & "</name>" & ControlChars.Lf
+        If cmtField IsNot Nothing AndAlso cmtField.Length > 0 Then lXML &= "<cmt>" & cmtField & "</cmt>" & ControlChars.Lf
+        If descField IsNot Nothing AndAlso descField.Length > 0 Then lXML &= "<desc>" & descField & "</desc>" & ControlChars.Lf
+        If srcField IsNot Nothing AndAlso srcField.Length > 0 Then lXML &= "<src>" & srcField & "</src>" & ControlChars.Lf
+        If numberField IsNot Nothing AndAlso numberField.Length > 0 Then lXML &= "<number>" & numberField & "</number>" & ControlChars.Lf
+        If typeField IsNot Nothing AndAlso typeField.Length > 0 Then lXML &= "<type>" & typeField & "</type>" & ControlChars.Lf
+        lXML &= extensionsString()
+        lXML &= linkString()
+        For Each lSeg As clsGPXtracksegment In trksegField
+            lXML &= lSeg.ToString
+        Next
+        Return lXML & "</trk>" & ControlChars.Lf
+    End Function
+
 
     Public Property name() As String
         Get

@@ -845,4 +845,8 @@ Public Class frmMap
         pWaypointsListForm.AskUser(lAllWaypoints)
     End Sub
 
+    Private Sub pLayersForm_ZoomTo(ByVal aBounds As clsGPXbounds) Handles pLayersForm.ZoomTo
+        Me.PanTo(aBounds)
+        Me.Redraw()
+    End Sub
 End Class
