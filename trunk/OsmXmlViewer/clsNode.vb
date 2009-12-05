@@ -1,7 +1,11 @@
 ﻿Imports System.Collections.ObjectModel
 Imports atcUtility
 
-Public Class Nodes
+Public Module NodeVars
+    Public Nodes As New NodeCollection
+End Module
+
+Public Class NodeCollection
     Inherits KeyedCollection(Of String, Node)
     Protected Overrides Function GetKeyForItem(ByVal aNode As Node) As String
         Return "K" & aNode.Id
@@ -12,23 +16,23 @@ Public Class Node
     Public Id As String
     Public Lat As Double
     Public Lon As Double
-    Public Timestamp As Date
+    Public Version As Integer
+    Public Changeset As Integer
     Public User As String
     Public Actor As Integer
-    Public Version As Integer
-    Public Tags As New Tags
-    Public Visible As Boolean
     Public UId As Integer
-    Public Changeset As Integer
+    Public Visible As Boolean = True
+    Public Timestamp As Date
+    Public Tags As New Tags
 
-    Public Sub New(ByVal aNode As Xml.XmlNode)
-        For Each lAttribute As XmlAttribute In aNode.Attributes
+    Public Sub New(ByVal aXmlNode As Xml.XmlNode)
+        For Each lAttribute As XmlAttribute In aXmlNode.Attributes
             Select Case lAttribute.Name
                 Case "id" : Id = lAttribute.Value
                 Case "lon" : Lon = lAttribute.Value
                 Case "lat" : Lat = lAttribute.Value
                 Case "timestamp" : Timestamp = lAttribute.Value
-                Case "user" : pUsers.AddReference(lAttribute.Value, Me)
+                Case "user" : User = lAttribute.Value
                 Case "actor" : Actor = lAttribute.Value
                 Case "versionr", "version" : Version = lAttribute.Value
                 Case "visible" : Visible = lAttribute.Value
@@ -38,7 +42,8 @@ Public Class Node
                     pSB.AppendLine("MissingAttribute " & lAttribute.Name & " forNode " & Id)
             End Select
         Next
-        For Each lNode As XmlNode In aNode.ChildNodes
+
+        For Each lNode As XmlNode In aXmlNode.ChildNodes
             Select Case lNode.Name
                 Case "tag"
                     Dim lTag As New Tag(lNode.Attributes, Me)
@@ -48,4 +53,22 @@ Public Class Node
             End Select
         Next
     End Sub
+
+    Public Function XML() As Xml.XmlNode
+        Dim lXmlDocument As New Xml.XmlDocument
+        Dim lXmlNode As Xml.XmlElement = lXmlDocument.CreateElement("node")
+        If Id.Length > 0 Then lXmlNode.SetAttribute("id", Id)
+        If Lat <> 0 Then lXmlNode.SetAttribute("lat", Lat)
+        If Lon <> 0 Then lXmlNode.SetAttribute("lon", Lon)
+        If Version <> 0 Then lXmlNode.SetAttribute("version", Version)
+        If Changeset <> 0 Then lXmlNode.SetAttribute("changeset", Version)
+        If User.Length > 0 Then lXmlNode.SetAttribute("user", User)
+        If UId > 0 Then lXmlNode.SetAttribute("uid", UId)
+        If Actor > 0 Then lXmlNode.SetAttribute("actor", Actor)
+        If Timestamp.ToString.Length > 0 Then lXmlNode.SetAttribute("timestamp", Timestamp)
+        For Each lTag As Tag In Tags
+            lXmlNode.AppendChild(lTag.XML(lXmlDocument))
+        Next
+        Return lXmlNode
+    End Function
 End Class
