@@ -1,10 +1,31 @@
 ﻿Imports System.Collections.ObjectModel
+Imports System.Text
 Imports atcUtility
 
-Public Class Relations
+Public Module RelationVariables
+    Public Relations As New RelationCollection
+End Module
+
+Public Class RelationCollection
     Inherits KeyedCollection(Of String, Relation)
     Protected Overrides Function GetKeyForItem(ByVal aRelation As Relation) As String
         Return "K" & aRelation.Id
+    End Function
+
+    Public Function Summary() As String
+        Dim lSB As New StringBuilder
+        lSB.AppendLine(vbCrLf & "Relations Id:Tags:Nodes:Ways")
+        For Each lRelation As Relation In Relations
+            lSB.AppendLine(vbTab & lRelation.Id & ":" & lRelation.Tags.Count & ":" & _
+                                                        lRelation.NodeKeys.Count & ":" & _
+                                                        lRelation.WayKeys.Count)
+            For Each lNodeKey As String In lRelation.NodeKeys
+                If Not Nodes.Contains(lNodeKey) Then
+                    lSB.AppendLine(vbTab & vbTab & "MissingNode " & lNodeKey)
+                End If
+            Next
+        Next
+        Return lSB.ToString
     End Function
 End Class
 
@@ -14,20 +35,21 @@ Public Class Relation
     Public User As String
     Public Actor As Integer
     Public Version As Integer
-    Public Tags As New Tags
-    Public NodeKeys As New Collection(Of String)
-    Public WayKeys As New Collection(Of String)
-    Public Visible As Boolean
+    Public Visible As Boolean = True
     Public UId As Integer
     Public Changeset As Integer
+    Public NodeKeys As New Collection(Of String)
+    Public WayKeys As New Collection(Of String)
+    Public Tags As New Tags
 
-    Public Sub New(ByVal aNode As Xml.XmlNode)
-        For Each lAttribute As XmlAttribute In aNode.Attributes
+    Public Sub New(ByVal aXmlNode As Xml.XmlNode)
+        Dim lUser As String = ""
+        For Each lAttribute As XmlAttribute In aXmlNode.Attributes
             Select Case lAttribute.Name
                 Case "id" : Id = lAttribute.Value
                 Case "timestamp" : Timestamp = lAttribute.Value
-                Case "user" : pUsers.AddReference(lAttribute.Value, Me)
-                    'Case "actor" : Actor = lAttribute.Value
+                Case "user" : lUser = lAttribute.Value
+                Case "actor" : Actor = lAttribute.Value
                 Case "version" : Version = lAttribute.Value
                 Case "visible" : Visible = lAttribute.Value
                 Case "uid" : UId = lAttribute.Value
@@ -36,7 +58,12 @@ Public Class Relation
                     pSB.AppendLine("MissingAttribute " & lAttribute.Name & " forRelation " & Id)
             End Select
         Next
-        For Each lXmlNode As XmlNode In aNode.ChildNodes
+
+        If lUser.Length > 0 Then
+            Users.AddReference(lUser, Me)
+        End If
+
+        For Each lXmlNode As XmlNode In aXmlNode.ChildNodes
             Select Case lXmlNode.Name
                 Case "member"
                     Dim lType As String = lXmlNode.Attributes("type").Value

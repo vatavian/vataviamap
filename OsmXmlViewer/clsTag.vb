@@ -34,4 +34,11 @@ Public Class Tag
         End If
         CType(CType(Tags.TagNames(lTagIndex), atcCollection).ItemByKey(Me.Value), atcCollection).Add(aObject)
     End Sub
+
+    Public Function XML(ByVal aXmlDocument As XmlDocument) As Xml.XmlNode
+        Dim lXmlTag As Xml.XmlElement = aXmlDocument.CreateElement("tag")
+        lXmlTag.SetAttribute("k", Me.Key)
+        lXmlTag.SetAttribute("v", Me.Value)
+        Return lXmlTag
+    End Function
 End Class
