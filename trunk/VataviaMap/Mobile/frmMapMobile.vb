@@ -176,22 +176,17 @@ RestartRedraw:
             lDetails = "Position not valid"
         Else
             lDetails = "(" & FormattedDegrees(GPS_POSITION.Latitude, g_DegreeFormat) & ", " _
-                                         & FormattedDegrees(GPS_POSITION.Longitude, g_DegreeFormat) & ")"
-            'If (GPS_POSITION.SeaLevelAltitudeValid) Then lDetails &= " " & GPS_POSITION.SeaLevelAltitude & "m"
-            'If (GPS_POSITION.SpeedValid AndAlso GPS_POSITION.Speed > 0) Then lDetails &= " " & GPS_POSITION.Speed & "knots"
+                           & FormattedDegrees(GPS_POSITION.Longitude, g_DegreeFormat) & ")"
+            If (GPS_POSITION.SeaLevelAltitudeValid) Then lDetails &= " " & GPS_POSITION.SeaLevelAltitude & "m"
+            If (GPS_POSITION.SpeedValid AndAlso GPS_POSITION.Speed > 0) Then lDetails &= " " & GPS_POSITION.Speed * 1.15077945 & "mph"
 
-            Dim lGPStime As DateTime = GPS_POSITION.Time.ToLocalTime()
-            If lGPStime.Hour > 12 Then
-                lDetails &= " " & lGPStime.Hour - 12 & ":" & Format(lGPStime.Minute, "00") & "p"
-            Else
-                lDetails &= " " & lGPStime.Hour & ":" & Format(lGPStime.Minute, "00") & "a"
+            If GPS_POSITION.TimeValid Then
+                lDetails &= vbLf & GPS_POSITION.Time.ToString("yyyy-MM-dd HH:mm:ss") & "Z"
+                Dim lAgeOfPosition As TimeSpan = DateTime.Now - GPS_POSITION.Time.ToLocalTime()
+                If (Math.Abs(lAgeOfPosition.TotalSeconds) > 5) Then
+                    lDetails &= " (" + lAgeOfPosition.ToString().TrimEnd("0"c) + " ago)"
+                End If
             End If
-            Dim lAgeOfPosition As TimeSpan = DateTime.Now - lGPStime
-            If (Math.Abs(lAgeOfPosition.TotalSeconds) > 5) Then
-                lDetails &= vbLf + " (" + lAgeOfPosition.ToString().TrimEnd("0"c) + " ago)"
-            End If
-
-            If Not pRecordTrack Then lDetails &= vbLf & "Logging Off"
         End If
         If pRecordCellID Then
             Dim lCurrentCellInfo As New clsCell(GPS_API.RIL.GetCellTowerInfo)
@@ -204,6 +199,7 @@ RestartRedraw:
         'If pUsedCacheCount + pAddedCacheCount > 0 Then
         '    lDetails &= " Cache " & Format(pUsedCacheCount / (pUsedCacheCount + pAddedCacheCount), "0.0 %") & " " & pDownloader.TileRAMcacheLimit
         'End If
+        If Not pRecordTrack Then lDetails &= vbLf & "Logging Off"
         Return lDetails
     End Function
 
@@ -1073,5 +1069,27 @@ SetCenter:
                 'MsgBox(ccd.FileName)
             End If
         End With
+    End Sub
+
+    Private Sub mnuSetTime_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuSetTime.Click
+        Dim lDetails As String = Nothing
+        Try
+            If GPS Is Nothing Then
+                lDetails = "GPS not started"
+            ElseIf Not GPS.Opened Then
+                lDetails = "GPS not yet open"
+            ElseIf GPS_POSITION Is Nothing Then
+                lDetails = "No GPS fix"
+            ElseIf Not GPS_POSITION.TimeValid Then
+                lDetails = "GPS Time not valid"
+            Else
+                SetSystemTime(GPS_POSITION.Time.ToLocalTime())
+            End If
+        Catch ex As Exception
+            lDetails = ex.Message
+        End Try
+        If lDetails IsNot Nothing Then
+            MsgBox(lDetails)
+        End If
     End Sub
 End Class

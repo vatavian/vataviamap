@@ -43,6 +43,7 @@ Partial Public Class frmMap
         Me.mnuRefreshOnClick = New System.Windows.Forms.MenuItem
         Me.mnuFindBuddy = New System.Windows.Forms.MenuItem
         Me.mnuTakePicture = New System.Windows.Forms.MenuItem
+        Me.mnuSetTime = New System.Windows.Forms.MenuItem
         Me.SuspendLayout()
         '
         'mnuMain
@@ -130,6 +131,7 @@ Partial Public Class frmMap
         Me.mnuGPS.MenuItems.Add(Me.mnuFollow)
         Me.mnuGPS.MenuItems.Add(Me.mnuAutoStart)
         Me.mnuGPS.MenuItems.Add(Me.mnuRecordTrack)
+        Me.mnuGPS.MenuItems.Add(Me.mnuSetTime)
         Me.mnuGPS.Text = "GPS"
         '
         'mnuCenter
@@ -159,6 +161,10 @@ Partial Public Class frmMap
         'mnuTakePicture
         '
         Me.mnuTakePicture.Text = "Take Picture"
+        '
+        'mnuSetTime
+        '
+        Me.mnuSetTime.Text = "Set Time from GPS"
         '
         'frmMap
         '
@@ -194,5 +200,6 @@ Partial Public Class frmMap
     Friend WithEvents mnuFindBuddy As System.Windows.Forms.MenuItem
     Friend WithEvents mnuViewControls As System.Windows.Forms.MenuItem
     Friend WithEvents mnuTakePicture As System.Windows.Forms.MenuItem
+    Friend WithEvents mnuSetTime As System.Windows.Forms.MenuItem
 
 End Class
