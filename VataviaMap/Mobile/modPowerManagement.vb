@@ -1,3 +1,4 @@
+Imports System.Runtime.InteropServices
 Module modPowerManagement
 
     Declare Sub SystemIdleTimerReset Lib "coredll" ()
@@ -105,5 +106,34 @@ Module modPowerManagement
         deviceNameList.Sort()
         Return deviceNameList
     End Function
+
+    'System time structure used to pass to P/Invoke...
+    <StructLayoutAttribute(LayoutKind.Sequential)> _
+    Private Structure SYSTEMTIME
+        Public year As Short
+        Public month As Short
+        Public dayOfWeek As Short
+        Public day As Short
+        Public hour As Short
+        Public minute As Short
+        Public second As Short
+        Public milliseconds As Short
+    End Structure
+
+    'P/Invoke dec for setting the system time...
+    Private Declare Function SetLocalTime Lib "coredll.dll" (ByRef time As SYSTEMTIME) As Boolean
+
+    Public Sub SetSystemTime(ByVal aDate As Date)
+        Dim st As SYSTEMTIME
+        st.year = aDate.Year
+        st.month = aDate.Month
+        st.dayOfWeek = aDate.DayOfWeek
+        st.day = aDate.Day
+        st.hour = aDate.Hour
+        st.minute = aDate.Minute
+        st.second = aDate.Second
+        st.milliseconds = aDate.Millisecond
+        SetLocalTime(st)
+    End Sub
 
 End Module
