@@ -46,8 +46,7 @@ Public Class Node
         For Each lNode As XmlNode In aXmlNode.ChildNodes
             Select Case lNode.Name
                 Case "tag"
-                    Dim lTag As New Tag(lNode.Attributes, Me)
-                    Tags.Add(lTag)
+                    Tags.Add(New Tag(lNode.Attributes))
                 Case Else
                     pSB.AppendLine("MissingXmlTag " & lNode.Name & " forNode " & Id)
             End Select

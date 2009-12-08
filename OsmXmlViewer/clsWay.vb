@@ -38,10 +38,6 @@ Public Class Way
     Public UId As Integer
     Public Changeset As Integer
     Public NodeKeys As New Collection(Of String)
-    Public LatMin As Double = 90
-    Public LatMax As Double = -90
-    Public LonMin As Double = 180
-    Public LonMax As Double = -180
     Public Tags As New Tags
 
     Public Sub New(ByVal aXmlNode As Xml.XmlNode)
@@ -67,18 +63,12 @@ Public Class Way
                     If NodeKeys.Contains(lKey) Then
                         Closed = True
                     Else
-                        NodeKeys.Add(lKey)
-                        Dim lNode As Node = Nodes.Item(lKey)
-                        With lNode
-                            If .Lon < LonMin Then LonMin = .Lon
-                            If .Lon > LonMax Then LonMax = .Lon
-                            If .Lat < LatMin Then LatMin = .Lat
-                            If .Lat > LatMax Then LatMax = .Lat
-                        End With
+                        If Nodes.Contains(lKey) Then
+                            NodeKeys.Add(lKey)
+                        End If
                     End If
                 Case "tag"
-                    Dim lTag As New Tag(lXmlNode.Attributes, Me)
-                    Tags.Add(lTag)
+                    Tags.Add(New Tag(lXmlNode.Attributes))
                 Case Else
                     pSB.AppendLine("MissingXmlTag " & lXmlNode.Name & " forWay " & Id)
             End Select

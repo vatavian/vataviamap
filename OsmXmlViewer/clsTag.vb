@@ -6,14 +6,27 @@ Public Class Tags
     Protected Overrides Function GetKeyForItem(ByVal aTag As Tag) As String
         Return aTag.Key
     End Function
-    Public Shared TagNames As New atcCollection
+    Public Shared TagNames As New SortedList
+
+    Public Shared Sub AddTags(ByVal aTags As Tags, ByRef aObject As Object)
+        For Each lTag As Tag In aTags
+            If Not Tags.TagNames.Contains(lTag.Key) Then
+                Tags.TagNames.Add(lTag.Key, New atcCollection)
+            End If
+
+            If Tags.TagNames(lTag.Key).indexfromkey(lTag.Value) = -1 Then
+                Tags.TagNames(lTag.Key).Add(lTag.Value, New atcCollection)
+            End If
+            CType(CType(Tags.TagNames(lTag.Key), atcCollection).ItemByKey(lTag.Value), atcCollection).Add(aObject)
+        Next
+    End Sub
 End Class
 
 Public Class Tag
     Public Key As String
     Public Value As String
 
-    Public Sub New(ByVal aTagAttributes As XmlAttributeCollection, ByRef aObject As Object)
+    Public Sub New(ByVal aTagAttributes As XmlAttributeCollection)
         For Each lTagAttribute As XmlAttribute In aTagAttributes
             Select Case lTagAttribute.Name
                 Case "k"
@@ -24,15 +37,6 @@ Public Class Tag
                     Debug.Print("Why?")
             End Select
         Next
-        If Tags.TagNames.IndexFromKey(Key) = -1 Then
-            Tags.TagNames.Add(Key, New atcCollection)
-        End If
-
-        Dim lTagIndex As Integer = Tags.TagNames.IndexFromKey(Key)
-        If Tags.TagNames(lTagIndex).indexfromkey(Value) = -1 Then
-            Tags.TagNames(lTagIndex).Add(Value, New atcCollection)
-        End If
-        CType(CType(Tags.TagNames(lTagIndex), atcCollection).ItemByKey(Me.Value), atcCollection).Add(aObject)
     End Sub
 
     Public Function XML(ByVal aXmlDocument As XmlDocument) As Xml.XmlNode
