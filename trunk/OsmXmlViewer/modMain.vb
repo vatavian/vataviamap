@@ -1,14 +1,16 @@
 ﻿Imports System.Text
+Imports System.Collections
+
 Imports atcUtility
 
 Module modMain
     Public pSB As New StringBuilder
     Public pBounds As Bounds
     'intown ATL
-    Public pMinLat As Double = 33.5
-    Public pMaxLat As Double = 34.0
-    Public pMinLon = -84.75
-    Public pMaxLon = -84.0
+    Public pMinLat As Double = 33.58
+    Public pMaxLat As Double = 33.95
+    Public pMinLon = -84.54
+    Public pMaxLon = -84.19
 
     Sub main()
         'IO.Directory.SetCurrentDirectory("..\..\..\osm_data")
@@ -27,13 +29,15 @@ Module modMain
         Dim lXmlReader As XmlReader = XmlReader.Create(lXmlFleName, lSettings)
         lXmlReader.MoveToContent()
         Dim lXmlReadCount As Integer = 0
+        Dim lStartTime As Date = Now
         While Not lXmlReader.EOF
             If lXmlReader.Name = "osm" Then
                 lXmlReader.Read()
             Else
                 Dim lXmlNode As XmlNode = lXml.ReadNode(lXmlReader)
                 If lXmlReadCount Mod 10000 = 0 Then
-                    Debug.Print(Now & " Done " & lXmlReadCount & " " & Nodes.Count & " " & Ways.Count & " " & MemUsage())
+                    Debug.Print(Now & " Elapsed " & CInt((Now - lStartTime).TotalMinutes) & " Done " & lXmlReadCount & " " & _
+                                Nodes.Count & " " & Ways.Count & " " & Relations.Count & " " & MemUsage())
                 End If
                 lXmlReadCount += 1
                 lXmlNodeTypeCounts.Increment(lXmlNode.Name, 1)
@@ -44,6 +48,7 @@ Module modMain
                             If .Lat > pMinLat AndAlso .Lat < pMaxLat AndAlso _
                                .Lon > pMinLon AndAlso .Lon < pMaxLon Then
                                 Nodes.Add(lNode)
+                                Tags.AddTags(lNode.Tags, lNode)
                                 If .User.Length > 0 Then
                                     Users.AddReference(.User, lNode)
                                 End If
@@ -52,9 +57,9 @@ Module modMain
                     Case "way"
                         Dim lWay As Way = New Way(lXmlNode)
                         With lWay
-                            If Not (.LatMin > pMaxLat OrElse .LatMax < pMinLat OrElse _
-                                    .LonMin > pMaxLon OrElse .LonMax < pMinLon) Then
+                            If .NodeKeys.Count > 0 Then
                                 Ways.Add(lWay)
+                                Tags.AddTags(lWay.Tags, lWay)
                                 If .User.Length > 0 Then
                                     Users.AddReference(.User, lWay)
                                 End If
@@ -62,8 +67,12 @@ Module modMain
                         End With
                     Case "relation"
                         Dim lRelation As Relation = New Relation(lXmlNode)
-                        'TODO: need to check bounds here
-                        Relations.Add(lRelation)
+                        With lRelation
+                            If .NodeKeys.Count > 0 OrElse .WayKeys.Count > 0 Then
+                                Relations.Add(lRelation)
+                                Tags.AddTags(lRelation.Tags, lRelation)
+                            End If
+                        End With
                     Case "bounds", "bound"
                         pBounds = New Bounds(lXmlNode)
                     Case Else
@@ -72,15 +81,25 @@ Module modMain
             End If
         End While
 
+        Debug.Print(Now & " Elapsed " & CInt((Now - lStartTime).TotalMinutes) & " Done " & lXmlReadCount & " " & _
+            Nodes.Count & " " & Ways.Count & " " & Relations.Count & " " & MemUsage())
+
         pSB.AppendLine(vbCrLf & "XMLNodeCounts")
         For lIndex As Integer = 0 To lXmlNodeTypeCounts.Count - 1
-            pSB.AppendLine(vbTab & lXmlNodeTypeCounts.Keys(lIndex) & ":" & lXmlNodeTypeCounts.ItemByIndex(lIndex))
+            pSB.Append(vbTab & (lXmlNodeTypeCounts.Keys(lIndex) & ":").ToString.PadRight(10) & _
+                                lXmlNodeTypeCounts.ItemByIndex(lIndex).ToString.PadLeft(12))
+            Select Case (lXmlNodeTypeCounts.Keys(lIndex))
+                Case "node" : pSB.Append(Nodes.Count.ToString.PadLeft(12))
+                Case "way" : pSB.Append(Ways.Count.ToString.PadLeft(12))
+                Case "relation" : pSB.Append(Relations.Count.ToString.PadLeft(12))
+            End Select
+            pSB.AppendLine()
         Next
 
-        pSB.AppendLine(vbCrLf & "TagNames")
-        For lTagIndex As Integer = 0 To Tags.TagNames.Count - 1
-            pSB.AppendLine(vbCrLf & Tags.TagNames.Keys(lTagIndex))
-            Dim lValueCollection As atcCollection = Tags.TagNames.ItemByIndex(lTagIndex)
+        pSB.AppendLine(vbCrLf & "TagNames " & Tags.TagNames.Count)
+        For Each lTagName As DictionaryEntry In Tags.TagNames
+            Dim lValueCollection As atcCollection = lTagName.Value
+            pSB.AppendLine(vbCrLf & lTagName.Key & "(" & lValueCollection.Count & ")")
             For lValueIndex As Integer = 0 To lValueCollection.Count - 1
                 Dim lReferenceCollection As atcCollection = lValueCollection.Item(lValueIndex)
                 pSB.AppendLine(vbTab & lValueCollection.Keys(lValueIndex) & " (" & lReferenceCollection.Count & ")")

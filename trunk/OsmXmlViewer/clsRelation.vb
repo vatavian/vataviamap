@@ -70,15 +70,18 @@ Public Class Relation
                     Dim lKey As String = "K" & lXmlNode.Attributes("ref").Value
                     Select Case lType
                         Case "node"
-                            NodeKeys.Add(lKey)
+                            If Nodes.Contains(lKey) Then
+                                NodeKeys.Add(lKey)
+                            End If
                         Case "way"
-                            WayKeys.Add(lKey)
+                            If Ways.Contains(lKey) Then
+                                WayKeys.Add(lKey)
+                            End If
                         Case Else
                             pSB.AppendLine("MissingMemberType " & lType)
                     End Select
                 Case "tag"
-                    Dim lTag As New Tag(lXmlNode.Attributes, Me)
-                    Tags.Add(lTag)
+                    Tags.Add(New Tag(lXmlNode.Attributes))
                 Case Else
                     pSB.AppendLine("MissingXmlTag " & lXmlNode.Name & " forRelation " & Id)
             End Select
