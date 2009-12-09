@@ -98,7 +98,7 @@ Public Class clsBuddy
                 Return True
             End With
         Catch ex As Exception
-            Debug.WriteLine(ex.Message)
+            Dbg(ex.Message)
         End Try
         Return False
     End Function
@@ -120,7 +120,7 @@ Public Class clsBuddy
             End If
 
         Catch ex As Exception
-            Debug.WriteLine(ex.Message)
+            Dbg(ex.Message)
         End Try
         Return False
     End Function
@@ -147,7 +147,7 @@ Public Class clsBuddy
                     Return True
                 End With
             Catch ex As Exception
-                Debug.WriteLine(ex.Message)
+                Dbg(ex.Message)
             End Try
         End If
         Return False
@@ -181,7 +181,7 @@ Public Class clsBuddy
                     Return True
                 End With
             Catch ex As Exception
-                Debug.WriteLine(ex.Message)
+                Dbg(ex.Message)
             End Try
         End If
         Return False
@@ -217,7 +217,7 @@ Public Class clsBuddy
                 End With
             End If
         Catch ex As Exception
-            Debug.WriteLine(ex.Message)
+            Dbg(ex.Message)
         End Try
         Return False
     End Function
@@ -259,7 +259,7 @@ Public Class clsBuddy
             End With
             Return True
         Catch ex As Exception
-            Debug.WriteLine(ex.Message)
+            Dbg(ex.Message)
         End Try
         Return False
     End Function

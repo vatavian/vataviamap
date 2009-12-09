@@ -41,7 +41,7 @@ Class clsCellLocationGoogle
                 End If
             End If
         Catch e As Exception
-            Debug.WriteLine(e.Message)
+            Dbg("GetCellLocation: " & e.Message)
         End Try
         Return False
     End Function 'GetLocation

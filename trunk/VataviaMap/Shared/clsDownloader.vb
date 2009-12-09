@@ -267,7 +267,7 @@ CheckCache:
                 If aReplaceExisting _
                     OrElse Not IO.File.Exists(lActualFilename) _
                     OrElse (TileCacheOldest > Date.MinValue AndAlso TileLastCheckedDate(lActualFilename) < TileCacheOldest) Then
-                    'Debug.WriteLine("Downloading Tile " & aZoom & "/" & aTilePoint.X & "/" & aTilePoint.Y)
+                    Dbg("Downloading Tile " & aZoom & "/" & aTilePoint.X & "/" & aTilePoint.Y)
                     Dim lSuffix As String = lActualFilename.Substring(lFileName.Length).Replace(".png", "")
                     If DownloadFile(MakeImageUrl(g_TileServerType, aTilePoint, aZoom), lFileName, True, lSuffix) Then
                         For Each lListener As IQueueListener In Listeners
@@ -338,7 +338,7 @@ CheckCache:
                 Dim lSkipped As Boolean = False
                 Dim lCachedETag As String = ""
                 Dim lMoveTo As String = aFileName
-                'Debug.WriteLine(strUrl)
+                Dbg("Download '" & aUrl & "' to '" & aFileName & "'")
                 'Dim lNewLastModified As String = Nothing
 
                 Try
@@ -401,7 +401,7 @@ CheckCache:
                         lSkipped = True
                     Else
                         lError = True
-                        Debug.WriteLine("Error downloading '" & aUrl & "' " & ex.Message)
+                        Dbg("Error downloading '" & aUrl & "' " & ex.Message)
                     End If
                 End Try
 AfterDownload:
@@ -425,7 +425,8 @@ AfterDownload:
                 End If
                 If lError Then
                     If aIsTile AndAlso lDownloadAs.Length > 0 AndAlso Not IO.File.Exists(aFileName) Then
-                        Try
+	                Try ' create placeholder empty file for tile with download error
+                            WriteTextFile(aFileName & pLastCheckedExtension, Format(Date.UtcNow, "yyyy-MM-dd HH:mm:ss"))
                             IO.File.Create(aFileName).Close()
                         Catch
                         End Try
@@ -463,8 +464,8 @@ AfterDownload:
                             IO.File.Move(lDownloadAs, aFileName)
                         End If
                         lSuccess = True
-                    Catch eMove As Exception
-                        Debug.WriteLine("Could not move '" & lDownloadAs & "' to '" & aFileName & "' : " & eMove.Message)
+                    Catch exMove As Exception
+                        Debug.WriteLine("Could not move '" & lDownloadAs & "' to '" & aFileName & "' : " & exMove.Message)
                     End Try
                 End If
             End If

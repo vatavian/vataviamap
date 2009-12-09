@@ -31,7 +31,7 @@ Module modPowerManagement
                 Try
                     pPowerHandle.Add(aDeviceName, SetPowerRequirement(aDeviceName, PowerState.D0, 4097, IntPtr.Zero, 0))
                 Catch e As Exception
-                    Debug.WriteLine(aDeviceName & ": SetPowerRequirement: " & e.Message)
+                    Dbg(aDeviceName & ": SetPowerRequirement: " & e.Message)
                 End Try
             End If
         Else
@@ -95,9 +95,9 @@ Module modPowerManagement
             Dim deviceName As String = TryCast(currentKey.GetValue("Name"), String)
             If deviceName IsNot Nothing Then
                 Try
-                    Debug.WriteLine(Format(i + 1, "00 ") & deviceName & " " & TryCast(currentKey.GetValue("Key"), String))
+                    Dbg(Format(i + 1, "00 ") & deviceName & " " & TryCast(currentKey.GetValue("Key"), String))
                 Catch
-                    Debug.WriteLine(Format(i + 1, "00 ") & deviceName)
+                    Dbg(Format(i + 1, "00 ") & deviceName)
                 End Try
                 deviceNameList.Add(deviceName)
             End If

@@ -852,7 +852,7 @@ Partial Class frmMap
                         End If
                     End If
                 Catch ex As Exception 'Maybe we could not parse lat and lon?
-                    Debug.WriteLine("DownloadedPoint:Exception:" & ex.Message)
+                    Dbg("DownloadedPoint:Exception:" & ex.Message)
                 End Try
         End Select
     End Sub

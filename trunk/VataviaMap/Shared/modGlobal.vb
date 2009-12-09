@@ -55,6 +55,9 @@ Module modGlobal
 
     Public g_TileProjection As String = "PROJCS[@Popular Visualisation CRS / Mercator@,GEOGCS[@Popular Visualisation CRS@,DATUM[@D_Popular_Visualisation_Datum@,SPHEROID[@Popular_Visualisation_Sphere@,6378137,0]],PRIMEM[@Greenwich@,0],UNIT[@Degree@,0.017453292519943295]],PROJECTION[@Mercator@],PARAMETER[@central_meridian@,0],PARAMETER[@scale_factor@,1],PARAMETER[@false_easting@,0],PARAMETER[@false_northing@,0],UNIT[@Meter@,1]]".Replace("@", """")
 
+    Public g_Debug As Boolean = True
+    Public g_DebugFilename As String = Nothing
+
     Public Enum EnumDegreeFormat
         DecimalDegrees = 0
         DegreesDecimalMinutes = 1
@@ -431,7 +434,7 @@ EndFound:
                 End If
             End If
         Catch ex As Exception
-            Debug.WriteLine("SetSomething Exception: " & ex.Message)
+            Dbg("SetSomething Exception: " & ex.Message)
             SetSomething = False
         End Try
     End Function
@@ -453,7 +456,7 @@ EndFound:
                 If lAppKey IsNot Nothing Then lAppKey.SetValue(aSettingName, aValue)
             End If
         Catch e As Exception
-            Debug.WriteLine("Exception setting '" & aSettingName & "': " & e.Message)
+            Dbg("Exception setting '" & aSettingName & "': " & e.Message)
         End Try
     End Sub
 
@@ -468,21 +471,25 @@ EndFound:
                 If aWait Then newProcess.WaitForExit()
             End If
         Catch ex As Exception
-            Debug.WriteLine("Exception opening '" & aFileOrURL & "': " & ex.Message)
+            Dbg("Exception opening '" & aFileOrURL & "': " & ex.Message)
         End Try
     End Sub
 
     Public Function EnsureDirForFile(ByVal aFilename As String) As Boolean
-        Dim lDirectory As String = IO.Path.GetDirectoryName(aFilename)
-        If lDirectory.Length > 1 Then
-            If Not IO.Directory.Exists(lDirectory) Then
-                IO.Directory.CreateDirectory(lDirectory)
+        Try
+            Dim lDirectory As String = IO.Path.GetDirectoryName(aFilename)
+            If lDirectory.Length > 1 Then
                 If Not IO.Directory.Exists(lDirectory) Then
-                    Return False
+                    IO.Directory.CreateDirectory(lDirectory)
+                    If Not IO.Directory.Exists(lDirectory) Then
+                        Return False
+                    End If
                 End If
             End If
-        End If
-        Return True
+            Return True
+        Catch
+            Return False
+        End Try
     End Function
 
     Public Sub DrawArrow(ByVal g As Graphics, ByVal aPen As Pen, ByVal aXcenter As Integer, ByVal aYcenter As Integer, ByVal aRadians As Double, ByVal aRadius As Integer)
@@ -585,6 +592,22 @@ EndFound:
                               g_Random.Next(0, 255))
 #End If
     End Function
+
+    Public Sub Dbg(ByVal aMessage As String)
+        Debug.WriteLine(aMessage)
+        If g_Debug Then
+            Try
+                If g_DebugFilename Is Nothing Then
+                    g_DebugFilename = IO.Path.GetTempPath & "VataviaMapLog" & DateTime.Now.ToString("yyyy-MM-dd_HH-mm") & ".txt"
+                End If
+                Dim lWriter As System.IO.StreamWriter = IO.File.AppendText(g_DebugFilename)
+                lWriter.WriteLine(DateTime.Now.ToString("HH:mm:ss ") & aMessage)
+                lWriter.Close()
+            Catch e As Exception
+                MsgBox("Could not log message to '" & g_DebugFilename & "'" & vbLf & e.Message & vbLf & aMessage)
+            End Try
+        End If
+    End Sub
 
 #Region "GMap code from http://www.codeplex.com/gmap4dotnet"
 

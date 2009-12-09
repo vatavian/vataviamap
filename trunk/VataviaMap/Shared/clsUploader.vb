@@ -34,10 +34,11 @@ Public Class clsUploader
                         lFormVariables.Add(lArgNameValue(0), lArgNameValue(1))
                     Next
                 End If
-                Debug.WriteLine(Upload(lSplitURL(0), New clsFileToUpload() {lFile}, lFormVariables))
+                Dbg("Upload " & aURL)
+                Dbg(Upload(lSplitURL(0), New clsFileToUpload() {lFile}, lFormVariables))
             End If
         Catch e As Exception
-            Debug.WriteLine("Exception in UploadFile: " & e.Message)
+            Dbg("Exception in UploadFile: " & e.Message)
         End Try
     End Sub
 
@@ -47,7 +48,7 @@ Public Class clsUploader
             lReq.Timeout = 30000 'Milliseconds
             lReq.GetResponse()
         Catch e As Exception
-            Debug.WriteLine("Exception in UploadPoint: " & e.Message)
+            Dbg("Exception in UploadPoint: " & e.Message)
         End Try
     End Sub
 
