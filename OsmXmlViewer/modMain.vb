@@ -6,11 +6,16 @@ Imports atcUtility
 Module modMain
     Public pSB As New StringBuilder
     Public pBounds As Bounds
-    'intown ATL
-    Public pMinLat As Double = 33.58
-    Public pMaxLat As Double = 33.95
-    Public pMinLon = -84.54
-    Public pMaxLon = -84.19
+    'intown ATL (inside 285)
+    'Public pMinLat As Double = 33.58
+    'Public pMaxLat As Double = 33.95
+    'Public pMinLon = -84.54
+    'Public pMaxLon = -84.19
+    'more metro ATL
+    Public pMinLat As Double = 33.0
+    Public pMaxLat As Double = 34.5
+    Public pMinLon = -85.0
+    Public pMaxLon = -83.75
 
     Sub main()
         'IO.Directory.SetCurrentDirectory("..\..\..\osm_data")
@@ -48,7 +53,7 @@ Module modMain
                             If .Lat > pMinLat AndAlso .Lat < pMaxLat AndAlso _
                                .Lon > pMinLon AndAlso .Lon < pMaxLon Then
                                 Nodes.Add(lNode)
-                                Tags.AddTags(lNode.Tags, lNode)
+                                Tags.AddTags(.Tags, lNode)
                                 If .User.Length > 0 Then
                                     Users.AddReference(.User, lNode)
                                 End If
@@ -59,7 +64,7 @@ Module modMain
                         With lWay
                             If .NodeKeys.Count > 0 Then
                                 Ways.Add(lWay)
-                                Tags.AddTags(lWay.Tags, lWay)
+                                Tags.AddTags(.Tags, lWay)
                                 If .User.Length > 0 Then
                                     Users.AddReference(.User, lWay)
                                 End If
@@ -70,7 +75,10 @@ Module modMain
                         With lRelation
                             If .NodeKeys.Count > 0 OrElse .WayKeys.Count > 0 Then
                                 Relations.Add(lRelation)
-                                Tags.AddTags(lRelation.Tags, lRelation)
+                                Tags.AddTags(.Tags, lRelation)
+                                If .User.Length > 0 Then
+                                    Users.AddReference(.User, lRelation)
+                                End If
                             End If
                         End With
                     Case "bounds", "bound"
@@ -97,21 +105,23 @@ Module modMain
         Next
 
         pSB.AppendLine(vbCrLf & "TagNames " & Tags.TagNames.Count)
-        For Each lTagName As DictionaryEntry In Tags.TagNames
-            Dim lValueCollection As atcCollection = lTagName.Value
-            pSB.AppendLine(vbCrLf & lTagName.Key & "(" & lValueCollection.Count & ")")
-            For lValueIndex As Integer = 0 To lValueCollection.Count - 1
-                Dim lReferenceCollection As atcCollection = lValueCollection.Item(lValueIndex)
-                pSB.AppendLine(vbTab & lValueCollection.Keys(lValueIndex) & " (" & lReferenceCollection.Count & ")")
-                Dim lReferenceMax As Integer = Math.Min(lReferenceCollection.Count - 1, 20)
-                For lReferenceIndex As Integer = 0 To lReferenceMax
-                    Dim lReference As Object = lReferenceCollection.ItemByIndex(lReferenceIndex)
-                    pSB.AppendLine(vbTab & vbTab & lReference.GetType.Name & ":" & lReference.id)
+        For Each lTagName As KeyValuePair(Of String, SortedList) In Tags.TagNames
+            If lTagName.Key <> "tiger:tlid" Then
+                Dim lValueCollection As SortedList = lTagName.Value
+                pSB.AppendLine(vbCrLf & lTagName.Key & "(" & lValueCollection.Count & ")")
+                For Each lValueEntry As DictionaryEntry In lValueCollection
+                    Dim lReferenceCollection As SortedList = lValueEntry.Value
+                    pSB.AppendLine(vbTab & lValueEntry.Key & " (" & lReferenceCollection.Count & ")")
+                    Dim lReferenceMax As Integer = Math.Min(lReferenceCollection.Count - 1, 20)
+                    For lReferenceIndex As Integer = 0 To lReferenceMax
+                        Dim lReference As Object = lReferenceCollection.Values(lReferenceIndex)
+                        pSB.AppendLine(vbTab & vbTab & lReference.GetType.Name & ":" & lReference.id)
+                    Next
+                    If lReferenceMax < lReferenceCollection.Count - 1 Then
+                        pSB.AppendLine(vbTab & vbTab & "...")
+                    End If
                 Next
-                If lReferenceMax < lReferenceCollection.Count - 1 Then
-                    pSB.AppendLine(vbTab & vbTab & "...")
-                End If
-            Next
+            End If
         Next
 
         pSB.Append(Ways.Summary)

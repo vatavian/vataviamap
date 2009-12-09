@@ -18,7 +18,7 @@ Public Class Node
     Public Lon As Double
     Public Version As Integer
     Public Changeset As Integer
-    Public User As String
+    Public User As String = ""
     Public Actor As Integer
     Public UId As Integer
     Public Visible As Boolean = True

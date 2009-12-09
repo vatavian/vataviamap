@@ -19,7 +19,9 @@ Public Class UserCollection
         aObject.User = aName
         Dim lDate As Date = aObject.timestamp
         With CType(Users.Item(aName), User)
-            .Objects.Add(aObject)
+            If Not .Objects.Contains(aObject.id) Then
+                .Objects.Add(aObject.Id, aObject)
+            End If
             If .FirstEdit > lDate Then
                 .FirstEdit = lDate
             End If
@@ -42,7 +44,7 @@ End Class
 
 Public Class User
     Public Name As String
-    Public Objects As New atcCollection
+    Public Objects As New SortedList
     Public FirstEdit As Date = "2100/01/01"
     Public LastEdit As Date = "1900/01/01"
 
@@ -54,7 +56,7 @@ Public Class User
         Dim lSB As New StringBuilder
         Dim lCounts As New atcCollection
         For Each lUserObject In Me.Objects
-            lCounts.Increment(lUserObject.GetType.ToString.Replace("OsmXmlViewer.", ""), 1)
+            lCounts.Increment(lUserObject.Value.GetType.ToString.Replace("OsmXmlViewer.", ""), 1)
         Next
         With Me
             lSB.AppendLine(vbTab & .Name.PadRight(20) & _
