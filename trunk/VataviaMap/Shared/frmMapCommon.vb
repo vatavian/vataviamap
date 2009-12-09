@@ -24,6 +24,8 @@ Partial Class frmMap
     Private pUseMarkedTiles As Boolean = False
     Private pShowTransparentTiles As Boolean = False
 
+    Private pClickWaypoint As Boolean = False
+
     Private pControlsUse As Boolean = False
     Private pControlsShow As Boolean = False
     Private pControlsMargin As Integer = 40 'This gets set on resize
@@ -1048,8 +1050,8 @@ Partial Class frmMap
     Private Sub frmMap_MouseUp(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles Me.MouseUp
         pMouseDragging = False
         If pControlsUse AndAlso _
-           Math.Abs(pMouseDragStartLocation.X - e.X) < pControlsMargin / 2 AndAlso _
-           Math.Abs(pMouseDragStartLocation.Y - e.Y) < pControlsMargin / 2 Then
+               Math.Abs(pMouseDragStartLocation.X - e.X) < pControlsMargin / 2 AndAlso _
+               Math.Abs(pMouseDragStartLocation.Y - e.Y) < pControlsMargin / 2 Then
             'Count this as a tap/click and navigate if in a control area
             Dim lNeedRedraw As Boolean = True
             If e.X < pControlsMargin Then

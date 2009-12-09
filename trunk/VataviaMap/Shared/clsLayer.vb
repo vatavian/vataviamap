@@ -342,6 +342,7 @@ Public Class clsLayerGPX
                                    "terrain", _
                                    "encoded_hints", _
                                    "hints", _
+                                   "time", _
                                    "age"}
 
     Private Sub SetDefaults()
@@ -441,7 +442,7 @@ Public Class clsLayerGPX
                             For Each lTrackPoint As clsGPXwaypoint In lTrackSegment.trkpt
 
 #If Not Smartphone Then
-                                If Not DrawTrackpoint(lTrackPoint, aTopLeftTile, aOffsetToCenter, lSymbolPath, lTrackPath, lLastX, lLastY) Then
+                                If Not DrawTrackpoint(g, lTrackPoint, aTopLeftTile, aOffsetToCenter, lSymbolPath, lTrackPath, lLastX, lLastY) Then
                                     If lTrackPath.PointCount > 0 Then
                                         g.DrawPath(PenTrack, lTrackPath)
                                         lTrackPath.Reset()
@@ -558,34 +559,7 @@ Public Class clsLayerGPX
                 'Debug.WriteLine(.lat & ", " & .lon & " -> " & lX & ", " & lY)
                 If MapForm.Zoom >= LabelMinZoom Then 'AndAlso .sym IsNot Nothing Then
                     Try
-                        Dim lLabelText As String = Nothing
-                        Select Case LabelField
-                            Case "name" : lLabelText = .name
-                            Case "urlname" : lLabelText = .urlname
-                            Case "desc" : lLabelText = .desc
-                            Case "container" : lLabelText = .cache.container
-                            Case "difficulty" : lLabelText = .cache.difficulty
-                            Case "terrain" : lLabelText = .cache.difficulty
-                            Case "encoded_hints" : lLabelText = .cache.encoded_hints
-                            Case "hints" : lLabelText = ROT13(.cache.encoded_hints)
-                            Case "age"
-                                If aWaypoint.timeSpecified Then
-                                    'Dim lTimeSince As TimeSpan = Now.Subtract(Date.Parse(lFields(0) & " " & lFields(1)))
-                                    Dim lTimeSince As TimeSpan = Now.ToUniversalTime.Subtract(aWaypoint.time)
-                                    Dim lTimeSinceString As String = ""
-                                    If lTimeSince.TotalDays >= 365 Then
-                                        lTimeSinceString = Format(lTimeSince.TotalDays / 365, "0.#") & "yr"
-                                    ElseIf lTimeSince.TotalDays >= 1 Then
-                                        lTimeSinceString = lTimeSince.Days & "dy"
-                                    ElseIf lTimeSince.TotalHours >= 1 Then
-                                        lTimeSinceString = lTimeSince.Hours & "hr"
-                                    ElseIf lTimeSince.TotalMinutes >= 1 Then
-                                        lTimeSinceString = lTimeSince.Minutes & "min"
-                                    End If
-                                    lLabelText = lTimeSinceString
-                                End If
-
-                        End Select
+                        Dim lLabelText As String = LabelText(aWaypoint)
                         If lLabelText IsNot Nothing AndAlso lLabelText.Length > 0 Then
                             g.DrawString(lLabelText, FontLabel, BrushLabel, lX, lY)
                         End If
@@ -599,11 +573,45 @@ Public Class clsLayerGPX
         End With
     End Function
 
+    Private Function LabelText(ByVal aWaypoint As clsGPXwaypoint) As String
+        Dim lLabelText As String = Nothing
+        With aWaypoint
+            Select Case LabelField
+                Case "name" : lLabelText = .name
+                Case "urlname" : lLabelText = .urlname
+                Case "desc" : lLabelText = .desc
+                Case "container" : lLabelText = .cache.container
+                Case "difficulty" : lLabelText = .cache.difficulty
+                Case "terrain" : lLabelText = .cache.difficulty
+                Case "encoded_hints" : lLabelText = .cache.encoded_hints
+                Case "hints" : lLabelText = ROT13(.cache.encoded_hints)
+                Case "time" : If .timeSpecified Then lLabelText = .time.ToString
+                Case "age"
+                    If .timeSpecified Then
+                        'Dim lTimeSince As TimeSpan = Now.Subtract(Date.Parse(lFields(0) & " " & lFields(1)))
+                        Dim lTimeSince As TimeSpan = Now.ToUniversalTime.Subtract(.time)
+                        Dim lTimeSinceString As String = ""
+                        If lTimeSince.TotalDays >= 365 Then
+                            lTimeSinceString = Format(lTimeSince.TotalDays / 365, "0.#") & "yr"
+                        ElseIf lTimeSince.TotalDays >= 1 Then
+                            lTimeSinceString = lTimeSince.Days & "dy"
+                        ElseIf lTimeSince.TotalHours >= 1 Then
+                            lTimeSinceString = lTimeSince.Hours & "hr"
+                        ElseIf lTimeSince.TotalMinutes >= 1 Then
+                            lTimeSinceString = lTimeSince.Minutes & "min"
+                        End If
+                        lLabelText = lTimeSinceString
+                    End If
+            End Select
+        End With
+        Return lLabelText
+    End Function
+
     ''' <summary>
     ''' Draw a GPX track point or the GPS cursor, return True if it was drawn
     ''' </summary>
-    ''' <param name="g"></param>
-    ''' <param name="aWaypoint"></param>
+    ''' <param name="g">Graphics to draw on</param>
+    ''' <param name="aWaypoint">Waypoint to draw</param>
     ''' <param name="aTopLeftTile"></param>
     ''' <param name="aOffsetToCenter"></param>
     ''' <param name="aFromX">X coordinate of point to draw line from, -1 to skip drawing from</param>
@@ -611,11 +619,11 @@ Public Class clsLayerGPX
     ''' <returns>True if waypoint was drawn, False if it was outside view</returns>
     ''' <remarks></remarks>
     Public Function DrawTrackpoint(ByVal g As Graphics, _
-                                    ByVal aWaypoint As clsGPXwaypoint, _
-                                    ByVal aTopLeftTile As Point, _
-                                    ByVal aOffsetToCenter As Point, _
-                                    ByRef aFromX As Integer, _
-                                    ByRef aFromY As Integer) As Boolean
+                                   ByVal aWaypoint As clsGPXwaypoint, _
+                                   ByVal aTopLeftTile As Point, _
+                                   ByVal aOffsetToCenter As Point, _
+                                   ByRef aFromX As Integer, _
+                                   ByRef aFromY As Integer) As Boolean
         With aWaypoint
             If MapForm.LatLonInView(.lat, .lon) Then
                 Dim lTileXY As Point 'Which tile this point belongs in
@@ -649,6 +657,15 @@ Public Class clsLayerGPX
                             g.DrawEllipse(SymbolPen, lX - SymbolSize, lY - SymbolSize, SymbolSize * 2, SymbolSize * 2)
                         End If
                 End Select
+                If MapForm.Zoom >= LabelMinZoom AndAlso LabelField IsNot Nothing AndAlso LabelField.Length > 0 Then
+                    Try
+                        Dim lLabelText As String = LabelText(aWaypoint)
+                        If lLabelText IsNot Nothing AndAlso lLabelText.Length > 0 Then
+                            g.DrawString(lLabelText, FontLabel, BrushLabel, lX, lY)
+                        End If
+                    Catch
+                    End Try
+                End If
                 aFromX = lX
                 aFromY = lY
                 Return True
@@ -663,22 +680,24 @@ Public Class clsLayerGPX
     ''' <summary>
     ''' Optimized version using GraphicsPath not available on Smartphone
     ''' </summary>
-    ''' <param name="aWaypoint"></param>
+    ''' <param name="g">Graphics to draw on (needed for DrawString which cannot go into GraphicsPath)</param>
+    ''' <param name="aWaypoint">Waypoint to draw</param>
     ''' <param name="aTopLeftTile"></param>
     ''' <param name="aOffsetToCenter"></param>
-    ''' <param name="aSymbolPath"></param>
-    ''' <param name="aTrackPath"></param>
+    ''' <param name="aSymbolPath">GraphicsPath for drawing symbols</param>
+    ''' <param name="aTrackPath">GraphicsPath for drawing track</param>
     ''' <param name="aFromX">X coordinate of point to draw line from, -1 to skip drawing from</param>
     ''' <param name="aFromY">Y coordinate of point to draw line from, -1 to skip drawing from</param>
     ''' <returns></returns>
     ''' <remarks></remarks>
-    Private Function DrawTrackpoint(ByVal aWaypoint As clsGPXwaypoint, _
-                                ByVal aTopLeftTile As Point, _
-                                ByVal aOffsetToCenter As Point, _
-                                ByVal aSymbolPath As Drawing2D.GraphicsPath, _
-                                ByVal aTrackPath As Drawing2D.GraphicsPath, _
-                                ByRef aFromX As Integer, _
-                                ByRef aFromY As Integer) As Boolean
+    Private Function DrawTrackpoint(ByVal g As Graphics, _
+                                    ByVal aWaypoint As clsGPXwaypoint, _
+                                    ByVal aTopLeftTile As Point, _
+                                    ByVal aOffsetToCenter As Point, _
+                                    ByVal aSymbolPath As Drawing2D.GraphicsPath, _
+                                    ByVal aTrackPath As Drawing2D.GraphicsPath, _
+                                    ByRef aFromX As Integer, _
+                                    ByRef aFromY As Integer) As Boolean
         With aWaypoint
             If MapForm.LatLonInView(.lat, .lon) Then
                 Dim lTileXY As Point 'Which tile this point belongs in
@@ -712,6 +731,15 @@ Public Class clsLayerGPX
                             aSymbolPath.AddEllipse(lX - SymbolSize, lY - SymbolSize, SymbolSize * 2, SymbolSize * 2)
                         End If
                 End Select
+                If MapForm.Zoom >= LabelMinZoom AndAlso LabelField IsNot Nothing AndAlso LabelField.Length > 0 Then
+                    Try
+                        Dim lLabelText As String = LabelText(aWaypoint)
+                        If lLabelText IsNot Nothing AndAlso lLabelText.Length > 0 Then
+                            g.DrawString(lLabelText, FontLabel, BrushLabel, lX, lY)
+                        End If
+                    Catch
+                    End Try
+                End If
                 aFromX = lX
                 aFromY = lY
                 Return True

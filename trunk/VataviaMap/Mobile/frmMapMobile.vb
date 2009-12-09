@@ -8,7 +8,13 @@ Public Class frmMap
     Private pLastCellTower As clsCell
     Private pCellLocationProviders As New Generic.List(Of clsCellLocationProvider)
 
+    ' Synchronize access to track log file
     Private Shared pTrackMutex As New Threading.Mutex()
+
+    Private pTrackWaypoints As New System.Text.StringBuilder()
+
+    ' File name of waypoints currently being written
+    Private pWaypointLogFilename As String
 
     ' File name of track log currently being written
     Private pTrackLogFilename As String
@@ -250,6 +256,10 @@ RestartRedraw:
                     pClickedTileFilename = FindTileFilename(lBounds, e.X, e.Y)
                     pDownloader.DeleteTile(pClickedTileFilename)
                     Redraw()
+                ElseIf pClickWaypoint Then
+                    AddWaypoint(CenterLat - (e.Y - Me.ClientRectangle.Height / 2) * LatHeight / Me.ClientRectangle.Height, _
+                                CenterLon + (e.X - Me.ClientRectangle.Width / 2) * LonWidth / Me.ClientRectangle.Width, _
+                                Date.UtcNow, Now.ToString("yyyy-MM-dd HH:mm:ss"))
                 Else
                     MouseDownLeft(e)
                 End If
@@ -299,6 +309,8 @@ RestartRedraw:
             While System.IO.File.Exists(pTrackLogFilename)
                 pTrackLogFilename = lBaseFilename & "_" & ++lLogIndex & ".gpx"
             End While
+            CloseLog(pWaypointLogFilename, "</gpx>" & vbLf)
+            pWaypointLogFilename = IO.Path.ChangeExtension(pTrackLogFilename, ".wpt.gpx")
             pTrackMutex.ReleaseMutex()
 
             mnuStartStopGPS.Text = "Opening GPS..."
@@ -319,23 +331,15 @@ RestartRedraw:
         Threading.Thread.Sleep(100)
         Me.SaveSettings() 'In case of crash, at least we can start again with the same settings
 
+        Try
+            mnuStartStopGPS.Text = "Finishing Log..."
+            Application.DoEvents()
+        Catch
+        End Try
+
         pTrackMutex.WaitOne()
-        If System.IO.File.Exists(pTrackLogFilename) Then
-            Try
-                mnuStartStopGPS.Text = "Finishing Log..."
-                Application.DoEvents()
-            Catch
-            End Try
-
-            Dim lFile As System.IO.StreamWriter = System.IO.File.AppendText(pTrackLogFilename)
-            lFile.Write("</trkseg>" & vbLf & "</trk>" & vbLf & "</gpx>" & vbLf)
-            lFile.Close()
-            If pUploadOnStop AndAlso pUploader.Enabled Then
-                pUploader.Enqueue(g_UploadTrackURL, pTrackLogFilename, QueueItemType.FileItem, 0)
-            End If
-
-            pTrackLogFilename = ""
-        End If
+        CloseLog(pWaypointLogFilename, "</gpx>" & vbLf)
+        CloseLog(pTrackLogFilename, "</trkseg>" & vbLf & "</trk>" & vbLf & "</gpx>" & vbLf)
         pTrackMutex.ReleaseMutex()
 
         If GPS IsNot Nothing Then
@@ -356,6 +360,20 @@ RestartRedraw:
             Application.DoEvents()
         Catch
         End Try
+    End Sub
+
+    Private Sub CloseLog(ByRef aFilename As String, ByVal aAppend As String)
+        If IO.File.Exists(aFilename) Then
+            If aAppend IsNot Nothing AndAlso aAppend.Length > 0 Then
+                Dim lFile As System.IO.StreamWriter = System.IO.File.AppendText(aFilename)
+                lFile.Write(aAppend)
+                lFile.Close()
+            End If
+            If pUploadOnStop AndAlso pUploader.Enabled Then
+                pUploader.Enqueue(g_UploadTrackURL, aFilename, QueueItemType.FileItem, 0)
+            End If
+        End If
+        aFilename = ""
     End Sub
 
     Private updateDataHandler As EventHandler
@@ -494,31 +512,7 @@ SetCenter:
                 lTrackPoint.SetExtension("phonesignal", Microsoft.WindowsMobile.Status.SystemState.PhoneSignalStrength)
 
                 If pRecordTrack Then
-                    pTrackMutex.WaitOne()
-                    Try
-                        If System.IO.File.Exists(pTrackLogFilename) Then
-                            'System.IO.StreamReader lReader = new System.IO.StreamReader(logFilename);
-                            'str = lReader.ReadToEnd();
-                            'lReader.Close();
-                            'int lEndGPX = str.LastIndexOf("</trkseg>");
-                            'if (lEndGPX < 0)
-                            '    lEndGPX = str.LastIndexOf("</gpx>");
-                            'if (lEndGPX > 0) str = str.Substring(0, lEndGPX - 1);
-                            'if (!aNewTrackSeg) aNewTrackSeg = (str.IndexOf("<trkseg>") < 0);
-                        Else
-                            lGPXheader = "<?xml version=""1.0"" encoding=""UTF-8""?>" & vbLf & "<gpx xmlns=""http://www.topografix.com/GPX/1/1"" version=""1.1"" creator=""" & g_AppName & """ xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xsi:schemaLocation=""http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.topografix.com/GPX/gpx_overlay/0/3 http://www.topografix.com/GPX/gpx_overlay/0/3/gpx_overlay.xsd http://www.topografix.com/GPX/gpx_modified/0/1 http://www.topografix.com/GPX/gpx_modified/0/1/gpx_modified.xsd"">" & vbLf & "<trk>" & vbLf & "<name>" & g_AppName & " Log " & System.IO.Path.GetFileNameWithoutExtension(pTrackLogFilename) & " </name>" & vbLf & "<type>GPS Tracklog</type>" & vbLf & "<trkseg>" & vbLf
-                            IO.Directory.CreateDirectory(pGPXFolder)
-                        End If
-                        Dim lFile As System.IO.StreamWriter = System.IO.File.AppendText(pTrackLogFilename)
-                        If lGPXheader IsNot Nothing Then
-                            lFile.Write(lGPXheader)
-                        End If
-                        lFile.Write(lTrackPoint.ToString)
-                        lFile.Close()
-                    Catch exRecordTrack As Exception
-                        Windows.Forms.MessageBox.Show("Could not save " & vbLf & pTrackLogFilename & vbLf & exRecordTrack.Message)
-                    End Try
-                    pTrackMutex.ReleaseMutex()
+                    AppendLog(pTrackLogFilename, lTrackPoint.ToString, "<?xml version=""1.0"" encoding=""UTF-8""?>" & vbLf & "<gpx xmlns=""http://www.topografix.com/GPX/1/1"" version=""1.1"" creator=""" & g_AppName & """ xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xsi:schemaLocation=""http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.topografix.com/GPX/gpx_overlay/0/3 http://www.topografix.com/GPX/gpx_overlay/0/3/gpx_overlay.xsd http://www.topografix.com/GPX/gpx_modified/0/1 http://www.topografix.com/GPX/gpx_modified/0/1/gpx_modified.xsd"">" & vbLf & "<trk>" & vbLf & "<name>" & g_AppName & " Log " & System.IO.Path.GetFileNameWithoutExtension(pTrackLogFilename) & " </name>" & vbLf & "<type>GPS Tracklog</type>" & vbLf & "<trkseg>" & vbLf)
                 End If
                 pTrackLastTime = DateTime.UtcNow
 
@@ -530,6 +524,21 @@ SetCenter:
             pTrackLastLongitude = GPS_POSITION.Longitude
         End If
     End Sub 'TrackAddPoint
+
+    Private Sub AppendLog(ByVal aFilename As String, ByVal aAppend As String, ByVal aHeader As String)
+        pTrackMutex.WaitOne()
+        Try
+            Dim lNeedHeader As Boolean = Not IO.File.Exists(aFilename)
+            If lNeedHeader Then IO.Directory.CreateDirectory(IO.Path.GetDirectoryName(aFilename))
+            Dim lFile As System.IO.StreamWriter = System.IO.File.AppendText(aFilename)
+            If lNeedHeader AndAlso aHeader IsNot Nothing Then lFile.Write(aHeader)
+            lFile.Write(aAppend)
+            lFile.Close()
+        Catch ex As Exception
+            Windows.Forms.MessageBox.Show("Could not save " & vbLf & pTrackLogFilename & vbLf & ex.Message)
+        End Try
+        pTrackMutex.ReleaseMutex()
+    End Sub
 
     Private Sub UploadGpsPosition()
         If pUploader.Enabled _
@@ -1097,5 +1106,20 @@ SetCenter:
         If lDetails IsNot Nothing Then
             MsgBox(lDetails)
         End If
+    End Sub
+
+    Private Sub mnuWaypoint_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuWaypoint.Click
+        mnuWaypoint.Checked = Not mnuWaypoint.Checked
+        pClickWaypoint = mnuWaypoint.Checked
+    End Sub
+
+    Private Sub AddWaypoint(ByVal aLatitude As Double, ByVal aLongitude As Double, ByVal aTime As Date, ByVal aName As String)
+        Dim lWayPoint As New clsGPXwaypoint("wpt", aLatitude, aLongitude)
+        lWayPoint.time = aTime
+        lWayPoint.name = aName
+        If pWaypointLogFilename Is Nothing OrElse pWaypointLogFilename.Length = 0 Then
+            pWaypointLogFilename = IO.Path.Combine(pGPXFolder, DateTime.Now.ToString("yyyy-MM-dd_HH-mm")) & ".wpt.gpx"
+        End If
+        AppendLog(pWaypointLogFilename, lWayPoint.ToString, "<?xml version=""1.0"" encoding=""UTF-8""?>" & vbLf & "<gpx xmlns=""http://www.topografix.com/GPX/1/1"" version=""1.1"" creator=""" & g_AppName & """ xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xsi:schemaLocation=""http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.topografix.com/GPX/gpx_overlay/0/3 http://www.topografix.com/GPX/gpx_overlay/0/3/gpx_overlay.xsd http://www.topografix.com/GPX/gpx_modified/0/1 http://www.topografix.com/GPX/gpx_modified/0/1/gpx_modified.xsd"">" & vbLf)
     End Sub
 End Class
