@@ -6,18 +6,20 @@ Public Class Tags
     Protected Overrides Function GetKeyForItem(ByVal aTag As Tag) As String
         Return aTag.Key
     End Function
-    Public Shared TagNames As New SortedList
+    Public Shared TagNames As New SortedList(Of String, SortedList)
 
     Public Shared Sub AddTags(ByVal aTags As Tags, ByRef aObject As Object)
         For Each lTag As Tag In aTags
-            If Not Tags.TagNames.Contains(lTag.Key) Then
-                Tags.TagNames.Add(lTag.Key, New atcCollection)
+            If Not TagNames.ContainsKey(lTag.Key) Then
+                TagNames.Add(lTag.Key, New SortedList)
             End If
 
-            If Tags.TagNames(lTag.Key).indexfromkey(lTag.Value) = -1 Then
-                Tags.TagNames(lTag.Key).Add(lTag.Value, New atcCollection)
+            Dim lTagNameList As SortedList = TagNames(lTag.Key)
+            If lTagNameList.IndexOfKey(lTag.Value) = -1 Then
+                lTagNameList.Add(lTag.Value, New SortedList)
             End If
-            CType(CType(Tags.TagNames(lTag.Key), atcCollection).ItemByKey(lTag.Value), atcCollection).Add(aObject)
+            Dim lTagNameValues As SortedList = lTagNameList.Item(lTag.Value)
+            lTagNameValues.Add(aObject.Id, aObject)
         Next
     End Sub
 End Class
