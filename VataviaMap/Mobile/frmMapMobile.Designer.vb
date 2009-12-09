@@ -40,10 +40,11 @@ Partial Public Class frmMap
         Me.mnuFollow = New System.Windows.Forms.MenuItem
         Me.mnuAutoStart = New System.Windows.Forms.MenuItem
         Me.mnuRecordTrack = New System.Windows.Forms.MenuItem
+        Me.mnuSetTime = New System.Windows.Forms.MenuItem
         Me.mnuRefreshOnClick = New System.Windows.Forms.MenuItem
         Me.mnuFindBuddy = New System.Windows.Forms.MenuItem
         Me.mnuTakePicture = New System.Windows.Forms.MenuItem
-        Me.mnuSetTime = New System.Windows.Forms.MenuItem
+        Me.mnuWaypoint = New System.Windows.Forms.MenuItem
         Me.SuspendLayout()
         '
         'mnuMain
@@ -131,6 +132,7 @@ Partial Public Class frmMap
         Me.mnuGPS.MenuItems.Add(Me.mnuFollow)
         Me.mnuGPS.MenuItems.Add(Me.mnuAutoStart)
         Me.mnuGPS.MenuItems.Add(Me.mnuRecordTrack)
+        Me.mnuGPS.MenuItems.Add(Me.mnuWaypoint)
         Me.mnuGPS.MenuItems.Add(Me.mnuSetTime)
         Me.mnuGPS.Text = "GPS"
         '
@@ -150,6 +152,10 @@ Partial Public Class frmMap
         '
         Me.mnuRecordTrack.Text = "Record Track"
         '
+        'mnuSetTime
+        '
+        Me.mnuSetTime.Text = "Set Time from GPS"
+        '
         'mnuRefreshOnClick
         '
         Me.mnuRefreshOnClick.Text = "Refresh On Click"
@@ -162,9 +168,9 @@ Partial Public Class frmMap
         '
         Me.mnuTakePicture.Text = "Take Picture"
         '
-        'mnuSetTime
+        'mnuWaypoint
         '
-        Me.mnuSetTime.Text = "Set Time from GPS"
+        Me.mnuWaypoint.Text = "Record Waypoint"
         '
         'frmMap
         '
@@ -201,5 +207,6 @@ Partial Public Class frmMap
     Friend WithEvents mnuViewControls As System.Windows.Forms.MenuItem
     Friend WithEvents mnuTakePicture As System.Windows.Forms.MenuItem
     Friend WithEvents mnuSetTime As System.Windows.Forms.MenuItem
+    Friend WithEvents mnuWaypoint As System.Windows.Forms.MenuItem
 
 End Class
