@@ -24,9 +24,9 @@ Partial Class frmMap
     Private pUseMarkedTiles As Boolean = False
     Private pShowTransparentTiles As Boolean = False
 
-    Private pClickWaypoint As Boolean = False
+    Private pClickWaypoint As Boolean = False ' True means a waypoint will be created when the map is clicked
 
-    Private pControlsUse As Boolean = False
+    Private pControlsUse As Boolean = False ' True means that on-screen controls are in use so clicks in control areas are treated as control presses
     Private pControlsShow As Boolean = False
     Private pControlsMargin As Integer = 40 'This gets set on resize
 

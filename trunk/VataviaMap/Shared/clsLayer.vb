@@ -334,6 +334,10 @@ Public Class clsLayerGPX
     Public ArrowSize As Integer
     Private pDistSinceArrow As Integer
 
+    Private pLastLabelX As Integer = -100
+    Private pLastLabelY As Integer = -100
+    Private pLastLabelWidth As Integer = 0
+
     Private pFields() As String = {"name", _
                                    "urlname", _
                                    "desc", _
@@ -555,23 +559,33 @@ Public Class clsLayerGPX
                         g.DrawLine(PenGeocache, lX - 8, lY, lX + 8, lY)
                     End If
                 End If
-
-                'Debug.WriteLine(.lat & ", " & .lon & " -> " & lX & ", " & lY)
-                If MapForm.Zoom >= LabelMinZoom Then 'AndAlso .sym IsNot Nothing Then
-                    Try
-                        Dim lLabelText As String = LabelText(aWaypoint)
-                        If lLabelText IsNot Nothing AndAlso lLabelText.Length > 0 Then
-                            g.DrawString(lLabelText, FontLabel, BrushLabel, lX, lY)
-                        End If
-                    Catch
-                    End Try
-                End If
+                DrawLabel(g, aWaypoint, lX, lY)
                 Return True
             Else
                 Return False
             End If
         End With
     End Function
+
+    Private Sub DrawLabel(ByVal g As Graphics, _
+                          ByVal aWaypoint As clsGPXwaypoint, _
+                          ByVal aX As Integer, ByVal aY As Integer)
+        If MapForm.Zoom >= LabelMinZoom AndAlso LabelField IsNot Nothing AndAlso LabelField.Length > 0 Then
+            Try
+                Dim lCharHeight As Integer = FontLabel.Height
+                If Math.Abs(pLastLabelY - aY) > lCharHeight OrElse Math.Abs(pLastLabelX - aX) > pLastLabelWidth Then
+                    Dim lLabelText As String = LabelText(aWaypoint)
+                    If lLabelText IsNot Nothing AndAlso lLabelText.Length > 0 Then
+                        pLastLabelWidth = lLabelText.Length * lCharHeight 'cheaper than calculating width
+                        g.DrawString(lLabelText, FontLabel, BrushLabel, aX, aY)
+                        pLastLabelX = aX
+                        pLastLabelY = aY
+                    End If
+                End If
+            Catch
+            End Try
+        End If
+    End Sub
 
     Private Function LabelText(ByVal aWaypoint As clsGPXwaypoint) As String
         Dim lLabelText As String = Nothing
@@ -657,15 +671,7 @@ Public Class clsLayerGPX
                             g.DrawEllipse(SymbolPen, lX - SymbolSize, lY - SymbolSize, SymbolSize * 2, SymbolSize * 2)
                         End If
                 End Select
-                If MapForm.Zoom >= LabelMinZoom AndAlso LabelField IsNot Nothing AndAlso LabelField.Length > 0 Then
-                    Try
-                        Dim lLabelText As String = LabelText(aWaypoint)
-                        If lLabelText IsNot Nothing AndAlso lLabelText.Length > 0 Then
-                            g.DrawString(lLabelText, FontLabel, BrushLabel, lX, lY)
-                        End If
-                    Catch
-                    End Try
-                End If
+                DrawLabel(g, aWaypoint, lX, lY)
                 aFromX = lX
                 aFromY = lY
                 Return True
@@ -731,15 +737,7 @@ Public Class clsLayerGPX
                             aSymbolPath.AddEllipse(lX - SymbolSize, lY - SymbolSize, SymbolSize * 2, SymbolSize * 2)
                         End If
                 End Select
-                If MapForm.Zoom >= LabelMinZoom AndAlso LabelField IsNot Nothing AndAlso LabelField.Length > 0 Then
-                    Try
-                        Dim lLabelText As String = LabelText(aWaypoint)
-                        If lLabelText IsNot Nothing AndAlso lLabelText.Length > 0 Then
-                            g.DrawString(lLabelText, FontLabel, BrushLabel, lX, lY)
-                        End If
-                    Catch
-                    End Try
-                End If
+                DrawLabel(g, aWaypoint, lX, lY)
                 aFromX = lX
                 aFromY = lY
                 Return True

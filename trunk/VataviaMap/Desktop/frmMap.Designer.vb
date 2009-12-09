@@ -388,7 +388,7 @@ Partial Class frmMap
         Me.Icon = CType(resources.GetObject("$this.Icon"), System.Drawing.Icon)
         Me.MainMenuStrip = Me.MenuStripMain
         Me.Name = "frmMap"
-        Me.Text = "Map"
+        Me.Text = "VataviaMap"
         Me.MenuStripMain.ResumeLayout(False)
         Me.MenuStripMain.PerformLayout()
         Me.RightClickMenu.ResumeLayout(False)
