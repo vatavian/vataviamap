@@ -55,9 +55,15 @@ Public Class frmMap
         pGPXFolder = IO.Path.GetDirectoryName(pTileCacheFolder)
         Try
             IO.Directory.CreateDirectory(pTileCacheFolder)
+            IO.Directory.CreateDirectory(pTileCacheFolder & "WriteTest")
+            IO.Directory.Delete(pTileCacheFolder & "WriteTest")
         Catch e As Exception
+            pTileCacheFolder = IO.Path.GetTempPath
             'TODO: open frmDownloadMobile or let user choose this folder somehow rather than just error message
-            MsgBox("Could not create cache folder" & vbLf & pTileCacheFolder & vbLf & "Edit registry in CurrentUser\Software\" & g_AppName & "\TileCacheFolder to change", MsgBoxStyle.OkOnly, "TileCacheFolder Needed")
+            'MsgBox("Could not use cache folder" & vbLf _
+            '     & pTileCacheFolder & vbLf _
+            '     & "Edit registry in CurrentUser\Software\" & g_AppName & "\TileCacheFolder to change", _
+            '       MsgBoxStyle.OkOnly, "TileCacheFolder Needed")
         End Try
 
         SharedNew()

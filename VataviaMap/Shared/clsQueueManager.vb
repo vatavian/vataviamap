@@ -156,7 +156,7 @@ NextUpload:
                     .TilePoint = aTilePoint
                     .Zoom = aZoom
                 End With
-                'Debug.WriteLine("Enqueue " & lQueueItem.ToString)
+                Dbg("Enqueue " & lQueueItem.ToString)
                 lQueue.Enqueue(lQueueItem)
             End If
             pQueueMutex.ReleaseMutex()
@@ -193,7 +193,7 @@ NextUpload:
                 .ReplaceExisting = aReplaceExisting
                 .ItemObject = aObject
             End With
-            'Debug.WriteLine("Enqueue " & lQueueItem.ToString)
+            Dbg("Enqueue " & lQueueItem.ToString)
             lQueue.Enqueue(lQueueItem)
         End If
         pQueueMutex.ReleaseMutex()
