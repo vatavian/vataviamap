@@ -4,34 +4,53 @@ Imports System.Collections
 Imports atcUtility
 
 Module modMain
+    Public pLocation As String = "intownATL" '"decatur", "metroATL", "intownATL" 
+    Public pTerse As Boolean = True
+
     Public pSB As New StringBuilder
     Public pBounds As Bounds
-    'intown ATL (inside 285)
-    'Public pMinLat As Double = 33.58
-    'Public pMaxLat As Double = 33.95
-    'Public pMinLon = -84.54
-    'Public pMaxLon = -84.19
-    'more metro ATL
-    Public pMinLat As Double = 33.0
-    Public pMaxLat As Double = 34.5
-    Public pMinLon = -85.0
-    Public pMaxLon = -83.75
+    Public pMinLat As Double = 90
+    Public pMaxLat As Double = -90
+    Public pMinLon = 180
+    Public pMaxLon = -180
+    Public pXmlFileName As String
+    Public pXmlNodeTypeCounts As New atcCollection
+    Public pTagsSkip() As String = {"tiger:tlid", "gnis:feature_id", "NHD:ComID", "gnis:id", "NHD:way_id", "tiger:name_base"}
 
-    Sub main()
+    Sub Initialize()
         'IO.Directory.SetCurrentDirectory("..\..\..\osm_data")
         IO.Directory.SetCurrentDirectory("C:\mapnik_0_6_1\decatur\download")
 
-        Dim lXmlNodeTypeCounts As New atcCollection
 
-        'Dim lXmlFleName As String = "decatur.mdc"
-        'Dim lXmlFleName As String = "decatur.osm"
-        'Dim lXmlFleName As String = "osm.xml"
-        Dim lXmlFleName As String = "georgia.osm"
+        Select Case pLocation
+            Case "decatur"
+                pXmlFileName = "decatur.osm"
+                pMinLat = 33.58
+                pMaxLat = 33.95
+                pMinLon = -84.54
+                pMaxLon = -84.19
+            Case "intownATL" '(inside 285)
+                pXmlFileName = "georgia.osm"
+                pMinLat = 33.58
+                pMaxLat = 33.95
+                pMinLon = -84.54
+                pMaxLon = -84.19
+            Case "metroATL"
+                pXmlFileName = "georgia.osm"
+                pMinLat = 33.0
+                pMaxLat = 34.5
+                pMinLon = -85.0
+                pMaxLon = -83.75
+        End Select
+    End Sub
+
+    Sub main()
+        Initialize()
 
         Dim lXml As New Xml.XmlDocument
         Dim lSettings As New XmlReaderSettings()
         lSettings.IgnoreWhitespace = True
-        Dim lXmlReader As XmlReader = XmlReader.Create(lXmlFleName, lSettings)
+        Dim lXmlReader As XmlReader = XmlReader.Create(pXmlFileName, lSettings)
         lXmlReader.MoveToContent()
         Dim lXmlReadCount As Integer = 0
         Dim lStartTime As Date = Now
@@ -45,7 +64,7 @@ Module modMain
                                 Nodes.Count & " " & Ways.Count & " " & Relations.Count & " " & MemUsage())
                 End If
                 lXmlReadCount += 1
-                lXmlNodeTypeCounts.Increment(lXmlNode.Name, 1)
+                pXmlNodeTypeCounts.Increment(lXmlNode.Name, 1)
                 Select Case lXmlNode.Name
                     Case "node"
                         Dim lNode As Node = New Node(lXmlNode)
@@ -93,10 +112,10 @@ Module modMain
             Nodes.Count & " " & Ways.Count & " " & Relations.Count & " " & MemUsage())
 
         pSB.AppendLine(vbCrLf & "XMLNodeCounts")
-        For lIndex As Integer = 0 To lXmlNodeTypeCounts.Count - 1
-            pSB.Append(vbTab & (lXmlNodeTypeCounts.Keys(lIndex) & ":").ToString.PadRight(10) & _
-                                lXmlNodeTypeCounts.ItemByIndex(lIndex).ToString.PadLeft(12))
-            Select Case (lXmlNodeTypeCounts.Keys(lIndex))
+        For lIndex As Integer = 0 To pXmlNodeTypeCounts.Count - 1
+            pSB.Append(vbTab & (pXmlNodeTypeCounts.Keys(lIndex) & ":").ToString.PadRight(10) & _
+                                pXmlNodeTypeCounts.ItemByIndex(lIndex).ToString.PadLeft(12))
+            Select Case (pXmlNodeTypeCounts.Keys(lIndex))
                 Case "node" : pSB.Append(Nodes.Count.ToString.PadLeft(12))
                 Case "way" : pSB.Append(Ways.Count.ToString.PadLeft(12))
                 Case "relation" : pSB.Append(Relations.Count.ToString.PadLeft(12))
@@ -106,19 +125,21 @@ Module modMain
 
         pSB.AppendLine(vbCrLf & "TagNames " & Tags.TagNames.Count)
         For Each lTagName As KeyValuePair(Of String, SortedList) In Tags.TagNames
-            If lTagName.Key <> "tiger:tlid" Then
-                Dim lValueCollection As SortedList = lTagName.Value
-                pSB.AppendLine(vbCrLf & lTagName.Key & "(" & lValueCollection.Count & ")")
+            Dim lValueCollection As SortedList = lTagName.Value
+            pSB.AppendLine(vbCrLf & lTagName.Key & "(" & lValueCollection.Count & ")")
+            If Not pTagsSkip.Contains(lTagName.Key) Then
                 For Each lValueEntry As DictionaryEntry In lValueCollection
                     Dim lReferenceCollection As SortedList = lValueEntry.Value
                     pSB.AppendLine(vbTab & lValueEntry.Key & " (" & lReferenceCollection.Count & ")")
-                    Dim lReferenceMax As Integer = Math.Min(lReferenceCollection.Count - 1, 20)
-                    For lReferenceIndex As Integer = 0 To lReferenceMax
-                        Dim lReference As Object = lReferenceCollection.Values(lReferenceIndex)
-                        pSB.AppendLine(vbTab & vbTab & lReference.GetType.Name & ":" & lReference.id)
-                    Next
-                    If lReferenceMax < lReferenceCollection.Count - 1 Then
-                        pSB.AppendLine(vbTab & vbTab & "...")
+                    If Not pTerse Then
+                        Dim lReferenceMax As Integer = Math.Min(lReferenceCollection.Count - 1, 20)
+                        For lReferenceIndex As Integer = 0 To lReferenceMax
+                            Dim lReference As Object = lReferenceCollection.Values(lReferenceIndex)
+                            pSB.AppendLine(vbTab & vbTab & lReference.GetType.Name & ":" & lReference.id)
+                        Next
+                        If lReferenceMax < lReferenceCollection.Count - 1 Then
+                            pSB.AppendLine(vbTab & vbTab & "...")
+                        End If
                     End If
                 Next
             End If
@@ -127,8 +148,10 @@ Module modMain
         pSB.Append(Ways.Summary)
         pSB.Append(Relations.Summary)
         pSB.Append(Users.Summary)
+        pSB.AppendLine(pBounds.Summary)
 
-        IO.File.WriteAllText(IO.Path.ChangeExtension(lXmlFleName, "txt"), pSB.ToString)
+        Dim lOutFileName As String = pLocation & Format(IO.File.GetCreationTime(pXmlFileName), "yyyy-MM-dd-hh-mm") & ".txt"
+        IO.File.WriteAllText(lOutFileName, pSB.ToString)
     End Sub
 
     Private Function MemUsage() As String

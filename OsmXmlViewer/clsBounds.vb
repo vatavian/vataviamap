@@ -19,4 +19,8 @@
             End Select
         Next
     End Sub
+
+    Public Function Summary() As String
+        Return vbCrLf & "Bounds " & vbTab & MinLat & vbTab & MaxLat & vbTab & MinLon & vbTab & MaxLon
+    End Function
 End Class
