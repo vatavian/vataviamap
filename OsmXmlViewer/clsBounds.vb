@@ -21,6 +21,10 @@
     End Sub
 
     Public Function Summary() As String
-        Return vbCrLf & "Bounds " & vbTab & MinLat & vbTab & MaxLat & vbTab & MinLon & vbTab & MaxLon
+        Dim lString = ""
+        If MinLat > 0 Then
+            lstring = vbCrLf & "Bounds " & vbTab & MinLat & vbTab & MaxLat & vbTab & MinLon & vbTab & MaxLon
+        End If
+        Return lString
     End Function
 End Class
