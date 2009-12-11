@@ -13,18 +13,32 @@ Public Class RelationCollection
     End Function
 
     Public Function Summary() As String
+        Dim lIssues As Boolean = False
         Dim lSB As New StringBuilder
-        lSB.AppendLine(vbCrLf & "Relations Id:Tags:Nodes:Ways")
+        lSB.AppendLine(vbCrLf & "Relations(" & Relations.Count & ")")
+        If Not pTerse Then lSB.AppendLine(vbCrLf & "Id:Tags:Nodes:Ways")
         For Each lRelation As Relation In Relations
-            lSB.AppendLine(vbTab & lRelation.Id & ":" & lRelation.Tags.Count & ":" & _
-                                                        lRelation.NodeKeys.Count & ":" & _
-                                                        lRelation.WayKeys.Count)
+            If Not pTerse Then
+                lSB.AppendLine(vbTab & lRelation.Id & ":" & lRelation.Tags.Count & ":" & _
+                                                            lRelation.NodeKeys.Count & ":" & _
+                                                            lRelation.WayKeys.Count)
+            End If
             For Each lNodeKey As String In lRelation.NodeKeys
                 If Not Nodes.Contains(lNodeKey) Then
                     lSB.AppendLine(vbTab & vbTab & "MissingNode " & lNodeKey)
+                    lIssues = True
+                End If
+            Next
+            For Each lWayKey As String In lRelation.WayKeys
+                If Not Ways.Contains(lWayKey) Then
+                    lSB.AppendLine(vbTab & vbTab & "MissingWay " & lWayKey)
+                    lIssues = True
                 End If
             Next
         Next
+        If Not lIssues Then
+            lSB.AppendLine(vbTab & "NoIssuesFound")
+        End If
         Return lSB.ToString
     End Function
 End Class

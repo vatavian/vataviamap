@@ -13,16 +13,22 @@ Public Class WayCollection
     End Function
 
     Public Function Summary() As String
+        Dim lIssues As Boolean = False
         Dim lSB As New StringBuilder
-        lSB.AppendLine(vbCrLf & "Ways Id:Tags:Nodes")
+        lSB.AppendLine(vbCrLf & "Ways(" & Ways.Count & ")")
+        If Not pTerse Then lSB.AppendLine(vbCrLf & "Id:Tags:Nodes")
         For Each lWay As Way In Ways
-            lSB.AppendLine(vbTab & lWay.Id & ":" & lWay.Tags.Count & ":" & lWay.NodeKeys.Count)
+            If Not pTerse Then lSB.AppendLine(vbTab & lWay.Id & ":" & lWay.Tags.Count & ":" & lWay.NodeKeys.Count)
             For Each lNodeKey As String In lWay.NodeKeys
                 If Not Nodes.Contains(lNodeKey) Then
-                    lSB.AppendLine(vbTab & vbTab & "MissingNode " & lNodeKey)
+                    lSB.AppendLine(vbTab & vbTab & "MissingNode " & lNodeKey & " in Way " & lWay.Id)
+                    lIssues = True
                 End If
             Next
         Next
+        If Not lIssues Then
+            lSB.AppendLine(vbTab & "NoIssuesFound")
+        End If
         Return lSB.ToString
     End Function
 End Class
