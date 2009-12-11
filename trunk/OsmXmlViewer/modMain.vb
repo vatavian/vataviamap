@@ -15,12 +15,13 @@ Module modMain
     Public pMaxLon = -180
     Public pXmlFileName As String
     Public pXmlNodeTypeCounts As New atcCollection
-    Public pTagsSkip() As String = {"tiger:tlid", "gnis:feature_id", "NHD:ComID", "gnis:id", "NHD:way_id", "tiger:name_base"}
+    Public pTagsSkip() As String = {"tiger:tlid", "tiger:name_base", "tiger:name_base_1", "tiger:name_base_2", "tiger:name_base_3", "tiger:name_base_4", "tiger:name_base_5", _
+                                    "gnis:feature_id", "gnis:id", _
+                                    "NHD:ComID", "NHD:way_id", "NHD:ReachCode", "NHD:Elevation", "NHD:GNIS_ID"}
 
     Sub Initialize()
         'IO.Directory.SetCurrentDirectory("..\..\..\osm_data")
         IO.Directory.SetCurrentDirectory("C:\mapnik_0_6_1\decatur\download")
-
 
         Select Case pLocation
             Case "decatur"
@@ -126,6 +127,22 @@ Module modMain
         pSB.AppendLine(vbCrLf & "TagNames " & Tags.TagNames.Count)
         For Each lTagName As KeyValuePair(Of String, SortedList) In Tags.TagNames
             Dim lValueCollection As SortedList = lTagName.Value
+            pSB.AppendLine(vbTab & lTagName.Key & "(" & lValueCollection.Count & ")")
+        Next
+
+        pSB.Append(Ways.Summary)
+        pSB.Append(Relations.Summary)
+        pSB.Append(Users.Summary)
+        pSB.AppendLine(pBounds.Summary)
+
+        Dim lOutFileName As String = pLocation & Format(IO.File.GetCreationTime(pXmlFileName), "yyyy-MM-dd-hh-mm") & "Summary.txt"
+        IO.File.WriteAllText(lOutFileName, pSB.ToString)
+
+        pSB = Nothing
+        pSB = New StringBuilder
+        pSB.AppendLine(vbCrLf & "TagNames " & Tags.TagNames.Count)
+        For Each lTagName As KeyValuePair(Of String, SortedList) In Tags.TagNames
+            Dim lValueCollection As SortedList = lTagName.Value
             pSB.AppendLine(vbCrLf & lTagName.Key & "(" & lValueCollection.Count & ")")
             If Not pTagsSkip.Contains(lTagName.Key) Then
                 For Each lValueEntry As DictionaryEntry In lValueCollection
@@ -144,14 +161,9 @@ Module modMain
                 Next
             End If
         Next
-
-        pSB.Append(Ways.Summary)
-        pSB.Append(Relations.Summary)
-        pSB.Append(Users.Summary)
-        pSB.AppendLine(pBounds.Summary)
-
-        Dim lOutFileName As String = pLocation & Format(IO.File.GetCreationTime(pXmlFileName), "yyyy-MM-dd-hh-mm") & ".txt"
+        lOutFileName = pLocation & Format(IO.File.GetCreationTime(pXmlFileName), "yyyy-MM-dd-hh-mm") & "Tags.txt"
         IO.File.WriteAllText(lOutFileName, pSB.ToString)
+
     End Sub
 
     Private Function MemUsage() As String
