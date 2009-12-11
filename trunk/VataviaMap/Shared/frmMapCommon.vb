@@ -1156,10 +1156,69 @@ Partial Class frmMap
     Public Sub OpenPhoto(ByVal aFilename As String)
 #If Not Smartphone Then
         Dim lExif As New ExifWorks(aFilename)
+        Dim lNeedToSearchTracks As Boolean = False
         Dim lLatitude As Double = lExif.Latitude
-        If Double.IsNaN(lLatitude) Then Exit Sub
         Dim lLongitude As Double = lExif.Longitude
-        If Double.IsNaN(lLongitude) Then Exit Sub
+        Dim lStr As String = Nothing, lStrMinutes As String = Nothing, lStrSeconds As String = Nothing
+
+        If Double.IsNaN(lLatitude) OrElse Double.IsNaN(lLongitude) Then
+            lNeedToSearchTracks = True
+        Else
+            DegreesMinutesSeconds(lLatitude, lStr, lStrMinutes, lStrSeconds)
+            lStr &= " " & lStrMinutes & "' " & lStrSeconds & """"
+            If Not lStrSeconds.Contains(".") Then lNeedToSearchTracks = True
+        End If
+
+        If lNeedToSearchTracks Then
+            Dim lPhotoDate As Date = lExif.DateTimeOriginal
+            Dim lPhotoTicks As Long = lPhotoDate.Ticks
+            Dim lClosestTicks As Long = Long.MaxValue
+            Dim lClosestPoint As clsGPXwaypoint = Nothing
+
+            If Layers IsNot Nothing AndAlso Layers.Count > 0 Then
+                For Each lTrackLayer As clsLayer In Layers
+                    If lTrackLayer.GetType.Name.Equals("clsLayerGPX") Then
+                        Dim lGPX As clsLayerGPX = lTrackLayer
+                        For Each lGpxTrack As clsGPXtrack In lGPX.GPX.trk
+                            For Each lGpxTrackSeg As clsGPXtracksegment In lGpxTrack.trkseg
+                                For Each lGpxTrackPoint As clsGPXwaypoint In lGpxTrackSeg.trkpt
+                                    If lGpxTrackPoint.timeSpecified Then
+                                        Dim lTicksDiff As Long = Math.Abs(lGpxTrackPoint.time.Ticks - lPhotoTicks)
+                                        If lTicksDiff < lClosestTicks Then
+                                            lClosestTicks = lTicksDiff
+                                            lClosestPoint = lGpxTrackPoint
+                                        End If
+                                    End If
+                                Next
+                            Next
+                        Next
+                    End If
+                Next
+            End If
+
+            If lClosestPoint IsNot Nothing Then
+                Dim lMsg As String = ""
+                If Not Double.IsNaN(lLatitude) Then
+                    DegreesMinutesSeconds(lLatitude, lStr, lStrMinutes, lStrSeconds)
+                    lMsg &= "ExifLat = " & lStr & " " & lStrMinutes & "' " & lStrSeconds & """"
+                End If
+
+                lLatitude = lClosestPoint.lat
+                DegreesMinutesSeconds(lLatitude, lStr, lStrMinutes, lStrSeconds)
+                lMsg &= "GPXLat = " & lStr & " " & lStrMinutes & "' " & lStrSeconds & """"
+
+                If Not Double.IsNaN(lLongitude) Then
+                    DegreesMinutesSeconds(lLongitude, lStr, lStrMinutes, lStrSeconds)
+                    lMsg &= "ExifLon = " & lStr & " " & lStrMinutes & "' " & lStrSeconds & """"
+                End If
+
+                lLongitude = lClosestPoint.lon
+                DegreesMinutesSeconds(lLongitude, lStr, lStrMinutes, lStrSeconds)
+                lMsg &= "GPXLon = " & lStr & " " & lStrMinutes & "' " & lStrSeconds & """"
+                Dbg(lMsg)
+            End If
+        End If
+        If Double.IsNaN(lLatitude) OrElse Double.IsNaN(lLongitude) Then Exit Sub
 
         Dim lWaypoints As New Generic.List(Of clsGPXwaypoint)
         Dim lWaypoint As New clsGPXwaypoint("wpt", lLatitude, lLongitude)
