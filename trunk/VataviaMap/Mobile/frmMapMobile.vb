@@ -1,826 +1,71 @@
 Public Class frmMap
 
-    Private GPS_Listen As Boolean = False
-    Private WithEvents GPS As GPS_API.GPS
-    Private GPS_DEVICE_STATE As GPS_API.GpsDeviceState
-    Private GPS_POSITION As GPS_API.GpsPosition = Nothing
-
-    Private pLastCellTower As clsCell
-    Private pCellLocationProviders As New Generic.List(Of clsCellLocationProvider)
-
-    ' Synchronize access to track log file
-    Private Shared pTrackMutex As New Threading.Mutex()
-
-    Private pTrackWaypoints As New System.Text.StringBuilder()
-
-    ' File name of waypoints currently being written
-    Private pWaypointLogFilename As String
-
-    ' File name of track log currently being written
-    Private pTrackLogFilename As String
-
-    ' When we last uploaded a track point (UTC)
-    Private pUploadLastTime As DateTime
-
-    ' True if we want to upload when GPS starts and have not yet done so
-    Private pPendingUploadStart As Boolean = False
-
-    ' When we last logged a track point (UTC)
-    Private pTrackLastTime As DateTime
-    Private pTrackLastLatitude As Double = 0.0  ' Degrees latitude.  North is positive
-    Private pTrackLastLongitude As Double = 0.0 ' Degrees longitude.  East is positive
-
-    Private pClickDownload As Boolean = False ' Always false on startup, not saved to registry
-
-    Private pCursorLayer As clsLayerGPX
-
     WithEvents pDownloadForm As frmDownloadMobile
     WithEvents pUploadForm As frmUploadMobile
     WithEvents pLayersForm As frmOptionsMobileGPX
 
-    Private pKeepAwakeTimer As System.Threading.Timer
-
     Public Sub New()
         InitializeComponent()
 
-        'Default to using these for mobile even though default to not in frmMapCommon
-        pControlsUse = True
-        pControlsShow = True
+        pMap.SharedNew()
 
-        pTrackLastTime = DateTime.UtcNow.Subtract(pTrackMinInterval)
-        pUploadLastTime = New DateTime(1, 1, 1)
-
-        updateDataHandler = New EventHandler(AddressOf UpdateData)
-
-        pTileCacheFolder = GetAppSetting("TileCacheFolder", "\My Documents\tiles\")
-
-        If pTileCacheFolder.Length > 0 AndAlso Not pTileCacheFolder.EndsWith(g_PathChar) Then
-            pTileCacheFolder &= g_PathChar
-        End If
-
-        pGPXFolder = IO.Path.GetDirectoryName(pTileCacheFolder)
-        Try
-            IO.Directory.CreateDirectory(pTileCacheFolder)
-            IO.Directory.CreateDirectory(pTileCacheFolder & "WriteTest")
-            IO.Directory.Delete(pTileCacheFolder & "WriteTest")
-        Catch e As Exception
-            pTileCacheFolder = IO.Path.GetTempPath
-            'TODO: open frmDownloadMobile or let user choose this folder somehow rather than just error message
-            'MsgBox("Could not use cache folder" & vbLf _
-            '     & pTileCacheFolder & vbLf _
-            '     & "Edit registry in CurrentUser\Software\" & g_AppName & "\TileCacheFolder to change", _
-            '       MsgBoxStyle.OkOnly, "TileCacheFolder Needed")
-        End Try
-
-        SharedNew()
-
-        pCellLocationProviders.Add(New clsCellLocationOpenCellID)
-        pCellLocationProviders.Add(New clsCellLocationGoogle)
-
-        pCursorLayer = New clsLayerGPX("cursor", Me)
-        pCursorLayer.SymbolPen = New Pen(Color.Red)
-        pCursorLayer.SymbolSize = pGPSSymbolSize
-
-        mnuRecordTrack.Checked = pRecordTrack
-        mnuViewTrack.Checked = pDisplayTrack
-        mnuViewMapTiles.Checked = pShowTileImages
-        mnuViewGPSdetails.Checked = pShowGPSdetails
-        mnuViewTileOutlines.Checked = pShowTileOutlines
-        mnuViewTileNames.Checked = pShowTileNames
-        mnuViewTrack.Checked = pDisplayTrack
-        mnuViewControls.Checked = pControlsShow
-        mnuRefreshOnClick.Checked = pClickDownload
-        Select Case pGPSFollow
+        mnuRecordTrack.Checked = pMap.RecordTrack
+        mnuViewTrack.Checked = pMap.DisplayTrack
+        mnuViewMapTiles.Checked = pMap.ShowTileImages
+        mnuViewGPSdetails.Checked = pMap.ShowGPSdetails
+        mnuViewTileOutlines.Checked = pMap.ShowTileOutlines
+        mnuViewTileNames.Checked = pMap.ShowTileNames
+        mnuViewTrack.Checked = pMap.DisplayTrack
+        mnuViewControls.Checked = pMap.ControlsShow
+        mnuRefreshOnClick.Checked = pMap.ClickRefreshTile
+        Select Case pMap.GPSFollow
             Case 1 : mnuFollow.Checked = True
             Case 2 : mnuCenter.Checked = True
         End Select
-        mnuAutoStart.Checked = pGPSAutoStart
-        If Not pFormDark Then StartKeepAwake()
-        If pGPSAutoStart Then StartGPS()
+        mnuAutoStart.Checked = pMap.AutoStart
+        If pMap.AutoStart Then pMap.StartGPS()
     End Sub
-
-    Private Sub Redraw()
-        If pRedrawing Then
-            pRedrawPending = True
-        Else
-            pRedrawing = True
-            Dim lGraphics As Graphics = Nothing
-            Dim lDetailsBrush As Brush = pBrushBlack
-
-RestartRedraw:
-            If pFormVisible Then
-                lGraphics = GetBitmapGraphics()
-                If lGraphics IsNot Nothing Then
-                    If pFormDark Then
-                        'pDetailsForm.Details = GPSdetailsString()
-                        lGraphics.Clear(Color.Black)
-                        lDetailsBrush = pBrushWhite
-                    Else
-                        DrawTiles(lGraphics)
-                    End If
-                    If pShowGPSdetails Then
-                        lGraphics.DrawString(GPSdetailsString, pFontTileLabel, lDetailsBrush, 5, 5)
-                    End If
-                    ReleaseBitmapGraphics()
-                    Refresh()
-                End If
-            End If
-            Application.DoEvents()
-            If pRedrawPending Then
-                pRedrawPending = False
-                GoTo RestartRedraw
-            End If
-            pRedrawing = False
-        End If
-    End Sub
-
-    Private Function EnsureCurrentTrack() As clsLayerGPX
-        If Layers.Count = 0 OrElse Layers(0).Filename <> "current" Then
-            Dim lCurrentTrack As New clsLayerGPX("current", Me)
-            lCurrentTrack.Filename = "current"
-            With lCurrentTrack.GPX
-                .trk = New Generic.List(Of clsGPXtrack)
-                .trk.Add(New clsGPXtrack("current"))
-                .trk(0).trkseg.Add(New clsGPXtracksegment())
-            End With
-            Layers.Insert(0, lCurrentTrack)
-        End If
-        Return Layers(0)
-    End Function
-
-    Private Function MapRectangle() As Rectangle
-        Return ClientRectangle
-    End Function
-
-    Private Sub Zoomed()
-        Redraw()
-    End Sub
-
-    Private Sub DrewTiles(ByVal g As Graphics, ByVal aTopLeft As Point, ByVal aOffsetToCenter As Point)
-        If GPS IsNot Nothing AndAlso GPS.Opened AndAlso GPS_POSITION IsNot Nothing AndAlso GPS_POSITION.LatitudeValid AndAlso GPS_POSITION.LongitudeValid Then
-            If pGPSSymbolSize > 0 Then
-                pCursorLayer.SymbolSize = pGPSSymbolSize
-                Dim lWaypoint As New clsGPXwaypoint("wpt", GPS_POSITION.Latitude, GPS_POSITION.Longitude)
-                lWaypoint.sym = "cursor"
-                lWaypoint.course = GPS_POSITION.Heading
-                pCursorLayer.DrawTrackpoint(g, lWaypoint, aTopLeft, aOffsetToCenter, -1, -1)
-            End If
-        End If
-    End Sub
-
-    Private Sub ManuallyNavigated()
-        pGPSFollow = 0 'Manual navigation overrides automatic following of GPS
-        mnuFollow.Checked = False
-        mnuCenter.Checked = False
-        SanitizeCenterLatLon()
-        Redraw()
-    End Sub
-
-    Private Function GPSdetailsString() As String
-        Dim lDetails As String = ""
-        If GPS Is Nothing Then
-            lDetails = "GPS not initialized"
-        ElseIf Not GPS.Opened Then
-            lDetails = "GPS not opened"
-        ElseIf GPS_POSITION Is Nothing Then
-            lDetails = "No position"
-        ElseIf Not GPS_POSITION.LatitudeValid OrElse Not GPS_POSITION.LongitudeValid Then
-            lDetails = "Position not valid"
-        Else
-            lDetails = "(" & FormattedDegrees(GPS_POSITION.Latitude, g_DegreeFormat) & ", " _
-                           & FormattedDegrees(GPS_POSITION.Longitude, g_DegreeFormat) & ")"
-            If (GPS_POSITION.SeaLevelAltitudeValid) Then lDetails &= " " & GPS_POSITION.SeaLevelAltitude & "m"
-            If (GPS_POSITION.SpeedValid AndAlso GPS_POSITION.Speed > 0) Then lDetails &= " " & GPS_POSITION.Speed * 1.15077945 & "mph"
-
-            If GPS_POSITION.TimeValid Then
-                lDetails &= vbLf & GPS_POSITION.Time.ToString("yyyy-MM-dd HH:mm:ss") & "Z"
-                Dim lAgeOfPosition As TimeSpan = DateTime.Now - GPS_POSITION.Time.ToLocalTime()
-                If (Math.Abs(lAgeOfPosition.TotalSeconds) > 5) Then
-                    lDetails &= " (" + lAgeOfPosition.ToString().TrimEnd("0"c) + " ago)"
-                End If
-            End If
-        End If
-        If pRecordCellID Then
-            Dim lCurrentCellInfo As New clsCell(GPS_API.RIL.GetCellTowerInfo)
-            If lCurrentCellInfo.IsValid Then
-                lDetails &= vbLf & lCurrentCellInfo.ToString
-            Else
-                lDetails &= vbLf & "no cell"
-            End If
-        End If
-        'If pUsedCacheCount + pAddedCacheCount > 0 Then
-        '    lDetails &= " Cache " & Format(pUsedCacheCount / (pUsedCacheCount + pAddedCacheCount), "0.0 %") & " " & pDownloader.TileRAMcacheLimit
-        'End If
-        If Not pRecordTrack Then lDetails &= vbLf & "Logging Off"
-        Return lDetails
-    End Function
 
     Private Sub frmMap_Closing(ByVal sender As Object, ByVal e As System.ComponentModel.CancelEventArgs) Handles MyBase.Closing
-        StopGPS()
-    End Sub
-
-    Private Sub frmMap_KeyUp(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyEventArgs) Handles MyBase.KeyUp
-        e.Handled = True
-        Dim lNeedRedraw As Boolean = True
-        Select Case e.KeyCode
-            Case Keys.Right : CenterLon += MetersPerPixel(pZoom) * Me.Width / g_CircumferenceOfEarth * 180
-            Case Keys.Left : CenterLon -= MetersPerPixel(pZoom) * Me.Width / g_CircumferenceOfEarth * 180
-            Case Keys.Up
-                If pLastKeyDown = 131 Then 'using scroll wheel
-                    Zoom += 1 : lNeedRedraw = False
-                Else
-                    CenterLat += MetersPerPixel(pZoom) * Me.Height / g_CircumferenceOfEarth * 90
-                End If
-            Case Keys.Down
-                If pLastKeyDown = 131 Then 'using scroll wheel
-                    Zoom -= 1 : lNeedRedraw = False
-                Else
-                    CenterLat -= MetersPerPixel(pZoom) * Me.Height / g_CircumferenceOfEarth * 90
-                End If
-            Case Keys.A : Zoom -= 1 : lNeedRedraw = False
-            Case Keys.Q : Zoom += 1 : lNeedRedraw = False
-            Case Else
-                e.Handled = False
-                lNeedRedraw = False
-        End Select
-        If lNeedRedraw Then
-            ManuallyNavigated()
-        End If
-    End Sub
-
-    Private Sub frmMap_MouseDown(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles Me.MouseDown
-        Select Case e.Button
-            Case Windows.Forms.MouseButtons.Left
-                If pClickDownload Then
-                    Dim lBounds As New RectangleF(0, 0, pBitmap.Width, pBitmap.Height)
-                    pClickedTileFilename = FindTileFilename(lBounds, e.X, e.Y)
-                    pDownloader.DeleteTile(pClickedTileFilename)
-                    Redraw()
-                ElseIf pClickWaypoint Then
-                    AddWaypoint(CenterLat - (e.Y - Me.ClientRectangle.Height / 2) * LatHeight / Me.ClientRectangle.Height, _
-                                CenterLon + (e.X - Me.ClientRectangle.Width / 2) * LonWidth / Me.ClientRectangle.Width, _
-                                Date.UtcNow, Now.ToString("yyyy-MM-dd HH:mm:ss"))
-                Else
-                    MouseDownLeft(e)
-                End If
-        End Select
-    End Sub
-
-    Private Sub frmMap_MouseMove(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles Me.MouseMove
-        If pMouseDragging Then
-            If Not pControlsUse OrElse _
-               (e.X > pControlsMargin AndAlso e.X < (Me.Width - pControlsMargin)) OrElse _
-               (e.Y > pControlsMargin AndAlso e.Y < (Me.Height - pControlsMargin)) OrElse _
-               Math.Abs(pMouseDragStartLocation.X - e.X) > pControlsMargin / 2 OrElse _
-               Math.Abs(pMouseDragStartLocation.Y - e.Y) > pControlsMargin / 2 Then
-
-                CenterLat = pMouseDownLat + (e.Y - pMouseDragStartLocation.Y) * LatHeight / Me.ClientRectangle.Height
-                CenterLon = pMouseDownLon - (e.X - pMouseDragStartLocation.X) * LonWidth / Me.ClientRectangle.Width
-                ManuallyNavigated()
-            End If
-        End If
+        pMap.StopGPS()
     End Sub
 
     Private Sub mnuStartStopGPS_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuStartStopGPS.Click
         If (mnuStartStopGPS.Text.StartsWith("Start")) Then
-            StartGPS()
+            pMap.StartGPS()
         Else
-            StopGPS()
+            pMap.StopGPS()
         End If
     End Sub
-
-    Private Sub StartGPS()
-        mnuStartStopGPS.Text = "Starting GPS..."
-        Application.DoEvents()
-        If pGPSFollow = 0 Then
-            pGPSFollow = 2
-            mnuFollow.Checked = False
-            mnuCenter.Checked = True
-        End If
-        If GPS Is Nothing Then GPS = New GPS_API.GPS
-        If Not GPS.Opened Then
-            SetPowerRequirement(DeviceGPS, True)
-
-            Dim lLogIndex As Integer = 0
-            Dim lBaseFilename As String = IO.Path.Combine(pGPXFolder, DateTime.Now.ToString("yyyy-MM-dd_HH-mm"))
-
-            pTrackMutex.WaitOne()
-            pTrackLogFilename = lBaseFilename & ".gpx"
-            While System.IO.File.Exists(pTrackLogFilename)
-                pTrackLogFilename = lBaseFilename & "_" & ++lLogIndex & ".gpx"
-            End While
-            CloseLog(pWaypointLogFilename, "</gpx>" & vbLf)
-            pWaypointLogFilename = IO.Path.ChangeExtension(pTrackLogFilename, ".wpt.gpx")
-            pTrackMutex.ReleaseMutex()
-
-            mnuStartStopGPS.Text = "Opening GPS..."
-            Application.DoEvents()
-            GPS.Open()
-            GPS_Listen = True
-            pPendingUploadStart = pUploadOnStart
-        End If
-    End Sub
-
-    Private Sub StopGPS()
-        GPS_Listen = False
-        Try
-            mnuStartStopGPS.Text = "Stopping"
-            Application.DoEvents()
-        Catch
-        End Try
-        Threading.Thread.Sleep(100)
-        Me.SaveSettings() 'In case of crash, at least we can start again with the same settings
-
-        Try
-            mnuStartStopGPS.Text = "Finishing Log..."
-            Application.DoEvents()
-        Catch
-        End Try
-
-        pTrackMutex.WaitOne()
-        CloseLog(pWaypointLogFilename, "</gpx>" & vbLf)
-        CloseLog(pTrackLogFilename, "</trkseg>" & vbLf & "</trk>" & vbLf & "</gpx>" & vbLf)
-        pTrackMutex.ReleaseMutex()
-
-        If GPS IsNot Nothing Then
-            If GPS.Opened Then
-                Try
-                    mnuStartStopGPS.Text = "Closing GPS..."
-                    Application.DoEvents()
-                Catch
-                End Try
-                If pUploadOnStop Then UploadGpsPosition()
-                GPS.Close()
-            End If
-            GPS = Nothing
-        End If
-        SetPowerRequirement(DeviceGPS, False)
-        Try
-            mnuStartStopGPS.Text = "Start GPS"
-            Application.DoEvents()
-        Catch
-        End Try
-    End Sub
-
-    Private Sub CloseLog(ByRef aFilename As String, ByVal aAppend As String)
-        If IO.File.Exists(aFilename) Then
-            If aAppend IsNot Nothing AndAlso aAppend.Length > 0 Then
-                Dim lFile As System.IO.StreamWriter = System.IO.File.AppendText(aFilename)
-                lFile.Write(aAppend)
-                lFile.Close()
-            End If
-            If pUploadOnStop AndAlso pUploader.Enabled Then
-                pUploader.Enqueue(g_UploadTrackURL, aFilename, QueueItemType.FileItem, 0)
-            End If
-        End If
-        aFilename = ""
-    End Sub
-
-    Private updateDataHandler As EventHandler
-
-    Private Sub GPS_DEVICE_LocationChanged(ByVal sender As Object, ByVal args As GPS_API.LocationChangedEventArgs) Handles GPS.LocationChanged
-        If GPS_Listen Then
-            GPS_POSITION = args.Position
-            Invoke(updateDataHandler)
-        End If
-    End Sub
-
-    Private Sub UpdateData(ByVal sender As Object, ByVal args As System.EventArgs)
-        Try
-            If (GPS.Opened) Then
-                Try
-                    mnuStartStopGPS.Text = "Stop GPS " & GPS_POSITION.SatelliteCount & "/" & GPS_POSITION.SatellitesInViewCount
-                    Application.DoEvents()
-                Catch
-                End Try
-                If (GPS_POSITION IsNot Nothing AndAlso GPS_POSITION.LatitudeValid AndAlso GPS_POSITION.LongitudeValid) Then
-                    Dim lNeedRedraw As Boolean = SetCenterFromDevice(GPS_POSITION.Latitude, GPS_POSITION.Longitude)
-
-                    If GPS_Listen AndAlso (pRecordTrack OrElse pDisplayTrack) AndAlso DateTime.UtcNow.Subtract(pTrackMinInterval) >= pTrackLastTime Then
-                        TrackAddPoint()
-                        pTrackLastTime = DateTime.UtcNow
-                    End If
-
-                    If pGPSSymbolSize > 0 OrElse lNeedRedraw Then
-                        Redraw()
-                    End If
-
-                    If pPendingUploadStart OrElse (pUploadPeriodic AndAlso DateTime.UtcNow.Subtract(pUploadMinInterval) >= pUploadLastTime) Then
-                        UploadGpsPosition()
-                    End If
-
-                    'If (GPS_POSITION.SeaLevelAltitudeValid) Then
-                    ' str &= "Elev " & GPS_POSITION.SeaLevelAltitude & "m"
-                End If
-            End If
-        Catch e As Exception
-            'MsgBox(e.Message & vbLf & e.StackTrace)
-        End Try
-    End Sub
-
-    Private Function SetCenterFromCellLocation() As Boolean
-        Dim lCurrentCellInfo As New clsCell(GPS_API.RIL.GetCellTowerInfo)
-        If lCurrentCellInfo.IsValid AndAlso (pLastCellTower Is Nothing OrElse lCurrentCellInfo.ID <> pLastCellTower.ID) Then
-            pLastCellTower = lCurrentCellInfo
-            With lCurrentCellInfo
-                If GetCellLocation(pTileCacheFolder & "cells", lCurrentCellInfo) Then
-                    If SetCenterFromDevice(lCurrentCellInfo.Latitude, lCurrentCellInfo.Longitude) Then
-                        Me.Invoke(pRedrawCallback)
-                        Return True
-                    End If
-                End If
-            End With
-        End If
-        Return False
-    End Function
-
-    Private Function GetCellLocation(ByVal aCellCacheFolder As String, ByVal aCell As clsCell) As Boolean
-        'Check for a cached location first
-        For Each lLocationProvider As clsCellLocationProvider In pCellLocationProviders
-            If lLocationProvider.GetCachedLocation(aCellCacheFolder, aCell) Then
-                Return True
-            End If
-        Next
-
-        'Query for a new location and cache if found
-        For Each lLocationProvider As clsCellLocationProvider In pCellLocationProviders
-            If lLocationProvider.GetCellLocation(aCell) Then
-                lLocationProvider.SaveCachedLocation(aCellCacheFolder, aCell)
-                Return True
-            End If
-        Next
-        Return False
-    End Function
-
-    ''' <summary>
-    ''' Set the map to make sure given location is in view, depending on value of pGPSFollow
-    ''' </summary>
-    ''' <param name="aLatitude"></param>
-    ''' <param name="aLongitude"></param>
-    ''' <returns>True if map center was updated</returns>
-    ''' <remarks></remarks>
-    Private Function SetCenterFromDevice(ByVal aLatitude As Double, ByVal aLongitude As Double) As Boolean
-        Select Case pGPSFollow
-            Case 1
-                If Not LatLonInView(aLatitude, aLongitude) Then
-                    GoTo SetCenter
-                End If
-            Case 2
-SetCenter:
-                If CenterLat <> aLatitude OrElse CenterLon <> aLongitude Then
-                    CenterLat = aLatitude
-                    CenterLon = aLongitude
-                    SanitizeCenterLatLon()
-                    Return True
-                End If
-        End Select
-        Return False
-    End Function
-
-    Private Sub TrackAddPoint()
-        If GPS_POSITION IsNot Nothing _
-           AndAlso GPS_POSITION.TimeValid _
-           AndAlso GPS_POSITION.LatitudeValid _
-           AndAlso GPS_POSITION.LongitudeValid _
-           AndAlso GPS_POSITION.SatellitesInSolutionValid _
-           AndAlso GPS_POSITION.SatelliteCount > 2 Then
-            ' If subsequent track points vary this much, we don't believe it, don't log till they are closer
-            If Math.Abs((GPS_POSITION.Latitude - pTrackLastLatitude)) + Math.Abs((GPS_POSITION.Longitude - pTrackLastLongitude)) < 0.5 Then
-                Dim lGPXheader As String = Nothing
-
-                Dim lTrackPoint As New clsGPXwaypoint("trkpt", GPS_POSITION.Latitude, GPS_POSITION.Longitude)
-                If GPS_POSITION.SeaLevelAltitudeValid Then
-                    lTrackPoint.ele = GPS_POSITION.SeaLevelAltitude
-                End If
-                lTrackPoint.time = GPS_POSITION.Time
-                lTrackPoint.sat = GPS_POSITION.SatelliteCount
-
-                If GPS_POSITION.SpeedValid Then
-                    lTrackPoint.speed = GPS_POSITION.Speed
-                End If
-                If GPS_POSITION.HeadingValid Then
-                    lTrackPoint.course = GPS_POSITION.Heading
-                End If
-
-                If pRecordCellID Then
-                    Dim lCurrentCellInfo As New clsCell(GPS_API.RIL.GetCellTowerInfo)
-                    If lCurrentCellInfo.IsValid Then
-                        'Original tag was celltower, order was ID LAC MCC MNC
-                        lTrackPoint.SetExtension("cellid", lCurrentCellInfo.ToString)
-                    End If
-                End If
-                lTrackPoint.SetExtension("phonesignal", Microsoft.WindowsMobile.Status.SystemState.PhoneSignalStrength)
-
-                If pRecordTrack Then
-                    AppendLog(pTrackLogFilename, lTrackPoint.ToString, "<?xml version=""1.0"" encoding=""UTF-8""?>" & vbLf & "<gpx xmlns=""http://www.topografix.com/GPX/1/1"" version=""1.1"" creator=""" & g_AppName & """ xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xsi:schemaLocation=""http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.topografix.com/GPX/gpx_overlay/0/3 http://www.topografix.com/GPX/gpx_overlay/0/3/gpx_overlay.xsd http://www.topografix.com/GPX/gpx_modified/0/1 http://www.topografix.com/GPX/gpx_modified/0/1/gpx_modified.xsd"">" & vbLf & "<trk>" & vbLf & "<name>" & g_AppName & " Log " & System.IO.Path.GetFileNameWithoutExtension(pTrackLogFilename) & " </name>" & vbLf & "<type>GPS Tracklog</type>" & vbLf & "<trkseg>" & vbLf)
-                End If
-                pTrackLastTime = DateTime.UtcNow
-
-                If pDisplayTrack Then
-                    EnsureCurrentTrack.GPX.trk(0).trkseg(0).trkpt.Add(lTrackPoint)
-                End If
-            End If
-            pTrackLastLatitude = GPS_POSITION.Latitude
-            pTrackLastLongitude = GPS_POSITION.Longitude
-        End If
-    End Sub 'TrackAddPoint
-
-    Private Sub AppendLog(ByVal aFilename As String, ByVal aAppend As String, ByVal aHeader As String)
-        pTrackMutex.WaitOne()
-        Try
-            Dim lNeedHeader As Boolean = Not IO.File.Exists(aFilename)
-            If lNeedHeader Then IO.Directory.CreateDirectory(IO.Path.GetDirectoryName(aFilename))
-            Dim lFile As System.IO.StreamWriter = System.IO.File.AppendText(aFilename)
-            If lNeedHeader AndAlso aHeader IsNot Nothing Then lFile.Write(aHeader)
-            lFile.Write(aAppend)
-            lFile.Close()
-        Catch ex As Exception
-            Windows.Forms.MessageBox.Show("Could not save " & vbLf & pTrackLogFilename & vbLf & ex.Message)
-        End Try
-        pTrackMutex.ReleaseMutex()
-    End Sub
-
-    Private Sub UploadGpsPosition()
-        If pUploader.Enabled _
-           AndAlso GPS_POSITION IsNot Nothing _
-           AndAlso GPS_POSITION.TimeValid _
-           AndAlso GPS_POSITION.LatitudeValid _
-           AndAlso GPS_POSITION.LongitudeValid _
-           AndAlso GPS_POSITION.SatellitesInSolutionValid _
-           AndAlso GPS_POSITION.SatelliteCount > 2 Then
-            Try
-                Dim lURL As String = g_UploadPointURL
-                If lURL IsNot Nothing AndAlso lURL.Length > 0 Then
-                    BuildURL(lURL, "Time", GPS_POSITION.Time.ToString("yyyy-MM-ddTHH:mm:ss.fff") & "Z", "", GPS_POSITION.TimeValid)
-                    BuildURL(lURL, "Lat", GPS_POSITION.Latitude.ToString("#.########"), "", GPS_POSITION.LatitudeValid)
-                    BuildURL(lURL, "Lon", GPS_POSITION.Longitude.ToString("#.########"), "", GPS_POSITION.LongitudeValid)
-
-                    BuildURL(lURL, "Alt", GPS_POSITION.SeaLevelAltitude, "", GPS_POSITION.SeaLevelAltitudeValid)
-                    BuildURL(lURL, "Speed", GPS_POSITION.Speed, "", GPS_POSITION.SpeedValid)
-                    BuildURL(lURL, "Heading", GPS_POSITION.Heading, "", GPS_POSITION.HeadingValid)
-                    If pPendingUploadStart Then
-                        BuildURL(lURL, "Label", g_AppName & "-Start", "", True)
-                    Else
-                        BuildURL(lURL, "Label", g_AppName, "", True)
-                    End If
-                    If lURL.IndexOf("CellID") > -1 Then
-                        Dim lCurrentCellInfo As New clsCell(GPS_API.RIL.GetCellTowerInfo)
-                        BuildURL(lURL, "CellID", lCurrentCellInfo.ToString, "", True)
-                    End If
-
-                    pUploader.ClearQueue(0)
-                    pUploader.Enqueue(lURL, "", QueueItemType.PointItem, 0)
-                    pUploadLastTime = DateTime.UtcNow
-                    pPendingUploadStart = False
-                End If
-            Catch
-            End Try
-        End If
-    End Sub 'UploadPoint
-
-    Private Sub BuildURL(ByRef aURL As String, ByVal aTag As String, ByVal aReplaceTrue As String, ByVal aReplaceFalse As String, ByVal aTest As Boolean)
-        Dim lReplacement As String
-        If aTest Then
-            lReplacement = aReplaceTrue
-        Else
-            lReplacement = aReplaceFalse
-        End If
-        aURL = aURL.Replace("#" & aTag & "#", lReplacement)
-    End Sub
-
     Private Sub mnuGeocache_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuGeocache.Click
-        pFormVisible = False
-
-        If Layers IsNot Nothing AndAlso Layers.Count > 0 Then
-            Dim lMiddlemostCache As clsGPXwaypoint = Nothing
-            Dim lClosestDistance As Double = Double.MaxValue
-            Dim lThisDistance As Double
-            For Each lLayer As clsLayer In Layers
-                Try
-                    Dim lGPXLayer As clsLayerGPX = lLayer
-                    Dim lDrawThisOne As Boolean = True
-                    If lGPXLayer.GPX.bounds IsNot Nothing Then
-                        With lGPXLayer.GPX.bounds 'Skip drawing this one if it is not in view
-                            If .minlat > CenterLat + LatHeight / 2 OrElse _
-                                .maxlat < CenterLat - LatHeight / 2 OrElse _
-                                .minlon > CenterLon + LonWidth / 2 OrElse _
-                                .maxlon < CenterLon - LonWidth / 2 Then
-                                lDrawThisOne = False
-                            End If
-                        End With
-                    End If
-                    If lDrawThisOne Then
-                        For Each lWaypoint As clsGPXwaypoint In lGPXLayer.GPX.wpt
-                            lThisDistance = (lWaypoint.lat - CenterLat) ^ 2 + (lWaypoint.lon - CenterLon) ^ 2
-                            If lThisDistance < lClosestDistance Then
-                                lMiddlemostCache = lWaypoint
-                                lClosestDistance = lThisDistance
-                            End If
-                        Next
-                    End If
-                Catch
-                End Try
-            Next
-            If lMiddlemostCache IsNot Nothing Then
-                'Dim lGeocacheForm As New frmGeocacheMobile
-                'With lMiddlemostCache
-                '    lGeocacheForm.URL = .url
-                '    Dim lText As String = ""
-
-                '    lText &= .name & " " _
-                '          & FormattedDegrees(.lat, g_DegreeFormat) & ", " _
-                '          & FormattedDegrees(.lon, g_DegreeFormat) & vbLf
-
-                '    If .desc IsNot Nothing AndAlso .desc.Length > 0 Then
-                '        lText &= .desc & vbLf
-                '    ElseIf .urlname IsNot Nothing AndAlso .urlname.Length > 0 Then
-                '        lText &= .urlname
-                '        If .cache IsNot Nothing Then
-                '            lText &= " (" & Format(.cache.difficulty, "#.#") & "/" _
-                '                          & Format(.cache.terrain, "#.#") & ")"
-                '        End If
-                '        lText &= vbLf
-                '    End If
-
-                '    If .cmt IsNot Nothing AndAlso .cmt.Length > 0 Then lText &= "comment: " & .cmt & vbLf
-
-                '    If .cache IsNot Nothing AndAlso .cache.container IsNot Nothing AndAlso .cache.container.Length > 0 Then lText &= .cache.container & ", "
-                '    If .type IsNot Nothing AndAlso .type.Length > 0 Then
-                '        If .type.StartsWith("Geocache|") Then
-                '            lText &= "type: " & .type.Substring(9) & vbLf
-                '        Else
-                '            lText &= "type: " & .type & vbLf
-                '        End If
-                '    ElseIf .cache IsNot Nothing AndAlso .cache.cachetype IsNot Nothing AndAlso .cache.cachetype.Length > 0 Then
-                '        lText &= "type: " & .type & vbLf
-                '    End If
-
-                '    If .cache IsNot Nothing Then
-                '        If .cache.archived Then lText &= "ARCHIVED" & vbLf
-
-                '        If .cache.short_description IsNot Nothing AndAlso .cache.short_description.Length > 0 Then
-                '            lText &= .cache.short_description.Replace("<br>", vbLf) & vbLf
-                '        End If
-                '        If .cache.long_description IsNot Nothing AndAlso .cache.long_description.Length > 0 Then
-                '            lText &= .cache.long_description.Replace("<br>", vbLf) & vbLf
-                '        End If
-
-                '        If .cache.encoded_hints IsNot Nothing AndAlso .cache.encoded_hints.Length > 0 Then
-                '            lText &= "Hint: " & .cache.encoded_hints & vbLf
-                '        End If
-
-                '        If .cache.logs IsNot Nothing AndAlso .cache.logs.Length > 0 Then lText &= "Logs: " & .cache.logs & vbLf
-                '        If .cache.placed_by IsNot Nothing AndAlso .cache.placed_by.Length > 0 Then lText &= "Placed by: " & .cache.placed_by & vbLf
-                '        If .cache.owner IsNot Nothing AndAlso .cache.owner.Length > 0 Then lText &= "Owner: " & .cache.owner & vbLf
-                '        If .cache.travelbugs IsNot Nothing AndAlso .cache.travelbugs.Length > 0 Then lText &= "Travellers: " & .cache.travelbugs & vbLf
-
-                '    End If
-                '    If .extensions IsNot Nothing Then lText &= .extensions.OuterXml
-
-                '    lGeocacheForm.txtMain.Text = lText
-                'End With
-                'lGeocacheForm.Show()
-
-                With lMiddlemostCache
-                    Windows.Forms.Clipboard.SetDataObject(.name)
-                    Dim lText As String = "<html><head><title>" & .name & "</title></head><body>"
-
-                    lText &= "<b><a href=""" & .url & """>" & .name & "</a></b> " _
-                          & FormattedDegrees(.lat, g_DegreeFormat) & ", " _
-                          & FormattedDegrees(.lon, g_DegreeFormat) & "<br>"
-
-                    If .desc IsNot Nothing AndAlso .desc.Length > 0 Then
-                        lText &= .desc
-                    ElseIf .urlname IsNot Nothing AndAlso .urlname.Length > 0 Then
-                        lText &= .urlname
-                        If .cache IsNot Nothing Then
-                            lText &= " (" & Format(.cache.difficulty, "#.#") & "/" _
-                                          & Format(.cache.terrain, "#.#") & ")"
-                        End If
-                    End If
-
-                    Dim lType As String = Nothing
-                    If .type IsNot Nothing AndAlso .type.Length > 0 Then
-                        lType = .type
-                        If lType.StartsWith("Geocache|") Then lType = lType.Substring(9)
-                    End If
-                    If lType Is Nothing AndAlso .cache IsNot Nothing AndAlso .cache.cachetype IsNot Nothing AndAlso .cache.cachetype.Length > 0 Then
-                        lType = .cache.cachetype
-                    End If
-                    If lType IsNot Nothing AndAlso lText.IndexOf(lType) = -1 Then
-                        lText &= " <b>" & .type & "</b>"
-                    End If
-
-                    If .cache IsNot Nothing AndAlso .cache.container IsNot Nothing AndAlso .cache.container.Length > 0 Then lText &= " <b>" & .cache.container & "</b>"
-                    lText &= "<br>"
-
-                    If .cmt IsNot Nothing AndAlso .cmt.Length > 0 Then lText &= "<b>comment:</b> " & .cmt & "<br>"
-
-                    If .cache IsNot Nothing Then
-                        If .cache.archived Then lText &= "<h2>ARCHIVED</h2><br>"
-
-                        If .cache.short_description IsNot Nothing AndAlso .cache.short_description.Length > 0 Then
-                            lText &= .cache.short_description & "<br>"
-                        End If
-                        If .cache.long_description IsNot Nothing AndAlso .cache.long_description.Length > 0 Then
-                            lText &= .cache.long_description & "<br>"
-                        End If
-
-                        If .cache.encoded_hints IsNot Nothing AndAlso .cache.encoded_hints.Length > 0 Then
-                            lText &= "<b>Hint:</b> " & .cache.encoded_hints & "<br>"
-                        End If
-
-                        If .cache.logs IsNot Nothing AndAlso .cache.logs.Count > 0 Then
-                            'T19:00:00 is the time for all logs? remove it and format the entries a bit
-                            Dim lIconPath As String = pTileCacheFolder & "Icons" & g_PathChar & "Geocache" & g_PathChar
-                            Dim lIconFilename As String
-                            lText &= "<b>Logs:</b><br>"
-                            For Each lLog As clsGroundspeakLog In .cache.logs
-                                Select Case lLog.logtype
-                                    Case "Found it" : lIconFilename = lIconPath & "icon_smile.gif"
-                                    Case "Didn't find it" : lIconFilename = lIconPath & "icon_sad.gif"
-                                    Case "Write note" : lIconFilename = lIconPath & "icon_note.gif"
-                                    Case "Enable Listing" : lIconFilename = lIconPath & "icon_enabled.gif"
-                                    Case "Temporarily Disable Listing" : lIconFilename = lIconPath & "icon_disabled.gif"
-                                    Case "Needs Maintenance" : lIconFilename = lIconPath & "icon_needsmaint.gif"
-                                    Case "Owner Maintenance" : lIconFilename = lIconPath & "icon_maint.gif"
-                                    Case "Publish Listing" : lIconFilename = lIconPath & "icon_greenlight.gif"
-                                    Case "Update Coordinates" : lIconFilename = lIconPath & "coord_update.gif"
-                                    Case "Will Attend" : lIconFilename = lIconPath & "icon_rsvp.gif"
-                                    Case Else : lIconFilename = ""
-                                End Select
-                                If IO.File.Exists(lIconFilename) Then
-                                    lText &= "<img src=""" & lIconFilename & """>"
-                                Else
-                                    lText &= lLog.logtype
-                                End If
-                                lText &= "<b>" & lLog.logdate.Replace("T19:00:00", "") & "</b> " & lLog.logfinder & ": " & lLog.logtext & "<br>"
-                            Next
-                            'Dim lLastTimePos As Integer = 0
-                            'Dim lTimePos As Integer = .cache.logs.IndexOf()
-                            'While lTimePos > 0
-                            '    lText &= .cache.logs.Substring(lLastTimePos, lTimePos - lLastTimePos - 10) & "<br><b>" & .cache.logs.Substring(lTimePos - 10, 10) & "</b> "
-                            '    lLastTimePos = lTimePos + 9
-                            '    lTimePos = .cache.logs.IndexOf("T19:00:00", lTimePos + 10)
-                            'End While
-                            'lText &= .cache.logs.Substring(lLastTimePos + 9) & "<p>"
-                        End If
-                        If .cache.placed_by IsNot Nothing AndAlso .cache.placed_by.Length > 0 Then lText &= "<b>Placed by:</b> " & .cache.placed_by & "<br>"
-                        If .cache.owner IsNot Nothing AndAlso .cache.owner.Length > 0 Then lText &= "<b>Owner:</b> " & .cache.owner & "<br>"
-                        If .cache.travelbugs IsNot Nothing AndAlso .cache.travelbugs.Length > 0 Then lText &= "<b>Travellers:</b> " & .cache.travelbugs & "<br>"
-                    End If
-                    lText &= .extensionsString
-
-                    Dim lStream As IO.StreamWriter = IO.File.CreateText("\My Documents\cache.html")
-                    lStream.Write(lText)
-                    lStream.Write("<br><a href=""http://wap.geocaching.com/"">Official WAP</a><br>")
-                    lStream.Write("<br><a href=""http://rtr.ca/geo?W=" & .name & """>rtr.ca WAP</a></body></html>")
-                    lStream.Close()
-                    OpenFile("\My Documents\cache.html")
-                End With
-
-            End If
-        End If
-        pFormVisible = True
-        Redraw()
+        pMap.ClosestGeocache()
     End Sub
 
     Private Sub mnuRecordTrack_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuRecordTrack.Click
         mnuRecordTrack.Checked = Not mnuRecordTrack.Checked
-        pRecordTrack = mnuRecordTrack.Checked
+        pMap.RecordTrack = mnuRecordTrack.Checked
     End Sub
 
     Private Sub mnuDisplayTrack_Click(ByVal sender As Object, ByVal e As System.EventArgs) Handles mnuViewTrack.Click
         mnuViewTrack.Checked = Not mnuViewTrack.Checked
-        pDisplayTrack = mnuViewTrack.Checked
-
-        If Layers.Count > 0 AndAlso Layers(0).Filename = "current" Then
-            Layers.RemoveAt(0)
-        End If
-        If pDisplayTrack Then
-            pTrackMutex.WaitOne()
-            If System.IO.File.Exists(pTrackLogFilename) Then
-                OpenGPX(pTrackLastTime, 0)
-            End If
-            pTrackMutex.ReleaseMutex()
-        End If
+        pMap.DisplayTrack = mnuViewTrack.Checked
     End Sub
 
     Private Sub mnuOptionsDownload_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuOptionsDownload.Click
-        pFormVisible = False
+        'pFormVisible = False
         pDownloadForm = New frmDownloadMobile
         With pDownloadForm
             On Error Resume Next
             .comboTileServer.Items.Clear()
-            For Each lTileServerName As String In pTileServers.Keys
+            For Each lTileServerName As String In pMap.TileServers.Keys
                 .comboTileServer.Items.Add(lTileServerName)
             Next
-            .comboTileServer.Text = TileServerName
+            .comboTileServer.Text = pMap.TileServerName
             .DegreeFormat = g_DegreeFormat
-            .txtTileFolder.Text = pTileCacheFolder
-            .Latitude = CenterLat
-            .Longitude = CenterLon
-            .txtGPSSymbolSize.Text = pGPSSymbolSize
+            .txtTileFolder.Text = pMap.TileCacheFolder
+            .Latitude = pMap.CenterLat
+            .Longitude = pMap.CenterLon
+            .txtGPSSymbolSize.Text = pMap.GPSSymbolSize
             .Show()
         End With
     End Sub
@@ -831,33 +76,33 @@ SetCenter:
                 .Visible = False
 
                 On Error Resume Next 'Ignore dysfunctional (e.g. non-numeric) settings
-                TileCacheFolder = .txtTileFolder.Text
-                TileServerName = .comboTileServer.Text
+                pMap.TileCacheFolder = .txtTileFolder.Text
+                pMap.TileServerName = .comboTileServer.Text
                 g_DegreeFormat = .DegreeFormat
-                CenterLat = .Latitude
-                CenterLon = .Longitude
+                pMap.CenterLat = .Latitude
+                pMap.CenterLon = .Longitude
 
-                pGPSSymbolSize = .txtGPSSymbolSize.Text
+                pMap.GPSSymbolSize = .txtGPSSymbolSize.Text
             End With
         End If
         pDownloadForm = Nothing
-        pFormVisible = True
-        Redraw()
+        'pFormVisible = True
+        pMap.NeedRedraw()
     End Sub
 
     Private Sub mnuOptionsUpload_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuOptionsUpload.Click
-        pFormVisible = False
+        'pFormVisible = False
         pUploadForm = New frmUploadMobile
         With pUploadForm
             On Error Resume Next
             .DegreeFormat = g_DegreeFormat
-            .Latitude = CenterLat
-            .Longitude = CenterLon
+            .Latitude = pMap.CenterLat
+            .Longitude = pMap.CenterLon
             .txtUploadURL.Text = g_UploadPointURL
-            .chkUploadOnStart.Checked = pUploadOnStart
-            .chkUploadOnStop.Checked = pUploadOnStop
-            .chkUploadInterval.Checked = pUploadPeriodic
-            .txtUploadInterval.Text = pUploadMinInterval.TotalMinutes
+            .chkUploadOnStart.Checked = pMap.UploadOnStart
+            .chkUploadOnStop.Checked = pMap.UploadOnStop
+            .chkUploadInterval.Checked = pMap.UploadPeriodic
+            .txtUploadInterval.Text = pMap.UploadMinInterval.TotalMinutes
             .Show()
         End With
     End Sub
@@ -868,40 +113,39 @@ SetCenter:
                 .Visible = False
 
                 g_DegreeFormat = .DegreeFormat
-                CenterLat = .Latitude
-                CenterLon = .Longitude
+                pMap.CenterLat = .Latitude
+                pMap.CenterLon = .Longitude
 
                 g_UploadPointURL = .txtUploadURL.Text
                 If g_UploadPointURL.Length > 0 AndAlso g_UploadPointURL.IndexOf(":/") = -1 Then
                     g_UploadPointURL = "http://" & g_UploadPointURL
                 End If
 
-                pUploadMinInterval = Nothing
-
-                If .chkUploadNow.Checked Then UploadGpsPosition()
-                pUploadOnStart = .chkUploadOnStart.Checked
-                pUploadOnStop = .chkUploadOnStop.Checked
-                pUploadPeriodic = .chkUploadInterval.Checked
+                pMap.UploadMinInterval = Nothing
+                If .chkUploadNow.Checked Then pMap.UploadGpsPosition()
+                pMap.UploadOnStart = .chkUploadOnStart.Checked
+                pMap.UploadOnStop = .chkUploadOnStop.Checked
+                pMap.UploadPeriodic = .chkUploadInterval.Checked
                 If IsNumeric(.txtUploadInterval.Text) Then
-                    pUploadMinInterval = New TimeSpan(0, 0, CDbl(.txtUploadInterval.Text) * 60)
+                    pMap.UploadMinInterval = New TimeSpan(0, 0, CDbl(.txtUploadInterval.Text) * 60)
                 End If
             End With
         End If
         pUploadForm = Nothing
-        pFormVisible = True
-        Redraw()
+        'pFormVisible = True
+        pMap.NeedRedraw()
     End Sub
 
     Private Sub mnuLayers_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuLayers.Click
-        pFormVisible = False
+        'pFormVisible = False
         pLayersForm = New frmOptionsMobileGPX
         With pLayersForm
             On Error Resume Next
-            .LayersLoaded = Layers
-            .txtGPXFolder.Text = pGPXFolder
-            .comboLabels.Text = pGPXLabelField
-            .txtGPXSymbolSize.Text = pTrackSymbolSize
-            'TODO: .txtGPXSymbolColor.BackColor = pPenTrack.Color
+            .LayersLoaded = pMap.Layers
+            .txtGPXFolder.Text = pMap.GPXFolder
+            .comboLabels.Text = pMap.GPXLabelField
+            .txtGPXSymbolSize.Text = pMap.TrackSymbolSize
+            'TODO: .txtGPXSymbolColor.BackColor = pMap.pPenTrack.Color
             .Show()
         End With
     End Sub
@@ -909,13 +153,13 @@ SetCenter:
     Private Sub pLayersForm_Closing(ByVal sender As Object, ByVal e As System.ComponentModel.CancelEventArgs) Handles pLayersForm.Closing
         If pLayersForm.DialogResult = Windows.Forms.DialogResult.OK Then
             With pLayersForm
-                pGPXFolder = .txtGPXFolder.Text
-                pGPXLabelField = .comboLabels.Text
+                pMap.GPXFolder = .txtGPXFolder.Text
+                pMap.GPXLabelField = .comboLabels.Text
 
                 'Change set of loaded GPX files to match ones now checked
-                Dim lOldGPX As Generic.List(Of clsLayer) = Layers
-                Layers = New Generic.List(Of clsLayer)
-                pTrackSymbolSize = .txtGPXSymbolSize.Text
+                Dim lOldGPX As Generic.List(Of clsLayer) = pMap.Layers
+                pMap.Layers = New Generic.List(Of clsLayer)
+                pMap.TrackSymbolSize = .txtGPXSymbolSize.Text
                 'TODO: pPenTrack.Color = .txtGPXSymbolColor.BackColor
                 Dim lSaveText As String = Me.Text
                 Dim lFilename As String
@@ -927,10 +171,10 @@ SetCenter:
                             If lLayer.Filename = lFilename Then
                                 Try 'Assign GPX-specific attribute LabelField
                                     Dim lGPXlayer As clsLayerGPX = lLayer
-                                    lGPXlayer.LabelField = pGPXLabelField
+                                    lGPXlayer.LabelField = pMap.GPXLabelField
                                 Catch
                                 End Try
-                                Layers.Add(lLayer)
+                                pMap.Layers.Add(lLayer)
                                 lAlreadyOpen = True
                                 Exit For
                             End If
@@ -938,7 +182,7 @@ SetCenter:
                         If Not lAlreadyOpen Then
                             Me.Text = "Opening " & IO.Path.GetFileNameWithoutExtension(lFilename) & "..."
                             Application.DoEvents()
-                            OpenGPX(lFilename)
+                            pMap.OpenFile(lFilename)
                         End If
                     End If
                 Next
@@ -946,121 +190,69 @@ SetCenter:
             End With
         End If
         pLayersForm = Nothing
-        pFormVisible = True
-        Redraw()
+        'pFormVisible = True
+        pMap.NeedRedraw()
     End Sub
 
     Private Sub mnuGPSdetails_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuViewGPSdetails.Click
-        mnuViewGPSdetails.Checked = Not mnuViewGPSdetails.Checked
-        pShowGPSdetails = mnuViewGPSdetails.Checked
-        Redraw()
+        mnuViewGPSdetails.Checked = Not pMap.ShowGPSdetails
+        pMap.ShowGPSdetails = mnuViewGPSdetails.Checked
     End Sub
 
     Private Sub mnuViewTileOutlines_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuViewTileOutlines.Click
-        mnuViewTileOutlines.Checked = Not mnuViewTileOutlines.Checked
-        pShowTileOutlines = mnuViewTileOutlines.Checked
-        Redraw()
+        mnuViewTileOutlines.Checked = Not pMap.ShowTileOutlines
+        pMap.ShowTileOutlines = mnuViewTileOutlines.Checked
     End Sub
 
     Private Sub mnuViewTileNames_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuViewTileNames.Click
-        mnuViewTileNames.Checked = Not mnuViewTileNames.Checked
-        pShowTileNames = mnuViewTileNames.Checked
-        Redraw()
+        mnuViewTileNames.Checked = Not pMap.ShowTileNames
+        pMap.ShowTileNames = mnuViewTileNames.Checked
     End Sub
 
     Private Sub mnuRefreshOnClick_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuRefreshOnClick.Click
         mnuRefreshOnClick.Checked = Not mnuRefreshOnClick.Checked
-        pClickDownload = mnuRefreshOnClick.Checked
-        If pClickDownload Then
-            pShowTileOutlines = True
-            mnuViewTileOutlines.Checked = True
-            Refresh()
-        End If
+        pMap.ClickRefreshTile = mnuRefreshOnClick.Checked
     End Sub
 
     Private Sub mnuViewDark_Click(ByVal sender As Object, ByVal e As System.EventArgs) Handles mnuViewDark.Click
         mnuViewDark.Checked = Not mnuViewDark.Checked
-        pFormDark = mnuViewDark.Checked
-        Redraw()
-        If pFormDark Then
-            StopKeepAwake()
-        Else
-            StartKeepAwake()
-        End If
-    End Sub
-
-    ''' <summary>
-    ''' Start timer that keeps system idle from turning off device
-    ''' </summary>
-    ''' <remarks></remarks>
-    Private Sub StartKeepAwake()
-        SystemIdleTimerReset()
-        If pKeepAwakeTimer Is Nothing Then
-            pKeepAwakeTimer = New System.Threading.Timer(New Threading.TimerCallback(AddressOf IdleTimeout), Nothing, 0, 50000)
-        End If
-    End Sub
-    Private Sub StopKeepAwake()
-        If pKeepAwakeTimer IsNot Nothing Then
-            pKeepAwakeTimer.Dispose()
-            pKeepAwakeTimer = Nothing
-        End If
-    End Sub
-
-    Private Sub IdleTimeout(ByVal o As Object)
-        SystemIdleTimerReset()
-
-        If pGPSFollow > 0 _
-            AndAlso (Not GPS_Listen _
-                     OrElse GPS_POSITION Is Nothing _
-                     OrElse Not GPS_POSITION.TimeValid _
-                     OrElse Date.UtcNow.Subtract(GPS_POSITION.Time).TotalMinutes > 1) Then
-            SetCenterFromCellLocation()
-        End If
+        pMap.Dark = mnuViewDark.Checked
     End Sub
 
     Private Sub mnuFollow_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuFollow.Click
         mnuFollow.Checked = Not mnuFollow.Checked
-        If mnuFollow.Checked Then
-            pGPSFollow = 1
-        Else
-            pGPSFollow = 0
-        End If
+        pMap.GPSFollow = mnuFollow.Checked 
     End Sub
 
     Private Sub mnuCenter_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuCenter.Click
         mnuCenter.Checked = Not mnuCenter.Checked
-        If mnuCenter.Checked Then
-            pGPSFollow = 2
-        Else
-            pGPSFollow = 0
-        End If
+        pMap.GPSCenter = mnuCenter.Checked 
     End Sub
 
     Private Sub mnuAutoStart_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuAutoStart.Click
         mnuAutoStart.Checked = Not mnuAutoStart.Checked
-        pGPSAutoStart = mnuAutoStart.Checked
+        pMap.AutoStart = mnuAutoStart.Checked
     End Sub
 
     Private Sub mnuViewMapTiles_Click(ByVal sender As Object, ByVal e As System.EventArgs) Handles mnuViewMapTiles.Click
         mnuViewMapTiles.Checked = Not mnuViewMapTiles.Checked
-        pShowTileImages = mnuViewMapTiles.Checked
-        Redraw()
+        pMap.ShowTileImages = mnuViewMapTiles.Checked
     End Sub
 
     Private Sub mnuFindBuddy_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuFindBuddy.Click
         mnuFindBuddy.Checked = Not mnuFindBuddy.Checked
         If mnuFindBuddy.Checked Then
-            StartBuddyTimer()
+            pMap.StartBuddyTimer()
         Else
-            StopBuddyTimer()
+            pMap.StopBuddyTimer()
         End If
     End Sub
 
     Private Sub mnuViewControls_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuViewControls.Click
         mnuViewControls.Checked = Not mnuViewControls.Checked
-        pControlsShow = mnuViewControls.Checked
-        pControlsUse = pControlsShow
-        Redraw()
+        pMap.ControlsShow = mnuViewControls.Checked
+        pMap.ControlsUse = pMap.ControlsShow
+        pMap.Refresh()
     End Sub
 
     Private Sub mnuTakePicture_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuTakePicture.Click
@@ -1087,39 +279,12 @@ SetCenter:
     End Sub
 
     Private Sub mnuSetTime_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuSetTime.Click
-        Dim lDetails As String = Nothing
-        Try
-            If GPS Is Nothing Then
-                lDetails = "GPS not started"
-            ElseIf Not GPS.Opened Then
-                lDetails = "GPS not yet open"
-            ElseIf GPS_POSITION Is Nothing Then
-                lDetails = "No GPS fix"
-            ElseIf Not GPS_POSITION.TimeValid Then
-                lDetails = "GPS Time not valid"
-            Else
-                SetSystemTime(GPS_POSITION.Time.ToLocalTime())
-            End If
-        Catch ex As Exception
-            lDetails = ex.Message
-        End Try
-        If lDetails IsNot Nothing Then
-            MsgBox(lDetails)
-        End If
+       pmap.SetTime
     End Sub
 
     Private Sub mnuWaypoint_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuWaypoint.Click
         mnuWaypoint.Checked = Not mnuWaypoint.Checked
-        pClickWaypoint = mnuWaypoint.Checked
+        pMap.ClickMakeWaypoint = mnuWaypoint.Checked
     End Sub
 
-    Private Sub AddWaypoint(ByVal aLatitude As Double, ByVal aLongitude As Double, ByVal aTime As Date, ByVal aName As String)
-        Dim lWayPoint As New clsGPXwaypoint("wpt", aLatitude, aLongitude)
-        lWayPoint.time = aTime
-        lWayPoint.name = aName
-        If pWaypointLogFilename Is Nothing OrElse pWaypointLogFilename.Length = 0 Then
-            pWaypointLogFilename = IO.Path.Combine(pGPXFolder, DateTime.Now.ToString("yyyy-MM-dd_HH-mm")) & ".wpt.gpx"
-        End If
-        AppendLog(pWaypointLogFilename, lWayPoint.ToString, "<?xml version=""1.0"" encoding=""UTF-8""?>" & vbLf & "<gpx xmlns=""http://www.topografix.com/GPX/1/1"" version=""1.1"" creator=""" & g_AppName & """ xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xsi:schemaLocation=""http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.topografix.com/GPX/gpx_overlay/0/3 http://www.topografix.com/GPX/gpx_overlay/0/3/gpx_overlay.xsd http://www.topografix.com/GPX/gpx_modified/0/1 http://www.topografix.com/GPX/gpx_modified/0/1/gpx_modified.xsd"">" & vbLf)
-    End Sub
 End Class

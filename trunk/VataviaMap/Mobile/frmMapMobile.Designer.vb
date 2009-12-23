@@ -40,11 +40,12 @@ Partial Public Class frmMap
         Me.mnuFollow = New System.Windows.Forms.MenuItem
         Me.mnuAutoStart = New System.Windows.Forms.MenuItem
         Me.mnuRecordTrack = New System.Windows.Forms.MenuItem
+        Me.mnuWaypoint = New System.Windows.Forms.MenuItem
         Me.mnuSetTime = New System.Windows.Forms.MenuItem
         Me.mnuRefreshOnClick = New System.Windows.Forms.MenuItem
         Me.mnuFindBuddy = New System.Windows.Forms.MenuItem
         Me.mnuTakePicture = New System.Windows.Forms.MenuItem
-        Me.mnuWaypoint = New System.Windows.Forms.MenuItem
+        Me.pMap = New VataviaMap.ctlMap
         Me.SuspendLayout()
         '
         'mnuMain
@@ -152,6 +153,10 @@ Partial Public Class frmMap
         '
         Me.mnuRecordTrack.Text = "Record Track"
         '
+        'mnuWaypoint
+        '
+        Me.mnuWaypoint.Text = "Record Waypoint"
+        '
         'mnuSetTime
         '
         Me.mnuSetTime.Text = "Set Time from GPS"
@@ -168,9 +173,14 @@ Partial Public Class frmMap
         '
         Me.mnuTakePicture.Text = "Take Picture"
         '
-        'mnuWaypoint
+        'pMap
         '
-        Me.mnuWaypoint.Text = "Record Waypoint"
+        Me.pMap.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.pMap.Font = New System.Drawing.Font("Microsoft Sans Serif", 8.25!, System.Drawing.FontStyle.Regular)
+        Me.pMap.Location = New System.Drawing.Point(0, 0)
+        Me.pMap.Name = "pMap"
+        Me.pMap.Size = New System.Drawing.Size(176, 180)
+        Me.pMap.TabIndex = 0
         '
         'frmMap
         '
@@ -178,6 +188,7 @@ Partial Public Class frmMap
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi
         Me.AutoScroll = True
         Me.ClientSize = New System.Drawing.Size(176, 180)
+        Me.Controls.Add(Me.pMap)
         Me.Menu = Me.mnuMain
         Me.Name = "frmMap"
         Me.Text = "VataviaMap"
@@ -208,5 +219,6 @@ Partial Public Class frmMap
     Friend WithEvents mnuTakePicture As System.Windows.Forms.MenuItem
     Friend WithEvents mnuSetTime As System.Windows.Forms.MenuItem
     Friend WithEvents mnuWaypoint As System.Windows.Forms.MenuItem
+    Friend WithEvents pMap As VataviaMap.ctlMap
 
 End Class
