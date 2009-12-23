@@ -19,16 +19,16 @@ Public Class clsCellLayer
     ''' Create a new cell layer from a binary file
     ''' </summary>
     ''' <param name="aBinaryFilename">name of binary file to open</param>
-    ''' <param name="aMapForm">Map to draw this layer on, can be Nothing to open layer just for reading/writing cell information</param>
+    ''' <param name="aMap">Map to draw this layer on, can be Nothing to open layer just for reading/writing cell information</param>
     ''' <remarks>binary file must be in format written by this class, starting with BinaryMagic then filled with clsCell.Write</remarks>
-    Public Sub New(ByVal aBinaryFilename As String, ByVal aMapForm As frmMap)
-        MyBase.New(aBinaryFilename, aMapForm)
+    Public Sub New(ByVal aBinaryFilename As String, ByVal aMap As ctlMap)
+        MyBase.New(aBinaryFilename, aMap)
         SetDefaults()
         Me.LoadBinary(aBinaryFilename)
     End Sub
 
-    Public Sub New(ByVal aMapForm As frmMap)
-        MyBase.New("", aMapForm)
+    Public Sub New(ByVal aMap As ctlMap)
+        MyBase.New("", aMap)
         SetDefaults()
     End Sub
 
@@ -83,7 +83,7 @@ Public Class clsCellLayer
                         If pGroups.ContainsKey(lKey) Then
                             lGroup = pGroups.Item(lKey)
                         Else
-                            lGroup = New clsCellLayer(MapForm)
+                            lGroup = New clsCellLayer(Map)
                             lGroup.LegendColor = RandomRGBColor(100)
                             pGroups.Add(lKey, lGroup)
                         End If
@@ -121,8 +121,8 @@ Public Class clsCellLayer
             Dim lDrawLayer As Boolean = True
             If pBounds IsNot Nothing Then
                 With pBounds 'Skip drawing if it is not in view
-                    If .minlat > MapForm.LatMax OrElse .maxlat < MapForm.LatMin OrElse _
-                       .minlon > MapForm.LonMax OrElse .maxlon < MapForm.LonMin Then
+                    If .minlat > Map.LatMax OrElse .maxlat < Map.LatMin OrElse _
+                       .minlon > Map.LonMax OrElse .maxlon < Map.LonMin Then
 
                         lDrawLayer = False
                     End If
@@ -171,7 +171,7 @@ Public Class clsCellLayer
 
                     Dim lTileXY As Point 'Which tile this point belongs in
                     Dim lTileOffset As Point 'Offset within lTileXY in pixels
-                    lTileXY = CalcTileXY(pCenterLat, pCenterLon, MapForm.Zoom, lTileOffset)
+                    lTileXY = CalcTileXY(pCenterLat, pCenterLon, Map.Zoom, lTileOffset)
                     Dim lCenterX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileSize + aOffsetToCenter.X + lTileOffset.X
                     Dim lCenterY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileSize + aOffsetToCenter.Y + lTileOffset.Y
 
@@ -183,7 +183,7 @@ Public Class clsCellLayer
                         Else
                             lSkipped = 0
                             With lCell
-                                lTileXY = CalcTileXY(.Latitude, .Longitude, MapForm.Zoom, lTileOffset)
+                                lTileXY = CalcTileXY(.Latitude, .Longitude, Map.Zoom, lTileOffset)
                                 Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileSize + aOffsetToCenter.X + lTileOffset.X
                                 Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileSize + aOffsetToCenter.Y + lTileOffset.Y
 
@@ -192,7 +192,7 @@ Public Class clsCellLayer
                             End With
                         End If
                     Next
-                    If MapForm.Zoom >= LabelMinZoom Then
+                    If Map.Zoom >= LabelMinZoom Then
                         Try
                             Dim lLabelText As String = Nothing
                             Select Case LabelField
@@ -230,17 +230,17 @@ Public Class clsCellLayer
         With aCell
             Dim lTileXY As Point 'Which tile this point belongs in
             Dim lTileOffset As Point 'Offset within lTileXY in pixels
-            lTileXY = CalcTileXY(.Latitude, .Longitude, MapForm.Zoom, lTileOffset)
+            lTileXY = CalcTileXY(.Latitude, .Longitude, Map.Zoom, lTileOffset)
             Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileSize + aOffsetToCenter.X + lTileOffset.X
             Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileSize + aOffsetToCenter.Y + lTileOffset.Y
 
-            If MapForm.Zoom < 16 Then
+            If Map.Zoom < 16 Then
                 g.DrawLine(SymbolPen, lX - 3, lY - 3, lX + 3, lY + 3)
                 g.DrawLine(SymbolPen, lX - 3, lY + 3, lX + 3, lY - 3)
             Else
                 g.DrawEllipse(SymbolPen, lX - 5, lY - 5, 10, 10)
 
-                If MapForm.Zoom > 15 Then
+                If Map.Zoom > 15 Then
                     Try
                         g.DrawString(.ToString, FontLabel, BrushLabel, lX, lY)
                     Catch

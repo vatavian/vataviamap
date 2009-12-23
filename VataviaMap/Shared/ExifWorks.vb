@@ -29,7 +29,7 @@ Public Class ExifWorks
     Implements IDisposable
     Private Properties As Imaging.PropertyItem()
     Private PropertyIdList As Integer()
-    Private _Encoding As Encoding = Encoding.UTF8
+    Private _Encoding As Encoding = System.Text.Encoding.UTF8
     Private _Image As Image
 
 #Region "Type declarations"

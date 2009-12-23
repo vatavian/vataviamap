@@ -1,0 +1,2772 @@
+Public Class ctlMap
+    Implements IQueueListener
+
+    Public CenterLat As Double = 33.8
+    Public CenterLon As Double = -84.3
+
+    Public LatHeight As Double 'Height of map display area in latitude degrees
+    Public LonWidth As Double  'Width of map display area in longitude degrees
+    'bounds of map display area
+    Public LatMin As Double, LatMax As Double, LonMin As Double, LonMax As Double
+
+    Private pZoom As Integer = 10 'varies from g_ZoomMin to g_ZoomMax
+
+    Public Enum EnumWheelAction
+        Zoom = 0
+        TileServer = 1
+        Layer = 2
+    End Enum
+    Public MouseWheelAction As EnumWheelAction = EnumWheelAction.Zoom
+
+    'Top-level tile cache folder. 
+    'We name a folder inside here after the tile server, then zoom\x\y.png
+    'Changing the tile server also changes g_TileCacheFolder
+    Private pTileCacheFolder As String = ""
+
+    Private pShowTileImages As Boolean = True
+    Private pShowTileNames As Boolean = False
+    Private pShowTileOutlines As Boolean = False
+    Private pShowGPSdetails As Boolean = False
+    Private pUseMarkedTiles As Boolean = False
+    Private pShowTransparentTiles As Boolean = False
+
+    Private pClickWaypoint As Boolean = False ' True means a waypoint will be created when the map is clicked
+
+    Public ControlsUse As Boolean = False ' True means that on-screen controls are in use so clicks in control areas are treated as control presses
+    Public ControlsShow As Boolean = False
+    Private pControlsMargin As Integer = 40 'This gets set on resize
+
+    Public ClickedTileFilename As String = ""
+
+    Private pBrushBlack As New SolidBrush(Color.Black)
+    Private pBrushWhite As New SolidBrush(Color.White)
+
+    Private pPenBlack As New Pen(Color.Black)
+    Private pPenCursor As New Pen(Color.Red)
+
+    Private pFontTileLabel As New Font("Arial", 10, FontStyle.Regular)
+    Private pFontCopyright As New Font(FontFamily.GenericSansSerif, 7, FontStyle.Regular)
+    Private pBrushCopyright As New SolidBrush(Color.Black)
+    Private pShowCopyright As Boolean = True
+    Private pShowDate As Boolean = False
+
+    Public MouseDragging As Boolean = False
+    Public MouseDragStartLocation As Point
+    Public MouseDownLat As Double
+    Public MouseDownLon As Double
+
+    Private pLastKeyDown As Integer = 0
+
+    Private pBitmap As Bitmap
+    Private pBitmapMutex As New Threading.Mutex()
+
+    Public Layers As New Generic.List(Of clsLayer)
+
+    Public GPXPanTo As Boolean = True
+    Public GPXZoomTo As Boolean = True
+    Public GPXShow As Boolean = True
+    Public GPXFolder As String
+    Public GPXLabelField As String = "name"
+
+    Private pBuddyTimer As System.Threading.Timer
+
+    ' Alert when buddy location is within pBuddyAlarmMeters of (pBuddyAlarmLat, pBuddyAlarmLon)
+    Private pBuddyAlarmEnabled As Boolean = False
+    Private pBuddyAlarmLat As Double = 0
+    Private pBuddyAlarmLon As Double = 0
+    Private pBuddyAlarmMeters As Double = 0 'Must be greater than zero to get buddy alerts
+    Public Buddies As New Generic.Dictionary(Of String, clsBuddy)
+
+    Delegate Function OpenCallback(ByVal aFilename As String, ByVal aInsertAt As Integer) As clsLayerGPX
+    Private pOpenGPXCallback As New OpenCallback(AddressOf OpenGPX)
+
+    ' True to automatically start GPS when application starts
+    Private pGPSAutoStart As Boolean = True
+
+    ' 0=don't follow, 1=re-center only when GPS moves off screen, 2=keep centered
+    Private pGPSFollow As Integer = 2
+
+    ' Symbol at GPS position
+    Public GPSSymbolSize As Integer = 10
+
+    ' Symbol at each track point
+    Public TrackSymbolSize As Integer = 3
+
+    ' True to record track information while GPS is on
+    Public RecordTrack As Boolean = False
+
+    ' True to save GSM cell tower identification in recorded track
+    Private pRecordCellID As Boolean = True
+
+    ' API key for use of OpenCellId.org, see http://www.opencellid.org/api
+    ' Get location with http://www.opencellid.org/cell/get?key=&mcc=&mnc&cellid=&lac=
+    ' Send location with http://www.opencellid.org/measure/add?key=&mnc=&mcc=&lac=&cellid=&lat=&lon=
+    Private pOpenCellIdKey As String = ""
+
+    ' User name and hash for use of celldb.org, see http://www.celldb.org/aboutapi.php
+    ' Get location with http://celldb.org/api/?method=celldb.getcell&username=&hash=&mcc=&mnc=&lac=&cellid=&format=xml
+    ' Send location with http://celldb.org/api/?method=celldb.addcell&username=&hash=&mcc=&mnc=&lac=&cellid=&latitude=&longitude=&signalstrength=&format=xml
+    Private pCellDbUsername As String = ""
+    Private pCellDbHash As String = ""
+
+    ' True to display current track information while GPS is on
+    Private pDisplayTrack As Boolean = False
+
+    ' Wait at least this long before logging a new point
+    Private pTrackMinInterval As New TimeSpan(0, 0, 2)
+
+    ' Wait at least this long before uploading a new point
+    Public UploadMinInterval As New TimeSpan(0, 2, 0)
+
+    Public UploadOnStart As Boolean = False  ' True to upload point when GPS starts
+    Public UploadOnStop As Boolean = False   ' True to upload point when GPS stops
+    Public UploadTrackOnStop As Boolean = False   ' True to upload track when GPS stops
+    Public UploadPeriodic As Boolean = False ' True to upload point periodically
+
+    ' Set to false when another form is covering main form, skip redrawing
+    Private pFormVisible As Boolean = False
+    Private pDark As Boolean = False
+
+    Delegate Sub RefreshCallback()
+    Private pRefreshCallback As New RefreshCallback(AddressOf Refresh)
+    Private pRedrawCallback As New RefreshCallback(AddressOf Redraw)
+    Private pRedrawing As Boolean = False
+    Private pRedrawPending As Boolean = False
+
+    ' Set to false when we have a first-guess background (when zooming)
+    Private pClearDelayedTiles As Boolean = True
+
+    Public Uploader As New clsUploader
+    Public Downloader As New clsDownloader
+
+    Public TileServers As Dictionary(Of String, String)
+
+    'Private Declare Function GetAsyncKeyState Lib "user32" (ByVal vKey As Integer) As Integer
+
+    Public Sub SharedNew()
+        GPXFolder = "\My Documents\gps"
+        GetSettings()
+
+        LoadCachedIcons()
+
+        ' The main form registers itself as a listener so Me.DownloadedTile will be called when each tile is finished.
+        ' Me.FinishedQueue and Me.DownloadedPoint are also called when appropriate
+        Downloader.Listeners.Add(Me)
+
+        'Start the download and upload queue runners
+        Downloader.Enabled = True
+        Uploader.Enabled = True
+
+        pFormVisible = True
+    End Sub
+
+    Public Property TileCacheFolder() As String
+        Get
+            Return pTileCacheFolder
+        End Get
+        Set(ByVal value As String)
+            If value Is Nothing Then value = ""
+            If value.Length > 0 AndAlso Not value.EndsWith(g_PathChar) Then
+                value &= g_PathChar
+            End If
+            pTileCacheFolder = value
+            SetCacheFolderFromTileServer()
+        End Set
+    End Property
+
+    Public Property ShowDate() As Boolean
+        Get
+            Return pShowDate
+        End Get
+        Set(ByVal value As Boolean)
+            If pShowDate <> value Then
+                pShowDate = value
+                Redraw()
+            End If
+        End Set
+    End Property
+
+    Public Property ShowTileImages() As Boolean
+        Get
+            Return pShowTileImages
+        End Get
+        Set(ByVal value As Boolean)
+            If pShowTileImages <> value Then
+                pShowTileImages = value
+                Redraw()
+            End If
+        End Set
+    End Property
+
+    Public Property ShowTileNames() As Boolean
+        Get
+            Return pShowTileNames
+        End Get
+        Set(ByVal value As Boolean)
+            If pShowTileNames <> value Then
+                pShowTileNames = value
+                Redraw()
+            End If
+        End Set
+    End Property
+
+    Public Property ShowTileOutlines() As Boolean
+        Get
+            Return pShowTileOutlines
+        End Get
+        Set(ByVal value As Boolean)
+            If pShowTileOutlines <> value Then
+                pShowTileOutlines = value
+                Redraw()
+            End If
+        End Set
+    End Property
+
+    Public Property Dark() As Boolean
+        Get
+            Return pDark
+        End Get
+        Set(ByVal value As Boolean)
+            pDark = value
+            If pDark Then
+                StopKeepAwake()
+            Else
+                StartKeepAwake()
+            End If
+            Refresh()
+        End Set
+    End Property
+
+    Private Sub LoadCachedIcons()
+        Dim lIconFileExts() As String = {"gif", "png", "jpg", "bmp"}
+        Dim lCacheIconFolder As String = pTileCacheFolder & "Icons"
+        If IO.Directory.Exists(lCacheIconFolder) Then
+            For Each lFolder As String In IO.Directory.GetDirectories(lCacheIconFolder)
+                Dim lFolderName As String = IO.Path.GetFileName(lFolder).ToLower
+                For Each lExt As String In lIconFileExts
+                    For Each lFilename As String In IO.Directory.GetFiles(lFolder, "*." & lExt)
+                        Try
+                            Dim lBitmap As New Drawing.Bitmap(lFilename)
+                            g_WaypointIcons.Add(lFolderName & "|" & IO.Path.GetFileNameWithoutExtension(lFilename).ToLower, lBitmap)
+                        Catch
+                        End Try
+                    Next
+                Next
+            Next
+        End If
+        'TODO: move this to only get geocaching icons when they are absent and user wants them
+        If Not g_WaypointIcons.ContainsKey("geocache|webcam cache") Then
+            'get geocaching icons from http://www.geocaching.com/about/cache_types.aspx
+            Dim lBaseURL As String = "http://www.geocaching.com/images/"
+            Dim lTypeURL As String = lBaseURL & "WptTypes/"
+            lCacheIconFolder &= g_PathChar & "Geocache" & g_PathChar
+            With Downloader
+                .Enqueue(lTypeURL & "2.gif", lCacheIconFolder & "Traditional Cache.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "3.gif", lCacheIconFolder & "Multi-cache.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "8.gif", lCacheIconFolder & "Unknown Cache.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "5.gif", lCacheIconFolder & "Letterbox Hybrid.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "1858.gif", lCacheIconFolder & "Wherigo Cache.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "6.gif", lCacheIconFolder & "Event Cache.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "mega.gif", lCacheIconFolder & "Mega-Event Cache.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "13.gif", lCacheIconFolder & "Cache In Trash Out Event.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "earthcache.gif", lCacheIconFolder & "Earthcache.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "4.gif", lCacheIconFolder & "Virtual Cache.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "1304.gif", lCacheIconFolder & "GPS Adventures Exhibit.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "9.gif", lCacheIconFolder & "Project APE Cache.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lTypeURL & "11.gif", lCacheIconFolder & "Webcam Cache.gif", QueueItemType.IconItem, 2, False)
+                Dim lIconURL As String = lBaseURL & "icons/"
+                .Enqueue(lIconURL & "icon_smile.gif", lCacheIconFolder & "icon_smile.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lIconURL & "icon_sad.gif", lCacheIconFolder & "icon_sad.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lIconURL & "icon_note.gif", lCacheIconFolder & "icon_note.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lIconURL & "icon_maint.gif", lCacheIconFolder & "icon_maint.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lIconURL & "icon_needsmaint.gif", lCacheIconFolder & "icon_needsmaint.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lIconURL & "icon_disabled.gif", lCacheIconFolder & "icon_disabled.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lIconURL & "icon_enabled.gif", lCacheIconFolder & "icon_enabled.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lIconURL & "icon_greenlight.gif", lCacheIconFolder & "icon_greenlight.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lIconURL & "coord_update.gif", lCacheIconFolder & "coord_update.gif", QueueItemType.IconItem, 2, False)
+                .Enqueue(lIconURL & "icon_rsvp.gif", lCacheIconFolder & "icon_rsvp.gif", QueueItemType.IconItem, 2, False)
+            End With
+        End If
+    End Sub
+
+    Private Sub GetSettings()
+        TileServers = New Dictionary(Of String, String)
+        Dim lSoftwareKey As Microsoft.Win32.RegistryKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("Software")
+        If lSoftwareKey IsNot Nothing Then
+            Dim lAppKey As Microsoft.Win32.RegistryKey = lSoftwareKey.OpenSubKey(g_AppName)
+            If lAppKey IsNot Nothing Then
+                With lAppKey
+                    On Error Resume Next 'Maybe a registry setting is not numeric but needs to be, skip bad settings
+
+                    Dim lKeyIndex As Integer = 1
+                    Do
+                        Dim lServerNameUrl() As String = CStr(.GetValue("TileServer" & lKeyIndex, "")).Split("|")
+                        If lServerNameUrl.Length = 2 Then
+                            TileServers.Add(lServerNameUrl(0), lServerNameUrl(1))
+                            lKeyIndex += 1
+                        Else
+                            Exit Do
+                        End If
+                    Loop
+                    lKeyIndex = 1
+                    Do
+                        Dim lBuddyNameUrl() As String = CStr(.GetValue("Buddy" & lKeyIndex, "")).Split("|")
+                        If lBuddyNameUrl.Length = 2 Then
+                            Dim lNewBuddy As New clsBuddy
+                            lNewBuddy.Name = lBuddyNameUrl(0)
+                            lNewBuddy.LocationURL = lBuddyNameUrl(1)
+                            Buddies.Add(lNewBuddy.Name, lNewBuddy)
+                            lKeyIndex += 1
+                        Else
+                            Exit Do
+                        End If
+                    Loop
+
+                    'TileCacheFolder gets set earlier
+                    g_TileServerName = .GetValue("TileServer", g_TileServerName)
+                    g_UploadPointURL = .GetValue("UploadPointURL", g_UploadPointURL)
+                    g_UploadTrackURL = .GetValue("UploadTrackURL", g_UploadTrackURL)
+
+                    'Tiles older than this will be downloaded again as needed. TileCacheDays = 0 to never refresh old tiles
+                    'TODO: different expiration time for different tiles - satellite photos seldom updated, OSM tiles often
+                    Dim lTileCacheDays As Integer = .GetValue("TileCacheDays", 0)
+                    If lTileCacheDays > 0 Then
+                        Downloader.TileCacheOldest = DateTime.Now.ToUniversalTime.AddDays(-lTileCacheDays)
+                    Else
+                        Downloader.TileCacheOldest = Date.MinValue
+                    End If
+
+                    Zoom = .GetValue("Zoom", Zoom)
+
+                    GPXShow = .GetValue("GPXShow", GPXShow)
+                    GPXPanTo = .GetValue("GPXPanTo", GPXPanTo)
+                    GPXZoomTo = .GetValue("GPXZoomTo", GPXZoomTo)
+                    GPXFolder = .GetValue("GPXFolder", GPXFolder)
+                    GPXLabelField = .GetValue("GPXLabelField", GPXLabelField)
+
+                    pShowTileImages = .GetValue("TileImages", pShowTileImages)
+                    pShowTileNames = .GetValue("TileNames", pShowTileNames)
+                    pShowTileOutlines = .GetValue("TileOutlines", pShowTileOutlines)
+                    pShowGPSdetails = .GetValue("GPSdetails", pShowGPSdetails)
+                    pShowCopyright = .GetValue("ShowCopyright", pShowCopyright)
+
+                    ControlsUse = .GetValue("ControlsUse", ControlsUse)
+                    ControlsShow = .GetValue("ControlsShow", ControlsShow)
+                    'TODO: pControlsMargin, but in pixels or percent?
+
+                    CenterLat = .GetValue("CenterLat", CenterLat)
+                    CenterLon = .GetValue("CenterLon", CenterLon)
+                    SanitizeCenterLatLon()
+
+                    pGPSAutoStart = .GetValue("GPSAutoStart", pGPSAutoStart)
+                    pGPSFollow = .GetValue("GPSFollow", pGPSFollow)
+                    GPSSymbolSize = .GetValue("GPSSymbolSize", GPSSymbolSize)
+                    TrackSymbolSize = .GetValue("TrackSymbolSize", TrackSymbolSize)
+
+                    RecordTrack = .GetValue("RecordTrack", RecordTrack)
+                    pRecordCellID = .GetValue("RecordCellID", pRecordCellID)
+                    pOpenCellIdKey = .GetValue("OpenCellIdKey", pOpenCellIdKey)
+                    pDisplayTrack = .GetValue("DisplayTrack", pDisplayTrack)
+                    UploadOnStart = .GetValue("UploadOnStart", UploadOnStart)
+                    UploadOnStop = .GetValue("UploadOnStop", UploadOnStop)
+                    UploadTrackOnStop = .GetValue("UploadTrackOnStop", UploadTrackOnStop)
+                    UploadPeriodic = .GetValue("UploadPeriodic", UploadPeriodic)
+                    UploadMinInterval = New TimeSpan(0, 0, .GetValue("UploadPeriodicSeconds", UploadMinInterval.TotalSeconds))
+                End With
+            End If
+        End If
+        If TileServers.Count = 0 Then
+            SetDefaultTileServers()
+        End If
+        TileServerName = g_TileServerName
+    End Sub
+
+    Public Sub SetDefaultTileServers()
+        Dim pDefaultTileServers() As String = {"Mapnik", "http://tile.openstreetmap.org/mapnik/", _
+                                               "Maplint", "http://tah.openstreetmap.org/Tiles/maplint/", _
+                                               "Osmarender", "http://tah.openstreetmap.org/Tiles/tile/", _
+                                               "Cycle Map", "http://andy.sandbox.cloudmade.com/tiles/cycle/", _
+                                               "No Name", "http://tile.cloudmade.com/fd093e52f0965d46bb1c6c6281022199/3/256/"}
+        TileServers = New Dictionary(Of String, String)
+        For lIndex As Integer = 0 To pDefaultTileServers.Length - 1 Step 2
+            TileServers.Add(pDefaultTileServers(lIndex), pDefaultTileServers(lIndex + 1))
+        Next
+
+        '    Windows Mobile does not support Enum.GetValues or Enum.GetName, so we hard-code names to add below
+        '    For Each lMapType As MapType In System.Enum.GetValues(GetType(MapType))
+        '        Dim lMapTypeName As String = System.Enum.GetName(GetType(MapType), lMapType)
+        '        If lMapTypeName.IndexOf("OpenStreet") < 0 Then 'Only add non-OSM types
+        '            pTileServers.Add(lMapTypeName, MakeImageUrl(lMapType, New Point(1, 2), 3))
+        '        End If
+        '    Next
+
+        TileServers.Add("YahooMap", MakeImageUrl(MapType.YahooMap, New Point(1, 2), 3))
+        TileServers.Add("YahooSatellite", MakeImageUrl(MapType.YahooSatellite, New Point(1, 2), 3))
+        TileServers.Add("YahooLabels", MakeImageUrl(MapType.YahooLabels, New Point(1, 2), 3))
+
+        TileServers.Add("VirtualEarthMap", MakeImageUrl(MapType.VirtualEarthMap, New Point(1, 2), 3))
+        TileServers.Add("VirtualEarthSatellite", MakeImageUrl(MapType.VirtualEarthSatellite, New Point(1, 2), 3))
+        TileServers.Add("VirtualEarthHybrid", MakeImageUrl(MapType.VirtualEarthHybrid, New Point(1, 2), 3))
+    End Sub
+
+    Private Sub SaveSettings()
+        On Error Resume Next
+        Dim lSoftwareKey As Microsoft.Win32.RegistryKey = Microsoft.Win32.Registry.CurrentUser.CreateSubKey("Software")
+        If lSoftwareKey IsNot Nothing Then
+            Dim lAppKey As Microsoft.Win32.RegistryKey = lSoftwareKey.CreateSubKey(g_AppName)
+            If lAppKey IsNot Nothing Then
+                With lAppKey
+                    'TODO: .SetValue("TileCacheDays", lCacheDays)
+
+                    Dim lKeyIndex As Integer = 1
+                    For Each lName As String In TileServers.Keys
+                        .SetValue("TileServer" & lKeyIndex, lName & "|" & TileServers.Item(lName))
+                        lKeyIndex += 1
+                    Next
+                    lKeyIndex = 1
+                    For Each lName As String In Buddies.Keys
+                        .SetValue("Buddy" & lKeyIndex, lName & "|" & Buddies.Item(lName).LocationURL)
+                        lKeyIndex += 1
+                    Next
+
+                    If IO.Directory.Exists(pTileCacheFolder) Then
+                        .SetValue("TileCacheFolder", pTileCacheFolder)
+                    End If
+                    .SetValue("TileServer", g_TileServerName)
+                    .SetValue("Zoom", Zoom)
+
+                    .SetValue("GPXShow", GPXShow)
+                    .SetValue("GPXPanTo", GPXPanTo)
+                    .SetValue("GPXZoomTo", GPXZoomTo)
+                    .SetValue("GPXFolder", GPXFolder)
+                    .SetValue("GPXLabelField", GPXLabelField)
+
+                    .SetValue("TileImages", pShowTileImages)
+                    .SetValue("TileNames", pShowTileNames)
+                    .SetValue("TileOutlines", pShowTileOutlines)
+                    .SetValue("GPSdetails", pShowGPSdetails)
+
+                    .SetValue("ControlsUse", ControlsUse)
+                    .SetValue("ControlsShow", ControlsShow)
+                    'TODO: pControlsMargin, but in pixels or percent?
+
+                    .SetValue("CenterLat", CenterLat)
+                    .SetValue("CenterLon", CenterLon)
+
+                    'If Me.WindowState = FormWindowState.Normal Then
+                    .SetValue("WindowWidth", Me.Width)
+                    .SetValue("WindowHeight", Me.Height)
+                    'End If
+
+                    .SetValue("GPSAutoStart", pGPSAutoStart)
+                    .SetValue("GPSFollow", pGPSFollow)
+                    .SetValue("GPSSymbolSize", GPSSymbolSize)
+                    .SetValue("TrackSymbolSize", TrackSymbolSize)
+                    .SetValue("RecordTrack", RecordTrack)
+                    .SetValue("RecordCellID", pRecordCellID)
+                    .SetValue("OpenCellIdKey", pOpenCellIdKey)
+                    .SetValue("DisplayTrack", pDisplayTrack)
+                    .SetValue("UploadOnStart", UploadOnStart)
+                    .SetValue("UploadOnStop", UploadOnStop)
+                    .SetValue("UploadTrackOnStop", UploadTrackOnStop)
+                    .SetValue("UploadPeriodic", UploadPeriodic)
+                    .SetValue("UploadPeriodicSeconds", UploadMinInterval.TotalSeconds)
+                    .SetValue("UploadPointURL", g_UploadPointURL)
+                    .SetValue("UploadTrackURL", g_UploadTrackURL)
+                End With
+            End If
+        End If
+    End Sub
+
+    Public Property TileServerName() As String
+        Get
+            Return g_TileServerName
+        End Get
+        Set(ByVal value As String)
+            If TileServers.ContainsKey(value) Then
+                g_TileServerName = value
+                TileServerUrl = TileServers(value)
+                g_TileServerType = MapType.OpenStreetMap
+                If Not TileServerUrl.IndexOf("openstreetmap") > 0 AndAlso _
+                   Not TileServerUrl.IndexOf("cloudmade") > 0 AndAlso _
+                   Not TileServerUrl.IndexOf("toposm.com") > 0 AndAlso _
+                   Not TileServerUrl.IndexOf("opentiles.appspot.com") > 0 Then
+                    Try
+                        g_TileServerType = System.Enum.Parse(GetType(MapType), g_TileServerName, False)
+                    Catch ex As Exception
+                    End Try
+                End If
+                g_TileCopyright = CopyrightFromMapType(g_TileServerType)
+                pBrushCopyright = New SolidBrush(Color.Black)
+            End If
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' Base URL of server to request tiles from, must end with trailing slash
+    ''' zoom/x/y.png will be appended when requesting tiles
+    ''' </summary>
+    ''' <remarks>Side effects of setting TileServer: Me.Title and g_TileCacheFolder are updated</remarks>
+    Private Property TileServerUrl() As String
+        Get
+            Return g_TileServerURL
+        End Get
+        Set(ByVal value As String)
+
+            Downloader.ClearQueue(QueueItemType.TileItem, -1)
+
+            If value.IndexOf(":/") < 0 Then 'Doesn't look like a URL, try setting by name instead
+                TileServerName = value
+            Else
+                g_TileServerURL = value
+
+                Me.Text = g_AppName & " " & g_TileServerName
+                SetCacheFolderFromTileServer()
+            End If
+        End Set
+    End Property
+
+    Private Sub SetCacheFolderFromTileServer()
+        g_TileCacheFolder = pTileCacheFolder & SafeFilename(g_TileServerURL.Replace("http://", "")) & g_PathChar
+    End Sub
+
+    ''' <summary>
+    ''' OSM zoom level currently being displayed on the form
+    ''' </summary>
+    ''' <remarks>varies from g_ZoomMin to g_ZoomMax</remarks>
+    Public Property Zoom() As Integer
+        Get
+            Return pZoom
+        End Get
+        Set(ByVal value As Integer)
+            If value <> pZoom Then
+                Downloader.ClearQueue(QueueItemType.TileItem, -1)
+                If value > g_ZoomMax Then
+                    pZoom = g_ZoomMax
+                ElseIf value < g_ZoomMin Then
+                    pZoom = g_ZoomMin
+                Else
+                    'ZoomPreview(value)
+                    pZoom = value
+                End If
+            End If
+            Zoomed()
+            pClearDelayedTiles = True
+        End Set
+    End Property
+
+    Private Sub ZoomPreview(ByVal aNewZoom As Integer)
+        If aNewZoom = pZoom + 1 OrElse aNewZoom = pZoom - 1 Then
+            Dim lGraphics As Graphics = GetBitmapGraphics()
+            If lGraphics IsNot Nothing Then
+                With pBitmap
+                    Dim lBitmap As New Bitmap(pBitmap)
+                    Dim lHalfHeight As Integer = .Height >> 1
+                    Dim lHalfWidth As Integer = .Width >> 1
+                    Dim lQuarterHeight As Integer = lHalfHeight >> 1
+                    Dim lQuarterWidth As Integer = lHalfWidth >> 1
+                    Dim lSourceRect As Rectangle
+                    Dim lDestRect As Rectangle
+
+                    If aNewZoom = pZoom + 1 Then
+                        lSourceRect = New Rectangle(lQuarterWidth, lQuarterHeight, lHalfWidth, lHalfHeight)
+                        lDestRect = New Rectangle(0, 0, .Width, .Height)
+                    Else
+                        lGraphics.Clear(Color.White)
+                        lSourceRect = New Rectangle(0, 0, .Width, .Height)
+                        lDestRect = New Rectangle(lQuarterWidth, lQuarterHeight, lHalfWidth, lHalfHeight)
+                    End If
+
+                    lGraphics.DrawImage(lBitmap, lDestRect, lSourceRect, GraphicsUnit.Pixel)
+                    ReleaseBitmapGraphics()
+                    pClearDelayedTiles = False 'We have provided something to to see at new zoom, no need to clear
+                End With
+            End If
+        End If
+    End Sub
+
+    Private Function GetBitmapGraphics() As Graphics
+        Try
+            pBitmapMutex.WaitOne()
+            If pBitmap Is Nothing Then
+                pBitmapMutex.ReleaseMutex()
+                Return Nothing
+            Else
+                Dim lGraphics As Graphics = Graphics.FromImage(pBitmap)
+                lGraphics.Clip = New Drawing.Region(New Drawing.Rectangle(0, 0, pBitmap.Width, pBitmap.Height))
+                Return lGraphics
+            End If
+        Catch e As Exception
+            Return Nothing
+        End Try
+    End Function
+
+    Private Sub ReleaseBitmapGraphics()
+        pBitmapMutex.ReleaseMutex()
+    End Sub
+
+    ''' <summary>
+    ''' Calculate the top left and bottom right OSM tiles that will fit within aBounds
+    ''' </summary>
+    ''' <param name="aBounds">Rectangle containing the drawn tiles</param>
+    ''' <param name="aOffsetToCenter">Pixel offset from corner of tile to allow accurate pCenterLat, pCenterLon</param>
+    ''' <param name="aTopLeft">OSM coordinates of northwestmost visible tile</param>
+    ''' <param name="aBotRight">OSM coordinates of southeastmost visible tile</param>
+    ''' <remarks></remarks>
+    Private Sub FindTileBounds(ByVal aBounds As RectangleF, _
+                               ByRef aOffsetToCenter As Point, _
+                               ByRef aTopLeft As Point, ByRef aBotRight As Point)
+        Dim lOffsetFromTileEdge As Point
+        Dim lCentermostTile As Point = CalcTileXY(CenterLat, CenterLon, pZoom, lOffsetFromTileEdge)
+        Dim lNorth As Double, lWest As Double, lSouth As Double, lEast As Double
+        CalcLatLonFromTileXY(lCentermostTile, pZoom, lNorth, lWest, lSouth, lEast)
+        LatHeight = (lNorth - lSouth) * aBounds.Height / g_TileSize
+        LonWidth = (lEast - lWest) * aBounds.Width / g_TileSize
+        SanitizeCenterLatLon()
+
+        aTopLeft = New Point(lCentermostTile.X, lCentermostTile.Y)
+        Dim x As Integer = (aBounds.Width / 2) - lOffsetFromTileEdge.X
+        'Move west until we find the edge of g, TODO: find faster with mod?
+        While x > 0
+            aTopLeft.X -= 1
+            x -= g_TileSize
+        End While
+        aOffsetToCenter.X = x
+
+        Dim y As Integer = (aBounds.Height / 2) - lOffsetFromTileEdge.Y
+        'Move north until we find the edge of g, TODO: find faster with mod?
+        While y > 0
+            aTopLeft.Y -= 1
+            y -= g_TileSize
+        End While
+        aOffsetToCenter.Y = y
+
+        aBotRight = New Point(lCentermostTile.X, lCentermostTile.Y)
+        x = (aBounds.Width / 2) - lOffsetFromTileEdge.X + g_TileSize
+        'Move east until we find the edge of g, TODO: find faster with mod?
+        While x < aBounds.Width
+            aBotRight.X += 1
+            x += g_TileSize
+        End While
+
+        y = (aBounds.Height / 2) - lOffsetFromTileEdge.Y + g_TileSize
+        'Move south until we find the edge of g, TODO: find faster with mod?
+        While y < aBounds.Height
+            aBotRight.Y += 1
+            y += g_TileSize
+        End While
+    End Sub
+
+    ''' <summary>
+    ''' Draw all the visible tiles
+    ''' </summary>
+    ''' <param name="g">Graphics object to be drawn into</param>
+    Private Sub DrawTiles(ByVal g As Graphics)
+        If Not pShowTransparentTiles AndAlso g_TileServerURL.EndsWith("/maplint/") Then g.Clear(Color.White)
+        Dim lOffsetToCenter As Point
+        Dim lTopLeft As Point
+        Dim lBotRight As Point
+
+        FindTileBounds(g.ClipBounds, lOffsetToCenter, lTopLeft, lBotRight)
+
+        Dim lTilePoint As Point
+        Dim lOffsetFromWindowCorner As Point
+
+        'TODO: check available memory before deciding how many tiles to keep in RAM
+        Downloader.TileRAMcacheLimit = (lBotRight.X - lTopLeft.X + 1) * (lBotRight.Y - lTopLeft.Y + 1) * 2
+
+        Dim lTilePoints As New SortedList(Of Single, Point)
+        Dim x, y As Integer
+        Dim lMidX As Integer = (lTopLeft.X + lBotRight.X) / 2
+        Dim lMidY As Integer = (lTopLeft.Y + lBotRight.Y) / 2
+        Dim lDistance As Single
+
+        'Loop through each visible tile
+        For x = lTopLeft.X To lBotRight.X
+            For y = lTopLeft.Y To lBotRight.Y
+                Try
+                    lDistance = (x - lMidX) ^ 2 + (y - lMidY) ^ 2
+                    While lTilePoints.ContainsKey(lDistance)
+                        lDistance += 0.1
+                    End While
+                    lTilePoints.Add(lDistance, New Point(x, y))
+                Catch
+                    lDistance = 11
+                    While lTilePoints.ContainsKey(lDistance)
+                        lDistance += 0.1
+                    End While
+                    lTilePoints.Add(lDistance, New Point(x, y))
+                End Try
+            Next
+        Next
+
+        For Each lTilePoint In lTilePoints.Values
+            If pRedrawPending Then Exit Sub
+
+            x = lTilePoint.X
+            y = lTilePoint.Y
+
+            lOffsetFromWindowCorner.X = (x - lTopLeft.X) * g_TileSize + lOffsetToCenter.X
+            lOffsetFromWindowCorner.Y = (y - lTopLeft.Y) * g_TileSize + lOffsetToCenter.Y
+
+            Dim lDrewTile As Boolean = DrawTile(lTilePoint, pZoom, g, lOffsetFromWindowCorner, 0)
+
+            If Not lDrewTile Then ' search for cached tiles at other zoom levels to substitute
+                'First try tiles zoomed farther out
+                Dim lZoom As Integer
+                Dim lX As Integer = x
+                Dim lY As Integer = y
+                Dim lNextX As Integer
+                Dim lNextY As Integer
+                Dim lZoomedTilePortion As Integer = g_TileSize
+                Dim lFromX As Integer = 0
+                Dim lFromY As Integer = 0
+                Dim lRectOrigTile As New Rectangle(lOffsetFromWindowCorner.X, lOffsetFromWindowCorner.Y, g_TileSize, g_TileSize)
+                Dim lZoomMin As Integer = Math.Max(g_ZoomMin, pZoom - 4)
+                For lZoom = pZoom - 1 To lZoomMin Step -1
+                    'Tile coordinates of next zoom out are half
+                    lNextX = lX >> 1
+                    lNextY = lY >> 1
+
+                    'Half as much of next zoomed tile width and height will fit 
+                    lZoomedTilePortion >>= 1
+
+                    'Offset within the tile counts half as much in next zoom out
+                    lFromX >>= 1
+                    lFromY >>= 1
+
+                    'If zoomed from an odd-numbered tile, it was in the right and/or bottom half of next zoom out
+                    If lX > lNextX << 1 Then lFromX += g_HalfTile
+                    If lY > lNextY << 1 Then lFromY += g_HalfTile
+
+                    If DrawTile(New Drawing.Point(lNextX, lNextY), lZoom, g, lRectOrigTile, _
+                                New Rectangle(lFromX, lFromY, lZoomedTilePortion, lZoomedTilePortion), -1) Then
+                        Exit For 'found a zoomed out tile to draw, don't keep looking for one zoomed out farther
+                    End If
+                    lX = lNextX
+                    lY = lNextY
+                Next
+
+                If pZoom < g_ZoomMax Then ' Try to draw tiles within this tile at finer zoom level
+                    lZoom = pZoom + 1
+                    Dim lDoubleX As Integer = x << 1
+                    Dim lFineTilePoint As New Drawing.Point(lDoubleX, y << 1)
+                    ' Portion of the tile covered by a finer zoom tile
+                    Dim lRectDestination As New Rectangle(lOffsetFromWindowCorner.X, _
+                                                          lOffsetFromWindowCorner.Y, _
+                                                          g_HalfTile, g_HalfTile)
+
+                    ' upper left tile
+                    If Not DrawTile(lFineTilePoint, lZoom, g, lRectDestination, g_TileSizeRect, -1) Then
+                        'TODO: four tiles at next finer zoom level, at this and other three DrawTile below
+                    End If
+
+                    ' upper right tile
+                    lFineTilePoint.X += 1
+                    lRectDestination.X = lOffsetFromWindowCorner.X + g_HalfTile
+                    DrawTile(lFineTilePoint, lZoom, g, lRectDestination, g_TileSizeRect, -1)
+
+                    ' lower right tile
+                    lFineTilePoint.Y += 1
+                    lRectDestination.Y = lOffsetFromWindowCorner.Y + g_HalfTile
+                    DrawTile(lFineTilePoint, lZoom, g, lRectDestination, g_TileSizeRect, -1)
+
+                    ' lower left tile
+                    lFineTilePoint.X = lDoubleX
+                    lRectDestination.X = lOffsetFromWindowCorner.X
+                    DrawTile(lFineTilePoint, lZoom, g, lRectDestination, g_TileSizeRect, -1)
+                End If
+            End If
+        Next
+
+        If pRedrawPending Then Exit Sub
+
+        If ControlsShow Then
+            g.DrawLine(pPenBlack, pControlsMargin, 0, pControlsMargin, pBitmap.Height)
+            g.DrawLine(pPenBlack, 0, pControlsMargin, pBitmap.Width, pControlsMargin)
+            g.DrawLine(pPenBlack, pBitmap.Width - pControlsMargin, 0, pBitmap.Width - pControlsMargin, pBitmap.Height)
+            g.DrawLine(pPenBlack, 0, pBitmap.Height - pControlsMargin, pBitmap.Width, pBitmap.Height - pControlsMargin)
+        End If
+
+        If GPXShow Then DrawLayers(g, lTopLeft, lOffsetToCenter)
+
+        If pShowCopyright AndAlso pShowTileImages Then g.DrawString(g_TileCopyright, pFontCopyright, pBrushCopyright, 3, pBitmap.Height - 20)
+
+        If pShowDate Then g.DrawString(DateTime.Now.ToString("yyyy-MM-dd HH:mm"), pFontTileLabel, pBrushBlack, 3, 3)
+
+        If pRedrawPending Then Exit Sub
+
+        DrewTiles(g, lTopLeft, lOffsetToCenter)
+    End Sub
+
+    ''' <summary>
+    ''' Find the tile at screen position aX, aY
+    ''' </summary>
+    ''' <param name="aBounds">Rectangle containing the drawn tiles</param>
+    ''' <param name="aX">Screen-based X value for tile to search for</param>
+    ''' <param name="aY">Screen-based Y value for tile to search for</param>
+    ''' <returns>filename of tile at aX, aY</returns>
+    Private Function FindTileFilename(ByVal aBounds As RectangleF, _
+                             Optional ByVal aX As Integer = -1, _
+                             Optional ByVal aY As Integer = -1) As String
+        Dim lOffsetToCenter As Point
+        Dim lTopLeft As Point
+        Dim lBotRight As Point
+
+        FindTileBounds(aBounds, lOffsetToCenter, lTopLeft, lBotRight)
+
+        Dim TilePoint As Point
+        Dim lOffsetFromWindowCorner As Point
+
+        'Loop through each visible tile
+        For x As Integer = lTopLeft.X To lBotRight.X
+            For y As Integer = lTopLeft.Y To lBotRight.Y
+                TilePoint = New Point(x, y)
+
+                lOffsetFromWindowCorner.X = (x - lTopLeft.X) * g_TileSize + lOffsetToCenter.X
+                lOffsetFromWindowCorner.Y = (y - lTopLeft.Y) * g_TileSize + lOffsetToCenter.Y
+
+                With lOffsetFromWindowCorner
+                    If .X <= aX AndAlso .X + g_TileSize >= aX AndAlso .Y <= aY AndAlso .Y + g_TileSize >= aY Then
+                        Return TileFilename(TilePoint, pZoom, False)
+                    End If
+                End With
+            Next
+        Next
+        Return ""
+    End Function
+
+    ''' <summary>
+    ''' Callback is called when a tile has just finished downloading, draws the tile into the display
+    ''' </summary>
+    ''' <param name="aTilePoint">which tile</param>
+    ''' <param name="aZoom">Zoom level of downloaded tile</param>
+    ''' <param name="aTileFilename"></param>
+    ''' <remarks></remarks>
+    Public Sub DownloadedTile(ByVal aTilePoint As Point, ByVal aZoom As Integer, ByVal aTileFilename As String, ByVal aTileServerURL As String) Implements IQueueListener.DownloadedTile
+        If aTileServerURL = g_TileServerURL Then
+            Dim lGraphics As Graphics = GetBitmapGraphics()
+            If lGraphics IsNot Nothing Then
+                If aZoom = pZoom Then
+                    Dim lOffsetToCenter As Point
+                    Dim lTopLeft As Point
+                    Dim lBotRight As Point
+
+                    FindTileBounds(lGraphics.ClipBounds, lOffsetToCenter, lTopLeft, lBotRight)
+
+                    Dim lOffsetFromWindowCorner As Point
+                    lOffsetFromWindowCorner.X = (aTilePoint.X - lTopLeft.X) * g_TileSize + lOffsetToCenter.X
+                    lOffsetFromWindowCorner.Y = (aTilePoint.Y - lTopLeft.Y) * g_TileSize + lOffsetToCenter.Y
+                    DrawTile(aTilePoint, aZoom, lGraphics, lOffsetFromWindowCorner, -1)
+                Else
+                    'TODO: draw tiles at different zoom levels? 
+                    'Would be nice when doing DownloadDescendants to see progress, but would also be confusing when tile download completes after zoom
+                End If
+                ReleaseBitmapGraphics()
+
+                Try 'This method will be running in another thread, so we need to call Refresh in a complicated way
+                    Me.Invoke(pRefreshCallback)
+                Catch
+                    'Ignore if we could not refresh, probably because form is closing
+                End Try
+            End If
+        End If
+    End Sub
+
+    Private Sub RequestBuddyPoint(ByVal o As Object)
+        If Buddies Is Nothing OrElse Buddies.Count = 0 Then
+            MsgBox("Add Buddies Before Finding them", MsgBoxStyle.OkOnly, "No Buddies Found")
+        Else
+            For Each lBuddy As clsBuddy In Buddies.Values
+                If lBuddy.Selected Then Downloader.Enqueue(lBuddy.LocationURL, IO.Path.GetTempPath & SafeFilename(lBuddy.Name), QueueItemType.PointItem, 0, True, lBuddy)
+            Next
+        End If
+    End Sub
+
+    Public Sub DownloadedItem(ByVal aItem As clsQueueItem) Implements IQueueListener.DownloadedItem
+        Select Case aItem.ItemType
+            Case QueueItemType.IconItem
+                Dim lCacheIconFolder As String = (pTileCacheFolder & "Icons").ToLower & g_PathChar
+                If aItem.Filename.ToLower.StartsWith(lCacheIconFolder) Then 'Geocache or other icon that lives in "Icons" folder in pTileCacheFolder
+                    Try
+                        Dim lBitmap As New Drawing.Bitmap(aItem.Filename)
+                        Dim lIconName As String = IO.Path.ChangeExtension(aItem.Filename, "").TrimEnd(".").Substring(lCacheIconFolder.Length).Replace(g_PathChar, "|")
+                        g_WaypointIcons.Add(lIconName, lBitmap)
+                    Catch e As Exception
+                    End Try
+                Else
+                    Try
+                        Dim lBitmap As New Drawing.Bitmap(aItem.Filename)
+                        g_WaypointIcons.Add(aItem.Filename.ToLower, lBitmap)
+                    Catch e As Exception
+                    End Try
+                End If
+            Case QueueItemType.PointItem
+                Try
+                    Dim lFileNameOnly As String = IO.Path.GetFileNameWithoutExtension(aItem.Filename)
+                    Dim lBuddy As clsBuddy = aItem.ItemObject
+                    If lBuddy IsNot Nothing Then
+                        If lBuddy.LoadFile(aItem.Filename) Then
+                            If lBuddy.IconFilename.Length > 0 AndAlso Not IO.File.Exists(lBuddy.IconFilename) AndAlso lBuddy.IconURL.Length > 0 Then
+                                Downloader.Enqueue(lBuddy.IconURL, lBuddy.IconFilename, QueueItemType.IconItem, , False, lBuddy)
+                            End If
+                            NeedRedraw()
+                            If pBuddyAlarmEnabled AndAlso pBuddyAlarmMeters > 0 Then
+                                If MetersBetweenLatLon(pBuddyAlarmLat, pBuddyAlarmLon, lBuddy.Waypoint.lat, lBuddy.Waypoint.lon) < pBuddyAlarmMeters Then
+                                    Windows.Forms.MessageBox.Show(lBuddy.Name & " approaches", "Nearby Buddy", MessageBoxButtons.OK, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button1)
+                                    pBuddyAlarmEnabled = False
+                                End If
+                            End If
+                        End If
+                    End If
+                Catch ex As Exception 'Maybe we could not parse lat and lon?
+                    Dbg("DownloadedPoint:Exception:" & ex.Message)
+                End Try
+        End Select
+    End Sub
+
+    Public Sub NeedRedraw()
+        'This method will be running in another thread, so we need to call Refresh in a complicated way
+        Try
+            If Me.InvokeRequired Then
+                Me.Invoke(pRedrawCallback)
+            Else
+                Redraw()
+            End If
+        Catch
+            'Ignore if we could not refresh, probably because form is closing
+        End Try
+    End Sub
+
+    Sub FinishedQueue(ByVal aQueueIndex As Integer) Implements IQueueListener.FinishedQueue
+        NeedRedraw()
+    End Sub
+
+    Public Function LatLonInView(ByVal aLat As Double, ByVal aLon As Double) As Boolean
+        Return (aLat < LatMax AndAlso _
+                aLat > LatMin AndAlso _
+                aLon < LonMax AndAlso _
+                aLon > LonMin)
+    End Function
+
+    Private Sub DrawLayers(ByVal g As Graphics, ByVal aTopLeftTile As Point, ByVal aOffsetToCenter As Point)
+        If Layers IsNot Nothing AndAlso Layers.Count > 0 Then
+            For Each lLayer As clsLayer In Layers
+                If pRedrawPending Then Exit Sub
+                lLayer.Render(g, aTopLeftTile, aOffsetToCenter)
+            Next
+        End If
+        If Buddies IsNot Nothing AndAlso Buddies.Count > 0 Then
+            Dim lUtcNow As Date = Date.UtcNow
+            Dim lWaypoints As New Generic.List(Of clsGPXwaypoint)
+            For Each lBuddy As clsBuddy In Buddies.Values
+                If lBuddy.Selected AndAlso lBuddy.Waypoint IsNot Nothing Then
+                    Dim lWaypoint As clsGPXwaypoint = lBuddy.Waypoint.Clone
+                    If lWaypoint.timeSpecified Then
+                        lWaypoint.name &= " " & TimeSpanString(lUtcNow.Subtract(lWaypoint.time))
+                    End If
+                    lWaypoints.Add(lWaypoint)
+                End If
+            Next
+            If lWaypoints.Count > 0 Then
+                Dim lLayer As New clsLayerGPX(lWaypoints, Me)
+                lLayer.LabelField = "name"
+                lLayer.Render(g, aTopLeftTile, aOffsetToCenter)
+            End If
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' Draw a tile into the graphics context at the offset
+    ''' </summary>
+    ''' <param name="aTilePoint">tile to draw</param>
+    ''' <param name="aZoom">which zoom level</param>
+    ''' <param name="g">Graphics context to draw in</param>
+    ''' <param name="aOffset">distance from top left of Graphics to draw tile</param>
+    ''' <param name="aPriority">download priority for getting tile if not present, -1 to skip download, 0 for highest priority</param>
+    ''' <returns>True if tile was drawn or did not need to be drawn, False if needed but not drawn</returns>
+    ''' <remarks></remarks>
+    Private Function DrawTile(ByVal aTilePoint As Point, ByVal aZoom As Integer, ByVal g As Graphics, ByVal aOffset As Point, ByVal aPriority As Integer) As Boolean
+        Try
+            Dim lDrewImage As Boolean = False
+            If pShowTileImages Then
+                Dim lTileImage As Bitmap = TileBitmap(aTilePoint, aZoom, aPriority)
+                If lTileImage IsNot Nothing Then
+                    Dim lDestRect As New Rectangle(aOffset.X, aOffset.Y, g_TileSize, g_TileSize)
+                    Dim lSrcRect As New Rectangle(0, 0, g_TileSize, g_TileSize)
+                    g.DrawImage(lTileImage, lDestRect, lSrcRect, GraphicsUnit.Pixel)
+                    lDrewImage = True
+                End If
+            End If
+            If pClearDelayedTiles AndAlso Not lDrewImage Then
+                g.FillRectangle(pBrushWhite, aOffset.X, aOffset.Y, g_TileSize, g_TileSize)
+            End If
+            If pShowTileOutlines Then g.DrawRectangle(pPenBlack, aOffset.X, aOffset.Y, g_TileSize, g_TileSize)
+            If pShowTileNames Then
+                Dim lTileFileName As String = TileFilename(aTilePoint, aZoom, False)
+                If lTileFileName.Length > 0 Then
+                    g.DrawString(lTileFileName.Substring(g_TileCacheFolder.Length).Replace(g_TileExtension, ""), _
+                                 pFontTileLabel, _
+                                 pBrushBlack, aOffset.X, aOffset.Y)
+                End If
+            End If
+            Return lDrewImage OrElse Not pShowTileImages
+        Catch
+            Return False
+        End Try
+    End Function
+
+    ''' <summary>
+    ''' Draw a tile into the graphics context, scaled/positioned with the given destination and source rectangles
+    ''' </summary>
+    ''' <param name="aTilePoint">tile to draw</param>
+    ''' <param name="aZoom">which zoom level</param>
+    ''' <param name="g">Graphics context to draw in</param>
+    ''' <param name="aDrawRect">rectangle to fill with tile</param>
+    ''' <param name="aImageRect">subset of tile image to draw</param>
+    ''' <param name="aPriority">download priority for getting tile if not present, -1 to skip download, 0 for highest priority</param>
+    ''' <returns>True if tile was drawn or did not need to be drawn, False if needed but not drawn</returns>
+    ''' <remarks></remarks>
+    Private Function DrawTile(ByVal aTilePoint As Point, ByVal aZoom As Integer, ByVal g As Graphics, ByVal aDrawRect As Rectangle, ByVal aImageRect As Rectangle, ByVal aPriority As Integer) As Boolean
+        Try
+            If Not pShowTileImages Then Return True
+
+            Dim lTileImage As Bitmap = TileBitmap(aTilePoint, aZoom, aPriority)
+
+            If lTileImage IsNot Nothing Then
+                g.DrawImage(lTileImage, aDrawRect, aImageRect, GraphicsUnit.Pixel)
+                Return True
+            End If
+        Catch
+        End Try
+        Return False
+    End Function
+
+    ''' <summary>
+    ''' Get a tile image from pDownloader. 
+    ''' </summary>
+    ''' <param name="aTilePoint">tile to draw</param>
+    ''' <param name="aZoom">which zoom level</param>
+    ''' <param name="aPriority">download priority for getting tile if not present, -1 to skip download, 0 for highest priority</param>
+    ''' <returns>Bitmap of tile or Nothing if not yet available</returns>
+    ''' <remarks>
+    ''' If tile is found not found in local cache, Nothing is returned. If aPriority > -1, download of tile is queued
+    ''' returns unmarked tile if marked was requested but not available
+    ''' </remarks>
+    Private Function TileBitmap(ByVal aTilePoint As Point, ByVal aZoom As Integer, ByVal aPriority As Integer) As Bitmap
+        Dim lTileFileName As String = TileFilename(aTilePoint, aZoom, pUseMarkedTiles)
+        If lTileFileName.Length = 0 Then
+            Return Nothing
+        Else
+            Dim lTileImage As Bitmap = Downloader.GetTile(lTileFileName, aTilePoint, aZoom, aPriority, False)
+
+            'Fall back to using unmarked tile if we have it but not a marked version
+            If pUseMarkedTiles AndAlso lTileImage Is Nothing Then
+                lTileFileName = TileFilename(aTilePoint, pZoom, False)
+                lTileImage = Downloader.GetTile(lTileFileName, aTilePoint, aZoom, aPriority, False)
+            End If
+            Return lTileImage
+        End If
+    End Function
+
+    Public Sub SanitizeCenterLatLon()
+
+        If Math.Abs(CenterLat) > 1000 OrElse Math.Abs(CenterLon) > 1000 Then
+            CenterLat = 33.8
+            CenterLon = -84.3
+        End If
+
+        While CenterLon > 180
+            CenterLon -= 360
+        End While
+
+        While CenterLon < -180
+            CenterLon += 360
+        End While
+
+        If CenterLat > g_LatMax Then CenterLat = g_LatMax
+        If CenterLat < g_LatMin Then CenterLat = g_LatMin
+
+        LatMin = CenterLat - LatHeight / 2
+        LatMax = CenterLat + LatHeight / 2
+        LonMin = CenterLon - LonWidth / 2
+        LonMax = CenterLon + LonWidth / 2
+    End Sub
+
+    Private Sub MouseDownLeft(ByVal e As System.Windows.Forms.MouseEventArgs)
+        MouseDragging = True
+        MouseDragStartLocation.X = e.X
+        MouseDragStartLocation.Y = e.Y
+        MouseDownLat = CenterLat
+        MouseDownLon = CenterLon
+    End Sub
+
+    Private Sub Event_MouseUp(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles Me.MouseUp
+        MouseDragging = False
+        If ControlsUse AndAlso _
+               Math.Abs(MouseDragStartLocation.X - e.X) < pControlsMargin / 2 AndAlso _
+               Math.Abs(MouseDragStartLocation.Y - e.Y) < pControlsMargin / 2 Then
+            'Count this as a tap/click and navigate if in a control area
+            Dim lNeedRedraw As Boolean = True
+            If e.X < pControlsMargin Then
+                If e.Y < pControlsMargin Then 'Top Left Corner, zoom in
+                    Zoom += 1 : lNeedRedraw = False
+                ElseIf e.Y > Me.Height - pControlsMargin Then
+                    Zoom -= 1 : lNeedRedraw = False 'Bottom Left Corner, zoom out
+                Else 'Left Edge, pan left
+                    CenterLon -= MetersPerPixel(pZoom) * Me.Width / g_CircumferenceOfEarth * 180
+                End If
+            ElseIf e.X > Me.Width - pControlsMargin Then
+                If e.Y < pControlsMargin Then 'Top Right Corner, zoom in
+                    Zoom += 1 : lNeedRedraw = False
+                ElseIf e.Y > Me.Height - pControlsMargin Then
+                    Zoom -= 1 : lNeedRedraw = False 'Bottom Right Corner, zoom out
+                Else 'Right Edge, pan right
+                    CenterLon += MetersPerPixel(pZoom) * Me.Width / g_CircumferenceOfEarth * 180
+                End If
+            ElseIf e.Y < pControlsMargin Then 'Top edge, pan up
+                CenterLat += MetersPerPixel(pZoom) * Me.Height / g_CircumferenceOfEarth * 90
+            ElseIf e.Y > Me.Height - pControlsMargin Then 'Bottom edge, pan down
+                CenterLat -= MetersPerPixel(pZoom) * Me.Height / g_CircumferenceOfEarth * 90
+            Else
+                lNeedRedraw = False
+            End If
+
+            If lNeedRedraw Then
+                ManuallyNavigated()
+            End If
+        Else
+            ManuallyNavigated()
+        End If
+    End Sub
+
+    Private Sub Event_Disposed(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Disposed
+        Downloader.Enabled = False
+        Uploader.Enabled = False
+        Diagnostics.Process.GetCurrentProcess.Kill() 'Try to kill our own process, making sure all threads stop
+    End Sub
+
+    Private Sub Event_Paint(ByVal sender As Object, ByVal e As System.Windows.Forms.PaintEventArgs) Handles Me.Paint
+        If Not pBitmap Is Nothing Then
+            pBitmapMutex.WaitOne()
+            With MapRectangle()
+                e.Graphics.DrawImage(pBitmap, .Left, .Top)
+            End With
+            pBitmapMutex.ReleaseMutex()
+        End If
+    End Sub
+
+    ' Prevent flickering when default implementation redraws background
+    Protected Overrides Sub OnPaintBackground(ByVal e As PaintEventArgs)
+    End Sub
+
+    Private Sub Event_Resize(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Resize
+        With MapRectangle()
+            If .Width > 0 AndAlso .Height > 0 Then
+                pBitmapMutex.WaitOne()
+                pBitmap = New Bitmap(.Width, .Height, Drawing.Imaging.PixelFormat.Format24bppRgb)
+                pControlsMargin = Math.Min(pBitmap.Width, pBitmap.Height) / 4
+                pBitmapMutex.ReleaseMutex()
+            End If
+        End With
+        Redraw()
+    End Sub
+
+    Public Sub OpenFiles(ByVal aFilenames() As String)
+        Dim lGPXPanTo As Boolean = GPXPanTo
+        Dim lGPXZoomTo As Boolean = GPXZoomTo
+        If aFilenames.Length > 1 Then
+            GPXPanTo = False
+            GPXZoomTo = False
+        End If
+        Dim lSaveTitle As String = Me.Text
+        Dim lNumFiles As Integer = aFilenames.Length
+        Dim lCurFile As Integer = 1
+        For Each lFilename As String In aFilenames
+            Me.Text = "Loading " & lCurFile & "/" & lNumFiles & " '" & IO.Path.GetFileNameWithoutExtension(lFilename) & "'"
+            OpenFile(lFilename)
+            lCurFile += 1
+        Next
+        Me.Text = lSaveTitle
+        If aFilenames.Length > 1 Then
+            GPXPanTo = lGPXPanTo
+            GPXZoomTo = lGPXZoomTo
+            If GPXZoomTo Then ZoomToAll()
+        End If
+
+        If Not GPXPanTo AndAlso Not GPXZoomTo Then Redraw()
+    End Sub
+
+    Public Sub OpenFile(ByVal aFilename As String)
+        Select Case IO.Path.GetExtension(aFilename).ToLower
+            Case ".cell" : OpenCell(aFilename)
+            Case ".jpg", ".jpeg" : OpenPhoto(aFilename)
+            Case Else : OpenGPX(aFilename)
+        End Select
+    End Sub
+
+    Public Sub OpenCell(ByVal aFilename As String)
+        Dim lLayer As New clsCellLayer(aFilename, Me)
+        Layers.Add(lLayer)
+        NeedRedraw()
+    End Sub
+
+    Public Sub OpenPhoto(ByVal aFilename As String)
+#If Not Smartphone Then
+        Dim lExif As New ExifWorks(aFilename)
+        Dim lNeedToSearchTracks As Boolean = False
+        Dim lLatitude As Double = lExif.Latitude
+        Dim lLongitude As Double = lExif.Longitude
+        Dim lStr As String = Nothing, lStrMinutes As String = Nothing, lStrSeconds As String = Nothing
+
+        If Double.IsNaN(lLatitude) OrElse Double.IsNaN(lLongitude) Then
+            lNeedToSearchTracks = True
+        Else
+            DegreesMinutesSeconds(lLatitude, lStr, lStrMinutes, lStrSeconds)
+            lStr &= " " & lStrMinutes & "' " & lStrSeconds & """"
+            If Not lStrSeconds.Contains(".") Then lNeedToSearchTracks = True
+        End If
+
+        If lNeedToSearchTracks Then
+            Dim lPhotoDate As Date = lExif.DateTimeOriginal
+            Dim lPhotoTicks As Long = lPhotoDate.Ticks
+            Dim lClosestTicks As Long = Long.MaxValue
+            Dim lClosestPoint As clsGPXwaypoint = Nothing
+
+            If Layers IsNot Nothing AndAlso Layers.Count > 0 Then
+                For Each lTrackLayer As clsLayer In Layers
+                    If lTrackLayer.GetType.Name.Equals("clsLayerGPX") Then
+                        Dim lGPX As clsLayerGPX = lTrackLayer
+                        For Each lGpxTrack As clsGPXtrack In lGPX.GPX.trk
+                            For Each lGpxTrackSeg As clsGPXtracksegment In lGpxTrack.trkseg
+                                For Each lGpxTrackPoint As clsGPXwaypoint In lGpxTrackSeg.trkpt
+                                    If lGpxTrackPoint.timeSpecified Then
+                                        Dim lTicksDiff As Long = Math.Abs(lGpxTrackPoint.time.Ticks - lPhotoTicks)
+                                        If lTicksDiff < lClosestTicks Then
+                                            lClosestTicks = lTicksDiff
+                                            lClosestPoint = lGpxTrackPoint
+                                        End If
+                                    End If
+                                Next
+                            Next
+                        Next
+                    End If
+                Next
+            End If
+
+            If lClosestPoint IsNot Nothing Then
+                Dim lMsg As String = ""
+                If Not Double.IsNaN(lLatitude) Then
+                    DegreesMinutesSeconds(lLatitude, lStr, lStrMinutes, lStrSeconds)
+                    lMsg &= "ExifLat = " & lStr & " " & lStrMinutes & "' " & lStrSeconds & """"
+                End If
+
+                lLatitude = lClosestPoint.lat
+                DegreesMinutesSeconds(lLatitude, lStr, lStrMinutes, lStrSeconds)
+                lMsg &= "GPXLat = " & lStr & " " & lStrMinutes & "' " & lStrSeconds & """"
+
+                If Not Double.IsNaN(lLongitude) Then
+                    DegreesMinutesSeconds(lLongitude, lStr, lStrMinutes, lStrSeconds)
+                    lMsg &= "ExifLon = " & lStr & " " & lStrMinutes & "' " & lStrSeconds & """"
+                End If
+
+                lLongitude = lClosestPoint.lon
+                DegreesMinutesSeconds(lLongitude, lStr, lStrMinutes, lStrSeconds)
+                lMsg &= "GPXLon = " & lStr & " " & lStrMinutes & "' " & lStrSeconds & """"
+                Dbg(lMsg)
+            End If
+        End If
+        If Double.IsNaN(lLatitude) OrElse Double.IsNaN(lLongitude) Then Exit Sub
+
+        Dim lWaypoints As New Generic.List(Of clsGPXwaypoint)
+        Dim lWaypoint As New clsGPXwaypoint("wpt", lLatitude, lLongitude)
+        lWaypoint.name = IO.Path.GetFileNameWithoutExtension(aFilename)
+        lWaypoint.sym = aFilename
+        lWaypoint.url = aFilename
+        lWaypoints.Add(lWaypoint)
+
+        Dim lLayer As New clsLayerGPX(lWaypoints, Me)
+        lLayer.Filename = aFilename
+        lLayer.LabelField = "name"
+        Dim lBounds As New clsGPXbounds()
+        With lBounds
+            .maxlat = lLatitude
+            .minlat = lLatitude
+            .maxlon = lLongitude
+            .minlon = lLongitude
+        End With
+        lLayer.Bounds = lBounds
+
+        Me.Layers.Add(lLayer)
+
+        If GPXPanTo Then
+            CenterLat = lLatitude
+            CenterLon = lLongitude
+            SanitizeCenterLatLon()
+            Redraw()
+        Else
+            NeedRedraw()
+        End If
+#End If
+    End Sub
+
+    Private Function OpenGPX(ByVal aFilename As String, Optional ByVal aInsertAt As Integer = -1) As clsLayerGPX
+        Dim lNewLayer As clsLayerGPX = Nothing
+        If IO.File.Exists(aFilename) Then
+            CloseLayer(aFilename)
+            Try
+                lNewLayer = New clsLayerGPX(aFilename, Me)
+                With lNewLayer
+                    .LabelField = GPXLabelField
+                End With
+                If aInsertAt >= 0 Then
+                    Layers.Insert(aInsertAt, lNewLayer)
+                Else
+                    Layers.Add(lNewLayer)
+                End If
+                If GPXPanTo OrElse GPXZoomTo AndAlso lNewLayer.Bounds IsNot Nothing Then
+                    If GPXPanTo Then
+                        PanTo(lNewLayer.Bounds)
+                    End If
+                    If GPXZoomTo AndAlso _
+                       lNewLayer.Bounds.minlat < lNewLayer.Bounds.maxlat AndAlso _
+                       lNewLayer.Bounds.minlon < lNewLayer.Bounds.maxlon Then
+                        Zoom = FindZoom(lNewLayer.Bounds)
+                    Else
+                        Redraw()
+                    End If
+                    Application.DoEvents()
+                End If
+            Catch e As Exception
+                MsgBox(e.Message, MsgBoxStyle.Critical, "Could not open '" & aFilename & "'")
+            End Try
+        End If
+        Return lNewLayer
+    End Function
+
+    ''' <summary>
+    ''' Center the view on the center of the given bounds
+    ''' </summary>
+    ''' <param name="aBounds">Bounds to center on</param>
+    ''' <remarks>Does not redraw</remarks>
+    Public Sub PanTo(ByVal aBounds As clsGPXbounds)
+        With aBounds
+            CenterLat = .minlat + (.maxlat - .minlat) / 2
+            CenterLon = .minlon + (.maxlon - .minlon) / 2
+            SanitizeCenterLatLon()
+        End With
+    End Sub
+
+    ''' <summary>
+    ''' Find zoom that would include the given layer without changing the center point
+    ''' </summary>
+    ''' <param name="aBounds">Bounds to zoom to</param>
+    ''' <param name="aZoomIn">True to zoom in to best fit layer</param>
+    ''' <param name="aZoomOut">True to zoom out to fit layer</param>
+    ''' <remarks>
+    ''' Defaults to zooming in or out as needed to best fit layer
+    ''' Does not redraw or set the zoom level of the map
+    ''' </remarks>
+    Private Function FindZoom(ByVal aBounds As clsGPXbounds, _
+                     Optional ByVal aZoomIn As Boolean = True, _
+                     Optional ByVal aZoomOut As Boolean = True) As Integer
+        With aBounds
+            Dim lDesiredZoom As Integer = pZoom
+            Dim lNewLatHeight As Double = LatHeight
+            Dim lNewLonWidth As Double = LonWidth
+            If aZoomIn Then
+                While lDesiredZoom < g_ZoomMax AndAlso _
+                      .maxlat < CenterLat + lNewLatHeight / 4 AndAlso _
+                      .minlat > CenterLat - lNewLatHeight / 4 AndAlso _
+                      .maxlon < CenterLon + lNewLonWidth / 4 AndAlso _
+                      .minlon > CenterLon - lNewLonWidth / 4
+                    lDesiredZoom += 1
+                    lNewLonWidth /= 2
+                    lNewLatHeight /= 2
+                End While
+            End If
+            If aZoomOut Then
+                While lDesiredZoom > g_ZoomMin AndAlso _
+                     (.maxlat > CenterLat + lNewLatHeight / 2 OrElse _
+                      .minlat < CenterLat - lNewLatHeight / 2 OrElse _
+                      .maxlon > CenterLon + lNewLonWidth / 2 OrElse _
+                      .minlon < CenterLon - lNewLonWidth / 2)
+                    lDesiredZoom -= 1
+                    lNewLonWidth *= 2
+                    lNewLatHeight *= 2
+                End While
+            End If
+            Return lDesiredZoom
+        End With
+    End Function
+
+    Public Sub ZoomToAll()
+        Dim lFirstLayer As Boolean = True 'Zoom in on first layer, then zoom out to include all layers
+        Dim lAllBounds As clsGPXbounds = Nothing
+        For Each lLayer As clsLayer In Layers
+            If lLayer.Bounds IsNot Nothing Then
+                If lFirstLayer Then
+                    lAllBounds = lLayer.Bounds.Clone
+                    lFirstLayer = False
+                Else
+                    lAllBounds.Expand(lLayer.Bounds.minlat, lLayer.Bounds.minlon)
+                    lAllBounds.Expand(lLayer.Bounds.maxlat, lLayer.Bounds.maxlon)
+                End If
+            End If
+        Next
+        If lAllBounds IsNot Nothing Then
+            PanTo(lAllBounds)
+            Zoom = FindZoom(lAllBounds)
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' Close the existing file if already open
+    ''' </summary>
+    ''' <param name="aFilename">Name of file to close</param>
+    ''' <returns>True if layer matching file name was found and closed</returns>
+    Private Function CloseLayer(ByVal aFilename As String) As Boolean
+        Dim lLayer As clsLayer
+        aFilename = aFilename.ToLower
+        For Each lLayer In Layers
+            If aFilename.Equals(lLayer.Filename.ToLower) Then
+                CloseLayer(lLayer)
+                Return True
+            End If
+        Next
+        Return False
+    End Function
+
+    Private Sub CloseLayer(ByVal aLayer As clsLayer)
+        aLayer.Clear()
+        Layers.Remove(aLayer)
+    End Sub
+
+    Public Sub CloseAllLayers()
+        For Each lLayer As clsLayer In Layers
+            lLayer.Clear()
+        Next
+        Layers.Clear()
+    End Sub
+
+    ''' <summary>
+    ''' Start timer that refreshes buddy positions
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public Sub StartBuddyTimer()
+        If pBuddyTimer Is Nothing Then
+            pBuddyTimer = New System.Threading.Timer(New Threading.TimerCallback(AddressOf RequestBuddyPoint), Nothing, 0, 60000)
+        End If
+    End Sub
+    Public Sub StopBuddyTimer()
+        If pBuddyTimer IsNot Nothing Then
+            Try
+                pBuddyTimer.Dispose()
+            Catch
+            End Try
+            pBuddyTimer = Nothing
+        End If
+    End Sub
+
+#If Smartphone Then
+
+#Region "Smartphone"
+    Private GPS_Listen As Boolean = False
+    Private WithEvents GPS As GPS_API.GPS
+    Private GPS_DEVICE_STATE As GPS_API.GpsDeviceState
+    Private GPS_POSITION As GPS_API.GpsPosition = Nothing
+
+    Private pLastCellTower As clsCell
+    Private pCellLocationProviders As New Generic.List(Of clsCellLocationProvider)
+
+    ' Synchronize access to track log file
+    Private Shared pTrackMutex As New Threading.Mutex()
+
+    Private pTrackWaypoints As New System.Text.StringBuilder()
+
+    ' File name of waypoints currently being written
+    Private pWaypointLogFilename As String
+
+    ' File name of track log currently being written
+    Private pTrackLogFilename As String
+
+    ' When we last uploaded a track point (UTC)
+    Private pUploadLastTime As DateTime
+
+    ' True if we want to upload when GPS starts and have not yet done so
+    Private pPendingUploadStart As Boolean = False
+
+    ' When we last logged a track point (UTC)
+    Private pTrackLastTime As DateTime
+    Private pTrackLastLatitude As Double = 0.0  ' Degrees latitude.  North is positive
+    Private pTrackLastLongitude As Double = 0.0 ' Degrees longitude.  East is positive
+
+    Private pClickRefreshTile As Boolean = False ' Always false on startup, not saved to registry
+
+    Private pCursorLayer As clsLayerGPX
+
+    Private pKeepAwakeTimer As System.Threading.Timer
+
+    Public Sub New()
+        InitializeComponent()
+
+        'Default to using these for mobile even though default to not in frmMapCommon
+        ControlsUse = True
+        ControlsShow = True
+
+        pTrackLastTime = DateTime.UtcNow.Subtract(pTrackMinInterval)
+        pUploadLastTime = New DateTime(1, 1, 1)
+
+        updateDataHandler = New EventHandler(AddressOf UpdateData)
+
+        pTileCacheFolder = GetAppSetting("TileCacheFolder", "\My Documents\tiles\")
+
+        If pTileCacheFolder.Length > 0 AndAlso Not pTileCacheFolder.EndsWith(g_PathChar) Then
+            pTileCacheFolder &= g_PathChar
+        End If
+
+        GPXFolder = IO.Path.GetDirectoryName(pTileCacheFolder)
+        Try
+            IO.Directory.CreateDirectory(pTileCacheFolder)
+            IO.Directory.CreateDirectory(pTileCacheFolder & "WriteTest")
+            IO.Directory.Delete(pTileCacheFolder & "WriteTest")
+        Catch e As Exception
+            pTileCacheFolder = IO.Path.GetTempPath
+            'TODO: open frmDownloadMobile or let user choose this folder somehow rather than just error message
+            'MsgBox("Could not use cache folder" & vbLf _
+            '     & pTileCacheFolder & vbLf _
+            '     & "Edit registry in CurrentUser\Software\" & g_AppName & "\TileCacheFolder to change", _
+            '       MsgBoxStyle.OkOnly, "TileCacheFolder Needed")
+        End Try
+
+        SharedNew()
+
+        pCellLocationProviders.Add(New clsCellLocationOpenCellID)
+        pCellLocationProviders.Add(New clsCellLocationGoogle)
+
+        pCursorLayer = New clsLayerGPX("cursor", Me)
+        pCursorLayer.SymbolPen = New Pen(Color.Red)
+        pCursorLayer.SymbolSize = GPSSymbolSize
+
+        If Not Dark Then StartKeepAwake()
+        If pGPSAutoStart Then StartGPS()
+    End Sub
+
+    Private Sub Redraw()
+        If pRedrawing Then
+            pRedrawPending = True
+        Else
+            pRedrawing = True
+            Dim lGraphics As Graphics = Nothing
+            Dim lDetailsBrush As Brush = pBrushBlack
+
+RestartRedraw:
+            If pFormVisible Then
+                lGraphics = GetBitmapGraphics()
+                If lGraphics IsNot Nothing Then
+                    If Dark Then
+                        'pDetailsForm.Details = GPSdetailsString()
+                        lGraphics.Clear(Color.Black)
+                        lDetailsBrush = pBrushWhite
+                    Else
+                        DrawTiles(lGraphics)
+                    End If
+                    If pShowGPSdetails Then
+                        lGraphics.DrawString(GPSdetailsString, pFontTileLabel, lDetailsBrush, 5, 5)
+                    End If
+                    ReleaseBitmapGraphics()
+                    Refresh()
+                End If
+            End If
+            Application.DoEvents()
+            If pRedrawPending Then
+                pRedrawPending = False
+                GoTo RestartRedraw
+            End If
+            pRedrawing = False
+        End If
+    End Sub
+
+
+    Private Sub frmMap_KeyUp(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyEventArgs) Handles MyBase.KeyUp
+        e.Handled = True
+        Dim lNeedRedraw As Boolean = True
+        Select Case e.KeyCode
+            Case Keys.Right : CenterLon += MetersPerPixel(Zoom) * Me.Width / g_CircumferenceOfEarth * 180
+            Case Keys.Left : CenterLon -= MetersPerPixel(Zoom) * Me.Width / g_CircumferenceOfEarth * 180
+            Case Keys.Up
+                If pLastKeyDown = 131 Then 'using scroll wheel
+                    Zoom += 1 : lNeedRedraw = False
+                Else
+                    CenterLat += MetersPerPixel(Zoom) * Me.Height / g_CircumferenceOfEarth * 90
+                End If
+            Case Keys.Down
+                If pLastKeyDown = 131 Then 'using scroll wheel
+                    Zoom -= 1 : lNeedRedraw = False
+                Else
+                    CenterLat -= MetersPerPixel(Zoom) * Me.Height / g_CircumferenceOfEarth * 90
+                End If
+            Case Keys.A : Zoom -= 1 : lNeedRedraw = False
+            Case Keys.Q : Zoom += 1 : lNeedRedraw = False
+            Case Else
+                e.Handled = False
+                lNeedRedraw = False
+        End Select
+        If lNeedRedraw Then
+            'TODO: ManuallyNavigated()
+        End If
+    End Sub
+
+    Private Function EnsureCurrentTrack() As clsLayerGPX
+        If Layers.Count = 0 OrElse Layers(0).Filename <> "current" Then
+            Dim lCurrentTrack As New clsLayerGPX("current", Me)
+            lCurrentTrack.Filename = "current"
+            With lCurrentTrack.GPX
+                .trk = New Generic.List(Of clsGPXtrack)
+                .trk.Add(New clsGPXtrack("current"))
+                .trk(0).trkseg.Add(New clsGPXtracksegment())
+            End With
+            Layers.Insert(0, lCurrentTrack)
+        End If
+        Return Layers(0)
+    End Function
+
+    Private Function MapRectangle() As Rectangle
+        Return ClientRectangle
+    End Function
+
+    Private Sub Zoomed()
+        Redraw()
+    End Sub
+
+    Private Sub DrewTiles(ByVal g As Graphics, ByVal aTopLeft As Point, ByVal aOffsetToCenter As Point)
+        If GPS IsNot Nothing AndAlso GPS.Opened AndAlso GPS_POSITION IsNot Nothing AndAlso GPS_POSITION.LatitudeValid AndAlso GPS_POSITION.LongitudeValid Then
+            If GPSSymbolSize > 0 Then
+                pCursorLayer.SymbolSize = GPSSymbolSize
+                Dim lWaypoint As New clsGPXwaypoint("wpt", GPS_POSITION.Latitude, GPS_POSITION.Longitude)
+                lWaypoint.sym = "cursor"
+                lWaypoint.course = GPS_POSITION.Heading
+                pCursorLayer.DrawTrackpoint(g, lWaypoint, aTopLeft, aOffsetToCenter, -1, -1)
+            End If
+        End If
+    End Sub
+
+    Private Sub ManuallyNavigated()
+        pGPSFollow = 0 'Manual navigation overrides automatic following of GPS
+        'TODO: mnuFollow.Checked = False
+        'TODO: mnuCenter.Checked = False
+        SanitizeCenterLatLon()
+        Redraw()
+    End Sub
+
+    Private Function GPSdetailsString() As String
+        Dim lDetails As String = ""
+        If GPS Is Nothing Then
+            lDetails = "GPS not initialized"
+        ElseIf Not GPS.Opened Then
+            lDetails = "GPS not opened"
+        ElseIf GPS_POSITION Is Nothing Then
+            lDetails = "No position"
+        ElseIf Not GPS_POSITION.LatitudeValid OrElse Not GPS_POSITION.LongitudeValid Then
+            lDetails = "Position not valid"
+        Else
+            lDetails = "(" & FormattedDegrees(GPS_POSITION.Latitude, g_DegreeFormat) & ", " _
+                           & FormattedDegrees(GPS_POSITION.Longitude, g_DegreeFormat) & ")"
+            If (GPS_POSITION.SeaLevelAltitudeValid) Then lDetails &= " " & GPS_POSITION.SeaLevelAltitude & "m"
+            If (GPS_POSITION.SpeedValid AndAlso GPS_POSITION.Speed > 0) Then lDetails &= " " & GPS_POSITION.Speed * 1.15077945 & "mph"
+
+            If GPS_POSITION.TimeValid Then
+                lDetails &= vbLf & GPS_POSITION.Time.ToString("yyyy-MM-dd HH:mm:ss") & "Z"
+                Dim lAgeOfPosition As TimeSpan = DateTime.Now - GPS_POSITION.Time.ToLocalTime()
+                If (Math.Abs(lAgeOfPosition.TotalSeconds) > 5) Then
+                    lDetails &= " (" + lAgeOfPosition.ToString().TrimEnd("0"c) + " ago)"
+                End If
+            End If
+        End If
+        If pRecordCellID Then
+            Dim lCurrentCellInfo As New clsCell(GPS_API.RIL.GetCellTowerInfo)
+            If lCurrentCellInfo.IsValid Then
+                lDetails &= vbLf & lCurrentCellInfo.ToString
+            Else
+                lDetails &= vbLf & "no cell"
+            End If
+        End If
+        'If pUsedCacheCount + pAddedCacheCount > 0 Then
+        '    lDetails &= " Cache " & Format(pUsedCacheCount / (pUsedCacheCount + pAddedCacheCount), "0.0 %") & " " & pDownloader.TileRAMcacheLimit
+        'End If
+        If Not RecordTrack Then lDetails &= vbLf & "Logging Off"
+        Return lDetails
+    End Function
+
+    Private Sub Event_KeyUp(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyEventArgs) Handles MyBase.KeyUp
+        e.Handled = True
+        Dim lNeedRedraw As Boolean = True
+        Select Case e.KeyCode
+            Case Keys.Right : CenterLon += MetersPerPixel(pZoom) * Me.Width / g_CircumferenceOfEarth * 180
+            Case Keys.Left : CenterLon -= MetersPerPixel(pZoom) * Me.Width / g_CircumferenceOfEarth * 180
+            Case Keys.Up
+                If pLastKeyDown = 131 Then 'using scroll wheel
+                    Zoom += 1 : lNeedRedraw = False
+                Else
+                    CenterLat += MetersPerPixel(pZoom) * Me.Height / g_CircumferenceOfEarth * 90
+                End If
+            Case Keys.Down
+                If pLastKeyDown = 131 Then 'using scroll wheel
+                    Zoom -= 1 : lNeedRedraw = False
+                Else
+                    CenterLat -= MetersPerPixel(pZoom) * Me.Height / g_CircumferenceOfEarth * 90
+                End If
+            Case Keys.A : Zoom -= 1 : lNeedRedraw = False
+            Case Keys.Q : Zoom += 1 : lNeedRedraw = False
+            Case Else
+                e.Handled = False
+                lNeedRedraw = False
+        End Select
+        If lNeedRedraw Then
+            ManuallyNavigated()
+        End If
+    End Sub
+
+    Private Sub Event_MouseDown(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles Me.MouseDown
+        Select Case e.Button
+            Case Windows.Forms.MouseButtons.Left
+                If pClickRefreshTile Then
+                    Dim lBounds As New RectangleF(0, 0, pBitmap.Width, pBitmap.Height)
+                    ClickedTileFilename = FindTileFilename(lBounds, e.X, e.Y)
+                    Downloader.DeleteTile(ClickedTileFilename)
+                    Redraw()
+                ElseIf pClickWaypoint Then
+                    AddWaypoint(CenterLat - (e.Y - Me.ClientRectangle.Height / 2) * LatHeight / Me.ClientRectangle.Height, _
+                                CenterLon + (e.X - Me.ClientRectangle.Width / 2) * LonWidth / Me.ClientRectangle.Width, _
+                                Date.UtcNow, Now.ToString("yyyy-MM-dd HH:mm:ss"))
+                Else
+                    MouseDownLeft(e)
+                End If
+        End Select
+    End Sub
+
+    Private Sub Event_MouseMove(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles Me.MouseMove
+        If MouseDragging Then
+            If Not ControlsUse OrElse _
+               (e.X > pControlsMargin AndAlso e.X < (Me.Width - pControlsMargin)) OrElse _
+               (e.Y > pControlsMargin AndAlso e.Y < (Me.Height - pControlsMargin)) OrElse _
+               Math.Abs(MouseDragStartLocation.X - e.X) > pControlsMargin / 2 OrElse _
+               Math.Abs(MouseDragStartLocation.Y - e.Y) > pControlsMargin / 2 Then
+
+                CenterLat = MouseDownLat + (e.Y - MouseDragStartLocation.Y) * LatHeight / Me.ClientRectangle.Height
+                CenterLon = MouseDownLon - (e.X - MouseDragStartLocation.X) * LonWidth / Me.ClientRectangle.Width
+                ManuallyNavigated()
+            End If
+        End If
+    End Sub
+
+    Public Sub StartGPS()
+        'TODO: mnuStartStopGPS.Text = "Starting GPS..."
+        Application.DoEvents()
+        If pGPSFollow = 0 Then
+            pGPSFollow = 2
+            'TODO: mnuFollow.Checked = False
+            'TODO: mnuCenter.Checked = True
+        End If
+        If GPS Is Nothing Then GPS = New GPS_API.GPS
+        If Not GPS.Opened Then
+            SetPowerRequirement(DeviceGPS, True)
+
+            Dim lLogIndex As Integer = 0
+            Dim lBaseFilename As String = IO.Path.Combine(GPXFolder, DateTime.Now.ToString("yyyy-MM-dd_HH-mm"))
+
+            pTrackMutex.WaitOne()
+            pTrackLogFilename = lBaseFilename & ".gpx"
+            While System.IO.File.Exists(pTrackLogFilename)
+                pTrackLogFilename = lBaseFilename & "_" & ++lLogIndex & ".gpx"
+            End While
+            CloseLog(pWaypointLogFilename, "</gpx>" & vbLf)
+            pWaypointLogFilename = IO.Path.ChangeExtension(pTrackLogFilename, ".wpt.gpx")
+            pTrackMutex.ReleaseMutex()
+
+            'TODO: mnuStartStopGPS.Text = "Opening GPS..."
+            Application.DoEvents()
+            GPS.Open()
+            GPS_Listen = True
+            pPendingUploadStart = UploadOnStart
+        End If
+    End Sub
+
+    Public Sub StopGPS()
+        GPS_Listen = False
+        Try
+            'TODO: mnuStartStopGPS.Text = "Stopping"
+            Application.DoEvents()
+        Catch
+        End Try
+        Threading.Thread.Sleep(100)
+        Me.SaveSettings() 'In case of crash, at least we can start again with the same settings
+
+        Try
+            'TODO: mnuStartStopGPS.Text = "Finishing Log..."
+            Application.DoEvents()
+        Catch
+        End Try
+
+        pTrackMutex.WaitOne()
+        CloseLog(pWaypointLogFilename, "</gpx>" & vbLf)
+        CloseLog(pTrackLogFilename, "</trkseg>" & vbLf & "</trk>" & vbLf & "</gpx>" & vbLf)
+        pTrackMutex.ReleaseMutex()
+
+        If GPS IsNot Nothing Then
+            If GPS.Opened Then
+                Try
+                    'TODO: mnuStartStopGPS.Text = "Closing GPS..."
+                    Application.DoEvents()
+                Catch
+                End Try
+                If UploadOnStop Then UploadGpsPosition()
+                GPS.Close()
+            End If
+            GPS = Nothing
+        End If
+        SetPowerRequirement(DeviceGPS, False)
+        Try
+            'TODO: mnuStartStopGPS.Text = "Start GPS"
+            Application.DoEvents()
+        Catch
+        End Try
+    End Sub
+
+    Private Sub CloseLog(ByRef aFilename As String, ByVal aAppend As String)
+        If IO.File.Exists(aFilename) Then
+            If aAppend IsNot Nothing AndAlso aAppend.Length > 0 Then
+                Dim lFile As System.IO.StreamWriter = System.IO.File.AppendText(aFilename)
+                lFile.Write(aAppend)
+                lFile.Close()
+            End If
+            If UploadOnStop AndAlso Uploader.Enabled Then
+                Uploader.Enqueue(g_UploadTrackURL, aFilename, QueueItemType.FileItem, 0)
+            End If
+        End If
+        aFilename = ""
+    End Sub
+
+    Private updateDataHandler As EventHandler
+
+    Private Sub GPS_DEVICE_LocationChanged(ByVal sender As Object, ByVal args As GPS_API.LocationChangedEventArgs) Handles GPS.LocationChanged
+        If GPS_Listen Then
+            GPS_POSITION = args.Position
+            Invoke(updateDataHandler)
+        End If
+    End Sub
+
+    Private Sub UpdateData(ByVal sender As Object, ByVal args As System.EventArgs)
+        Try
+            If (GPS.Opened) Then
+                Try
+                    'TODO: mnuStartStopGPS.Text = "Stop GPS " & GPS_POSITION.SatelliteCount & "/" & GPS_POSITION.SatellitesInViewCount
+                    Application.DoEvents()
+                Catch
+                End Try
+                If (GPS_POSITION IsNot Nothing AndAlso GPS_POSITION.LatitudeValid AndAlso GPS_POSITION.LongitudeValid) Then
+                    Dim lNeedRedraw As Boolean = SetCenterFromDevice(GPS_POSITION.Latitude, GPS_POSITION.Longitude)
+
+                    If GPS_Listen AndAlso (RecordTrack OrElse pDisplayTrack) AndAlso DateTime.UtcNow.Subtract(pTrackMinInterval) >= pTrackLastTime Then
+                        TrackAddPoint()
+                        pTrackLastTime = DateTime.UtcNow
+                    End If
+
+                    If GPSSymbolSize > 0 OrElse lNeedRedraw Then
+                        Redraw()
+                    End If
+
+                    If pPendingUploadStart OrElse (UploadPeriodic AndAlso DateTime.UtcNow.Subtract(UploadMinInterval) >= pUploadLastTime) Then
+                        UploadGpsPosition()
+                    End If
+
+                    'If (GPS_POSITION.SeaLevelAltitudeValid) Then
+                    ' str &= "Elev " & GPS_POSITION.SeaLevelAltitude & "m"
+                End If
+            End If
+        Catch e As Exception
+            'MsgBox(e.Message & vbLf & e.StackTrace)
+        End Try
+    End Sub
+
+    Private Function SetCenterFromCellLocation() As Boolean
+        Dim lCurrentCellInfo As New clsCell(GPS_API.RIL.GetCellTowerInfo)
+        If lCurrentCellInfo.IsValid AndAlso (pLastCellTower Is Nothing OrElse lCurrentCellInfo.ID <> pLastCellTower.ID) Then
+            pLastCellTower = lCurrentCellInfo
+            With lCurrentCellInfo
+                If GetCellLocation(pTileCacheFolder & "cells", lCurrentCellInfo) Then
+                    If SetCenterFromDevice(lCurrentCellInfo.Latitude, lCurrentCellInfo.Longitude) Then
+                        Me.Invoke(pRedrawCallback)
+                        Return True
+                    End If
+                End If
+            End With
+        End If
+        Return False
+    End Function
+
+    Private Function GetCellLocation(ByVal aCellCacheFolder As String, ByVal aCell As clsCell) As Boolean
+        'Check for a cached location first
+        For Each lLocationProvider As clsCellLocationProvider In pCellLocationProviders
+            If lLocationProvider.GetCachedLocation(aCellCacheFolder, aCell) Then
+                Return True
+            End If
+        Next
+
+        'Query for a new location and cache if found
+        For Each lLocationProvider As clsCellLocationProvider In pCellLocationProviders
+            If lLocationProvider.GetCellLocation(aCell) Then
+                lLocationProvider.SaveCachedLocation(aCellCacheFolder, aCell)
+                Return True
+            End If
+        Next
+        Return False
+    End Function
+
+    ''' <summary>
+    ''' Set the map to make sure given location is in view, depending on value of pGPSFollow
+    ''' </summary>
+    ''' <param name="aLatitude"></param>
+    ''' <param name="aLongitude"></param>
+    ''' <returns>True if map center was updated</returns>
+    ''' <remarks></remarks>
+    Private Function SetCenterFromDevice(ByVal aLatitude As Double, ByVal aLongitude As Double) As Boolean
+        Select Case pGPSFollow
+            Case 1
+                If Not LatLonInView(aLatitude, aLongitude) Then
+                    GoTo SetCenter
+                End If
+            Case 2
+SetCenter:
+                If CenterLat <> aLatitude OrElse CenterLon <> aLongitude Then
+                    CenterLat = aLatitude
+                    CenterLon = aLongitude
+                    SanitizeCenterLatLon()
+                    Return True
+                End If
+        End Select
+        Return False
+    End Function
+
+    Private Sub TrackAddPoint()
+        If GPS_POSITION IsNot Nothing _
+           AndAlso GPS_POSITION.TimeValid _
+           AndAlso GPS_POSITION.LatitudeValid _
+           AndAlso GPS_POSITION.LongitudeValid _
+           AndAlso GPS_POSITION.SatellitesInSolutionValid _
+           AndAlso GPS_POSITION.SatelliteCount > 2 Then
+            ' If subsequent track points vary this much, we don't believe it, don't log till they are closer
+            If Math.Abs((GPS_POSITION.Latitude - pTrackLastLatitude)) + Math.Abs((GPS_POSITION.Longitude - pTrackLastLongitude)) < 0.5 Then
+                Dim lGPXheader As String = Nothing
+
+                Dim lTrackPoint As New clsGPXwaypoint("trkpt", GPS_POSITION.Latitude, GPS_POSITION.Longitude)
+                If GPS_POSITION.SeaLevelAltitudeValid Then
+                    lTrackPoint.ele = GPS_POSITION.SeaLevelAltitude
+                End If
+                lTrackPoint.time = GPS_POSITION.Time
+                lTrackPoint.sat = GPS_POSITION.SatelliteCount
+
+                If GPS_POSITION.SpeedValid Then
+                    lTrackPoint.speed = GPS_POSITION.Speed
+                End If
+                If GPS_POSITION.HeadingValid Then
+                    lTrackPoint.course = GPS_POSITION.Heading
+                End If
+
+                If pRecordCellID Then
+                    Dim lCurrentCellInfo As New clsCell(GPS_API.RIL.GetCellTowerInfo)
+                    If lCurrentCellInfo.IsValid Then
+                        'Original tag was celltower, order was ID LAC MCC MNC
+                        lTrackPoint.SetExtension("cellid", lCurrentCellInfo.ToString)
+                    End If
+                End If
+                lTrackPoint.SetExtension("phonesignal", Microsoft.WindowsMobile.Status.SystemState.PhoneSignalStrength)
+
+                If RecordTrack Then
+                    AppendLog(pTrackLogFilename, lTrackPoint.ToString, "<?xml version=""1.0"" encoding=""UTF-8""?>" & vbLf & "<gpx xmlns=""http://www.topografix.com/GPX/1/1"" version=""1.1"" creator=""" & g_AppName & """ xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xsi:schemaLocation=""http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.topografix.com/GPX/gpx_overlay/0/3 http://www.topografix.com/GPX/gpx_overlay/0/3/gpx_overlay.xsd http://www.topografix.com/GPX/gpx_modified/0/1 http://www.topografix.com/GPX/gpx_modified/0/1/gpx_modified.xsd"">" & vbLf & "<trk>" & vbLf & "<name>" & g_AppName & " Log " & System.IO.Path.GetFileNameWithoutExtension(pTrackLogFilename) & " </name>" & vbLf & "<type>GPS Tracklog</type>" & vbLf & "<trkseg>" & vbLf)
+                End If
+                pTrackLastTime = DateTime.UtcNow
+
+                If pDisplayTrack Then
+                    EnsureCurrentTrack.GPX.trk(0).trkseg(0).trkpt.Add(lTrackPoint)
+                End If
+            End If
+            pTrackLastLatitude = GPS_POSITION.Latitude
+            pTrackLastLongitude = GPS_POSITION.Longitude
+        End If
+    End Sub 'TrackAddPoint
+
+    Private Sub AppendLog(ByVal aFilename As String, ByVal aAppend As String, ByVal aHeader As String)
+        pTrackMutex.WaitOne()
+        Try
+            Dim lNeedHeader As Boolean = Not IO.File.Exists(aFilename)
+            If lNeedHeader Then IO.Directory.CreateDirectory(IO.Path.GetDirectoryName(aFilename))
+            Dim lFile As System.IO.StreamWriter = System.IO.File.AppendText(aFilename)
+            If lNeedHeader AndAlso aHeader IsNot Nothing Then lFile.Write(aHeader)
+            lFile.Write(aAppend)
+            lFile.Close()
+        Catch ex As Exception
+            Windows.Forms.MessageBox.Show("Could not save " & vbLf & pTrackLogFilename & vbLf & ex.Message)
+        End Try
+        pTrackMutex.ReleaseMutex()
+    End Sub
+
+    Public Sub UploadGpsPosition()
+        If Uploader.Enabled _
+           AndAlso GPS_POSITION IsNot Nothing _
+           AndAlso GPS_POSITION.TimeValid _
+           AndAlso GPS_POSITION.LatitudeValid _
+           AndAlso GPS_POSITION.LongitudeValid _
+           AndAlso GPS_POSITION.SatellitesInSolutionValid _
+           AndAlso GPS_POSITION.SatelliteCount > 2 Then
+            Try
+                Dim lURL As String = g_UploadPointURL
+                If lURL IsNot Nothing AndAlso lURL.Length > 0 Then
+                    BuildURL(lURL, "Time", GPS_POSITION.Time.ToString("yyyy-MM-ddTHH:mm:ss.fff") & "Z", "", GPS_POSITION.TimeValid)
+                    BuildURL(lURL, "Lat", GPS_POSITION.Latitude.ToString("#.########"), "", GPS_POSITION.LatitudeValid)
+                    BuildURL(lURL, "Lon", GPS_POSITION.Longitude.ToString("#.########"), "", GPS_POSITION.LongitudeValid)
+
+                    BuildURL(lURL, "Alt", GPS_POSITION.SeaLevelAltitude, "", GPS_POSITION.SeaLevelAltitudeValid)
+                    BuildURL(lURL, "Speed", GPS_POSITION.Speed, "", GPS_POSITION.SpeedValid)
+                    BuildURL(lURL, "Heading", GPS_POSITION.Heading, "", GPS_POSITION.HeadingValid)
+                    If pPendingUploadStart Then
+                        BuildURL(lURL, "Label", g_AppName & "-Start", "", True)
+                    Else
+                        BuildURL(lURL, "Label", g_AppName, "", True)
+                    End If
+                    If lURL.IndexOf("CellID") > -1 Then
+                        Dim lCurrentCellInfo As New clsCell(GPS_API.RIL.GetCellTowerInfo)
+                        BuildURL(lURL, "CellID", lCurrentCellInfo.ToString, "", True)
+                    End If
+
+                    Uploader.ClearQueue(0)
+                    Uploader.Enqueue(lURL, "", QueueItemType.PointItem, 0)
+                    pUploadLastTime = DateTime.UtcNow
+                    pPendingUploadStart = False
+                End If
+            Catch
+            End Try
+        End If
+    End Sub 'UploadPoint
+
+    Private Sub BuildURL(ByRef aURL As String, ByVal aTag As String, ByVal aReplaceTrue As String, ByVal aReplaceFalse As String, ByVal aTest As Boolean)
+        Dim lReplacement As String
+        If aTest Then
+            lReplacement = aReplaceTrue
+        Else
+            lReplacement = aReplaceFalse
+        End If
+        aURL = aURL.Replace("#" & aTag & "#", lReplacement)
+    End Sub
+
+    Public Sub ClosestGeocache()
+        pFormVisible = False
+
+        If Layers IsNot Nothing AndAlso Layers.Count > 0 Then
+            Dim lMiddlemostCache As clsGPXwaypoint = Nothing
+            Dim lClosestDistance As Double = Double.MaxValue
+            Dim lThisDistance As Double
+            For Each lLayer As clsLayer In Layers
+                Try
+                    Dim lGPXLayer As clsLayerGPX = lLayer
+                    Dim lDrawThisOne As Boolean = True
+                    If lGPXLayer.GPX.bounds IsNot Nothing Then
+                        With lGPXLayer.GPX.bounds 'Skip drawing this one if it is not in view
+                            If .minlat > CenterLat + LatHeight / 2 OrElse _
+                                .maxlat < CenterLat - LatHeight / 2 OrElse _
+                                .minlon > CenterLon + LonWidth / 2 OrElse _
+                                .maxlon < CenterLon - LonWidth / 2 Then
+                                lDrawThisOne = False
+                            End If
+                        End With
+                    End If
+                    If lDrawThisOne Then
+                        For Each lWaypoint As clsGPXwaypoint In lGPXLayer.GPX.wpt
+                            lThisDistance = (lWaypoint.lat - CenterLat) ^ 2 + (lWaypoint.lon - CenterLon) ^ 2
+                            If lThisDistance < lClosestDistance Then
+                                lMiddlemostCache = lWaypoint
+                                lClosestDistance = lThisDistance
+                            End If
+                        Next
+                    End If
+                Catch
+                End Try
+            Next
+            If lMiddlemostCache IsNot Nothing Then
+                'Dim lGeocacheForm As New frmGeocacheMobile
+                'With lMiddlemostCache
+                '    lGeocacheForm.URL = .url
+                '    Dim lText As String = ""
+
+                '    lText &= .name & " " _
+                '          & FormattedDegrees(.lat, g_DegreeFormat) & ", " _
+                '          & FormattedDegrees(.lon, g_DegreeFormat) & vbLf
+
+                '    If .desc IsNot Nothing AndAlso .desc.Length > 0 Then
+                '        lText &= .desc & vbLf
+                '    ElseIf .urlname IsNot Nothing AndAlso .urlname.Length > 0 Then
+                '        lText &= .urlname
+                '        If .cache IsNot Nothing Then
+                '            lText &= " (" & Format(.cache.difficulty, "#.#") & "/" _
+                '                          & Format(.cache.terrain, "#.#") & ")"
+                '        End If
+                '        lText &= vbLf
+                '    End If
+
+                '    If .cmt IsNot Nothing AndAlso .cmt.Length > 0 Then lText &= "comment: " & .cmt & vbLf
+
+                '    If .cache IsNot Nothing AndAlso .cache.container IsNot Nothing AndAlso .cache.container.Length > 0 Then lText &= .cache.container & ", "
+                '    If .type IsNot Nothing AndAlso .type.Length > 0 Then
+                '        If .type.StartsWith("Geocache|") Then
+                '            lText &= "type: " & .type.Substring(9) & vbLf
+                '        Else
+                '            lText &= "type: " & .type & vbLf
+                '        End If
+                '    ElseIf .cache IsNot Nothing AndAlso .cache.cachetype IsNot Nothing AndAlso .cache.cachetype.Length > 0 Then
+                '        lText &= "type: " & .type & vbLf
+                '    End If
+
+                '    If .cache IsNot Nothing Then
+                '        If .cache.archived Then lText &= "ARCHIVED" & vbLf
+
+                '        If .cache.short_description IsNot Nothing AndAlso .cache.short_description.Length > 0 Then
+                '            lText &= .cache.short_description.Replace("<br>", vbLf) & vbLf
+                '        End If
+                '        If .cache.long_description IsNot Nothing AndAlso .cache.long_description.Length > 0 Then
+                '            lText &= .cache.long_description.Replace("<br>", vbLf) & vbLf
+                '        End If
+
+                '        If .cache.encoded_hints IsNot Nothing AndAlso .cache.encoded_hints.Length > 0 Then
+                '            lText &= "Hint: " & .cache.encoded_hints & vbLf
+                '        End If
+
+                '        If .cache.logs IsNot Nothing AndAlso .cache.logs.Length > 0 Then lText &= "Logs: " & .cache.logs & vbLf
+                '        If .cache.placed_by IsNot Nothing AndAlso .cache.placed_by.Length > 0 Then lText &= "Placed by: " & .cache.placed_by & vbLf
+                '        If .cache.owner IsNot Nothing AndAlso .cache.owner.Length > 0 Then lText &= "Owner: " & .cache.owner & vbLf
+                '        If .cache.travelbugs IsNot Nothing AndAlso .cache.travelbugs.Length > 0 Then lText &= "Travellers: " & .cache.travelbugs & vbLf
+
+                '    End If
+                '    If .extensions IsNot Nothing Then lText &= .extensions.OuterXml
+
+                '    lGeocacheForm.txtMain.Text = lText
+                'End With
+                'lGeocacheForm.Show()
+
+                With lMiddlemostCache
+                    Windows.Forms.Clipboard.SetDataObject(.name)
+                    Dim lText As String = "<html><head><title>" & .name & "</title></head><body>"
+
+                    lText &= "<b><a href=""" & .url & """>" & .name & "</a></b> " _
+                          & FormattedDegrees(.lat, g_DegreeFormat) & ", " _
+                          & FormattedDegrees(.lon, g_DegreeFormat) & "<br>"
+
+                    If .desc IsNot Nothing AndAlso .desc.Length > 0 Then
+                        lText &= .desc
+                    ElseIf .urlname IsNot Nothing AndAlso .urlname.Length > 0 Then
+                        lText &= .urlname
+                        If .cache IsNot Nothing Then
+                            lText &= " (" & Format(.cache.difficulty, "#.#") & "/" _
+                                          & Format(.cache.terrain, "#.#") & ")"
+                        End If
+                    End If
+
+                    Dim lType As String = Nothing
+                    If .type IsNot Nothing AndAlso .type.Length > 0 Then
+                        lType = .type
+                        If lType.StartsWith("Geocache|") Then lType = lType.Substring(9)
+                    End If
+                    If lType Is Nothing AndAlso .cache IsNot Nothing AndAlso .cache.cachetype IsNot Nothing AndAlso .cache.cachetype.Length > 0 Then
+                        lType = .cache.cachetype
+                    End If
+                    If lType IsNot Nothing AndAlso lText.IndexOf(lType) = -1 Then
+                        lText &= " <b>" & .type & "</b>"
+                    End If
+
+                    If .cache IsNot Nothing AndAlso .cache.container IsNot Nothing AndAlso .cache.container.Length > 0 Then lText &= " <b>" & .cache.container & "</b>"
+                    lText &= "<br>"
+
+                    If .cmt IsNot Nothing AndAlso .cmt.Length > 0 Then lText &= "<b>comment:</b> " & .cmt & "<br>"
+
+                    If .cache IsNot Nothing Then
+                        If .cache.archived Then lText &= "<h2>ARCHIVED</h2><br>"
+
+                        If .cache.short_description IsNot Nothing AndAlso .cache.short_description.Length > 0 Then
+                            lText &= .cache.short_description & "<br>"
+                        End If
+                        If .cache.long_description IsNot Nothing AndAlso .cache.long_description.Length > 0 Then
+                            lText &= .cache.long_description & "<br>"
+                        End If
+
+                        If .cache.encoded_hints IsNot Nothing AndAlso .cache.encoded_hints.Length > 0 Then
+                            lText &= "<b>Hint:</b> " & .cache.encoded_hints & "<br>"
+                        End If
+
+                        If .cache.logs IsNot Nothing AndAlso .cache.logs.Count > 0 Then
+                            'T19:00:00 is the time for all logs? remove it and format the entries a bit
+                            Dim lIconPath As String = pTileCacheFolder & "Icons" & g_PathChar & "Geocache" & g_PathChar
+                            Dim lIconFilename As String
+                            lText &= "<b>Logs:</b><br>"
+                            For Each lLog As clsGroundspeakLog In .cache.logs
+                                Select Case lLog.logtype
+                                    Case "Found it" : lIconFilename = lIconPath & "icon_smile.gif"
+                                    Case "Didn't find it" : lIconFilename = lIconPath & "icon_sad.gif"
+                                    Case "Write note" : lIconFilename = lIconPath & "icon_note.gif"
+                                    Case "Enable Listing" : lIconFilename = lIconPath & "icon_enabled.gif"
+                                    Case "Temporarily Disable Listing" : lIconFilename = lIconPath & "icon_disabled.gif"
+                                    Case "Needs Maintenance" : lIconFilename = lIconPath & "icon_needsmaint.gif"
+                                    Case "Owner Maintenance" : lIconFilename = lIconPath & "icon_maint.gif"
+                                    Case "Publish Listing" : lIconFilename = lIconPath & "icon_greenlight.gif"
+                                    Case "Update Coordinates" : lIconFilename = lIconPath & "coord_update.gif"
+                                    Case "Will Attend" : lIconFilename = lIconPath & "icon_rsvp.gif"
+                                    Case Else : lIconFilename = ""
+                                End Select
+                                If IO.File.Exists(lIconFilename) Then
+                                    lText &= "<img src=""" & lIconFilename & """>"
+                                Else
+                                    lText &= lLog.logtype
+                                End If
+                                lText &= "<b>" & lLog.logdate.Replace("T19:00:00", "") & "</b> " & lLog.logfinder & ": " & lLog.logtext & "<br>"
+                            Next
+                            'Dim lLastTimePos As Integer = 0
+                            'Dim lTimePos As Integer = .cache.logs.IndexOf()
+                            'While lTimePos > 0
+                            '    lText &= .cache.logs.Substring(lLastTimePos, lTimePos - lLastTimePos - 10) & "<br><b>" & .cache.logs.Substring(lTimePos - 10, 10) & "</b> "
+                            '    lLastTimePos = lTimePos + 9
+                            '    lTimePos = .cache.logs.IndexOf("T19:00:00", lTimePos + 10)
+                            'End While
+                            'lText &= .cache.logs.Substring(lLastTimePos + 9) & "<p>"
+                        End If
+                        If .cache.placed_by IsNot Nothing AndAlso .cache.placed_by.Length > 0 Then lText &= "<b>Placed by:</b> " & .cache.placed_by & "<br>"
+                        If .cache.owner IsNot Nothing AndAlso .cache.owner.Length > 0 Then lText &= "<b>Owner:</b> " & .cache.owner & "<br>"
+                        If .cache.travelbugs IsNot Nothing AndAlso .cache.travelbugs.Length > 0 Then lText &= "<b>Travellers:</b> " & .cache.travelbugs & "<br>"
+                    End If
+                    lText &= .extensionsString
+
+                    Dim lStream As IO.StreamWriter = IO.File.CreateText("\My Documents\cache.html")
+                    lStream.Write(lText)
+                    lStream.Write("<br><a href=""http://wap.geocaching.com/"">Official WAP</a><br>")
+                    lStream.Write("<br><a href=""http://rtr.ca/geo?W=" & .name & """>rtr.ca WAP</a></body></html>")
+                    lStream.Close()
+                    OpenFile("\My Documents\cache.html")
+                End With
+
+            End If
+        End If
+        pFormVisible = True
+        Redraw()
+    End Sub
+
+    Public Property DisplayTrack() As Boolean
+        Get
+            Return pDisplayTrack
+        End Get
+        Set(ByVal value As Boolean)
+            pDisplayTrack = value
+            If Layers.Count > 0 AndAlso Layers(0).Filename = "current" Then
+                Layers.RemoveAt(0)
+            End If
+            If pDisplayTrack Then
+                pTrackMutex.WaitOne()
+                If System.IO.File.Exists(pTrackLogFilename) Then
+                    Dim lLayer As clsLayerGPX = OpenGPX(pTrackLastTime, 0)
+                    If lLayer IsNot Nothing Then
+                        lLayer.SymbolSize = TrackSymbolSize
+                    End If
+                End If
+                pTrackMutex.ReleaseMutex()
+            End If
+        End Set
+    End Property
+
+    Public Property ShowGPSdetails() As Boolean
+        Get
+            Return pShowGPSdetails
+        End Get
+        Set(ByVal value As Boolean)
+            pShowGPSdetails = value
+            NeedRedraw()
+        End Set
+    End Property
+
+    Public Property ViewTileOutlines() As Boolean
+        Get
+            Return pShowTileOutlines
+        End Get
+        Set(ByVal value As Boolean)
+            pShowTileOutlines = value
+            NeedRedraw()
+        End Set
+    End Property
+
+    Public Property ViewTileNames() As Boolean
+        Get
+            Return pShowTileNames
+        End Get
+        Set(ByVal value As Boolean)
+            pShowTileNames = value
+            NeedRedraw()
+        End Set
+    End Property
+
+    Public Property ClickRefreshTile() As Boolean
+        Get
+            Return pClickRefreshTile
+        End Get
+        Set(ByVal value As Boolean)
+            pClickRefreshTile = value
+            If pClickRefreshTile Then
+                pShowTileOutlines = True
+                'TODO: mnuViewTileOutlines.Checked = True
+                Refresh()
+            End If
+        End Set
+    End Property
+
+    Public Property ViewDark() As Boolean
+        Get
+            Return Dark
+        End Get
+        Set(ByVal value As Boolean)
+            pDark = value
+            NeedRedraw()
+            If pDark Then
+                StopKeepAwake()
+            Else
+                StartKeepAwake()
+            End If
+        End Set
+    End Property
+
+    ''' <summary>
+    ''' Start timer that keeps system idle from turning off device
+    ''' </summary>
+    ''' <remarks></remarks>
+    Private Sub StartKeepAwake()
+        SystemIdleTimerReset()
+        If pKeepAwakeTimer Is Nothing Then
+            pKeepAwakeTimer = New System.Threading.Timer(New Threading.TimerCallback(AddressOf IdleTimeout), Nothing, 0, 50000)
+        End If
+    End Sub
+    Private Sub StopKeepAwake()
+        If pKeepAwakeTimer IsNot Nothing Then
+            pKeepAwakeTimer.Dispose()
+            pKeepAwakeTimer = Nothing
+        End If
+    End Sub
+
+    Private Sub IdleTimeout(ByVal o As Object)
+        SystemIdleTimerReset()
+
+        If pGPSFollow > 0 _
+            AndAlso (Not GPS_Listen _
+                     OrElse GPS_POSITION Is Nothing _
+                     OrElse Not GPS_POSITION.TimeValid _
+                     OrElse Date.UtcNow.Subtract(GPS_POSITION.Time).TotalMinutes > 1) Then
+            SetCenterFromCellLocation()
+        End If
+    End Sub
+
+    Public Property GPSFollow() As Boolean
+        Get
+            Return (pGPSFollow = 1)
+        End Get
+        Set(ByVal value As Boolean)
+            If value Then
+                pGPSFollow = 1
+            Else
+                pGPSFollow = 0
+            End If
+        End Set
+    End Property
+
+    Public Property GPSCenter() As Boolean
+        Get
+            Return (pGPSFollow = 2)
+        End Get
+        Set(ByVal value As Boolean)
+            If value Then
+                pGPSFollow = 2
+            Else
+                pGPSFollow = 0
+            End If
+        End Set
+    End Property
+
+    Public Property AutoStart() As Boolean
+        Get
+            Return pGPSAutoStart
+        End Get
+        Set(ByVal value As Boolean)
+            pGPSAutoStart = value
+        End Set
+    End Property
+
+    Public Property ViewMapTiles() As Boolean
+        Get
+            Return pShowTileImages
+        End Get
+        Set(ByVal value As Boolean)
+            pShowTileImages = value
+            Redraw()
+        End Set
+    End Property
+
+    Public Property FindBuddy() As Boolean
+        Get
+            'TODO:
+        End Get
+        Set(ByVal value As Boolean)
+            If value Then
+                StartBuddyTimer()
+            Else
+                StopBuddyTimer()
+            End If
+        End Set
+    End Property
+
+    Public Property ViewControls() As Boolean
+        Get
+            Return ControlsShow
+        End Get
+        Set(ByVal value As Boolean)
+            ControlsShow = value
+            ControlsUse = value
+            Redraw()
+        End Set
+    End Property
+
+    'Public Property TakePicture_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuTakePicture.Click
+    '    Dim ccd As New Microsoft.WindowsMobile.Forms.CameraCaptureDialog
+    '    With ccd
+    '        .InitialDirectory = "\My Documents\My Pictures"
+    'Dim lBaseName As String = "\MapImage_"
+    'Dim lFilename As String
+    'Dim lIndex As Integer = 1
+    '        Do
+    '            lFilename = .InitialDirectory & lBaseName & Format(lIndex, "000") & ".jpg"
+    '            lIndex += 1
+    '        Loop While IO.File.Exists(lFilename)
+    '        .DefaultFileName = IO.Path.GetFileName(lFilename)
+    '        .StillQuality = Microsoft.WindowsMobile.Forms.CameraCaptureStillQuality.High
+    '        .Resolution = New Drawing.Size(2048, 1536)
+    '        .Mode = Microsoft.WindowsMobile.Forms.CameraCaptureMode.Still
+    '        .Owner = Me
+    '        .Title = .DefaultFileName
+    '        If ccd.ShowDialog() = Windows.Forms.DialogResult.OK Then
+    ''MsgBox(ccd.FileName)
+    '        End If
+    '    End With
+    'End Sub
+
+    Public Sub SetTime()
+        Dim lDetails As String = Nothing
+        Try
+            If GPS Is Nothing Then
+                lDetails = "GPS not started"
+            ElseIf Not GPS.Opened Then
+                lDetails = "GPS not yet open"
+            ElseIf GPS_POSITION Is Nothing Then
+                lDetails = "No GPS fix"
+            ElseIf Not GPS_POSITION.TimeValid Then
+                lDetails = "GPS Time not valid"
+            Else
+                SetSystemTime(GPS_POSITION.Time.ToLocalTime())
+            End If
+        Catch ex As Exception
+            lDetails = ex.Message
+        End Try
+        If lDetails IsNot Nothing Then
+            MsgBox(lDetails)
+        End If
+    End Sub
+
+    Public Property ClickMakeWaypoint() As Boolean
+        Get
+            Return pClickWaypoint
+        End Get
+        Set(ByVal value As Boolean)
+            pClickWaypoint = value
+        End Set
+    End Property
+
+    Private Sub AddWaypoint(ByVal aLatitude As Double, ByVal aLongitude As Double, ByVal aTime As Date, ByVal aName As String)
+        Dim lWayPoint As New clsGPXwaypoint("wpt", aLatitude, aLongitude)
+        lWayPoint.time = aTime
+        lWayPoint.name = aName
+        If pWaypointLogFilename Is Nothing OrElse pWaypointLogFilename.Length = 0 Then
+            pWaypointLogFilename = IO.Path.Combine(GPXFolder, DateTime.Now.ToString("yyyy-MM-dd_HH-mm")) & ".wpt.gpx"
+        End If
+        AppendLog(pWaypointLogFilename, lWayPoint.ToString, "<?xml version=""1.0"" encoding=""UTF-8""?>" & vbLf & "<gpx xmlns=""http://www.topografix.com/GPX/1/1"" version=""1.1"" creator=""" & g_AppName & """ xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xsi:schemaLocation=""http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.topografix.com/GPX/gpx_overlay/0/3 http://www.topografix.com/GPX/gpx_overlay/0/3/gpx_overlay.xsd http://www.topografix.com/GPX/gpx_modified/0/1 http://www.topografix.com/GPX/gpx_modified/0/1/gpx_modified.xsd"">" & vbLf)
+    End Sub
+#End Region 'Smartphone
+
+#Else
+
+#Region "Desktop"
+    Friend WithEvents RightClickMenu As System.Windows.Forms.ContextMenuStrip
+    Friend WithEvents RefreshFromServerToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+
+    Public Sub CopyToClipboard()
+        pBitmapMutex.WaitOne()
+        My.Computer.Clipboard.SetImage(pBitmap)
+        pBitmapMutex.ReleaseMutex()
+    End Sub
+
+    Private Function ImageWorldFilename(ByVal aImageFilename As String) As String
+        Dim lImageExt As String = IO.Path.GetExtension(aImageFilename)
+        If lImageExt.Length > 1 Then
+            lImageExt = lImageExt.Substring(1, 1) & lImageExt.Substring(lImageExt.Length - 1, 1) & "w"
+        End If
+        Return IO.Path.ChangeExtension(aImageFilename, lImageExt)
+    End Function
+
+    Public Sub SaveImageAs(ByVal aFilename As String)
+        pBitmapMutex.WaitOne()
+        pBitmap.Save(aFilename)
+        'SaveTiles(IO.Path.GetDirectoryName(.FileName) & "\" & IO.Path.GetFileNameWithoutExtension(.FileName) & "\")
+        pBitmapMutex.ReleaseMutex()
+        ''CreateGeoReferenceFile(LatitudeToMeters(pCenterLat - pLatHeight * 1.66), _
+        CreateGeoReferenceFile(LatitudeToMeters(LatMax), _
+                               LongitudeToMeters(LonMin), _
+                               pZoom, ImageWorldFilename(aFilename))
+        IO.File.WriteAllText(IO.Path.ChangeExtension(aFilename, "prj"), g_TileProjection)
+        'IO.File.WriteAllText(IO.Path.ChangeExtension(.FileName, "prj"), "PROJCS[""unnamed"", GEOGCS[""unnamed ellipse"", DATUM[""unknown"", SPHEROID[""unnamed"",6378137,0]], PRIMEM[""Greenwich"",0], UNIT[""degree"",0.0174532925199433]], PROJECTION[""Mercator_2SP""], PARAMETER[""standard_parallel_1"",0], PARAMETER[""central_meridian"",0], PARAMETER[""false_easting"",0], PARAMETER[""false_northing"",0], UNIT[""Meter"",1], EXTENSION[""PROJ4"",""+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs""]]")
+        ''IO.File.WriteAllText(IO.Path.ChangeExtension(.FileName, "prj"), "PROJCS[""Mercator"",GEOGCS[""unnamed ellipse"",DATUM[""D_unknown"",SPHEROID[""Unknown"",6371000,0]],PRIMEM[""Greenwich"",0],UNIT[""Degree"",0.017453292519943295]],PROJECTION[""Mercator""],PARAMETER[""standard_parallel_1"",0],PARAMETER[""central_meridian"",0],PARAMETER[""scale_factor"",1],PARAMETER[""false_easting"",0],PARAMETER[""false_northing"",0],UNIT[""Meter"",1]]")
+        ''IO.File.WriteAllText(IO.Path.ChangeExtension(.FileName, "prj2"), "PROJCS[""Mercator Spheric"", GEOGCS[""WGS84basedSpheric_GCS"", DATUM[""WGS84basedSpheric_Datum"", SPHEROID[""WGS84based_Sphere"", 6378137, 0], TOWGS84[0, 0, 0, 0, 0, 0, 0]], PRIMEM[""Greenwich"", 0, AUTHORITY[""EPSG"", ""8901""]], UNIT[""degree"", 0.0174532925199433, AUTHORITY[""EPSG"", ""9102""]], AXIS[""E"", EAST], AXIS[""N"", NORTH]], PROJECTION[""Mercator""], PARAMETER[""False_Easting"", 0], PARAMETER[""False_Northing"", 0], PARAMETER[""Central_Meridian"", 0], PARAMETER[""Latitude_of_origin"", 0], UNIT[""metre"", 1, AUTHORITY[""EPSG"", ""9001""]], AXIS[""East"", EAST], AXIS[""North"", NORTH]]")
+        ''IO.File.WriteAllText(IO.Path.ChangeExtension(.FileName, "prj3"), "PROJCS[""WGS84 / Simple Mercator"",GEOGCS[""WGS 84"",DATUM[""WGS_1984"",SPHEROID[""WGS_1984"", 6378137.0, 298.257223563]],PRIMEM[""Greenwich"", 0.0],UNIT[""degree"", 0.017453292519943295],AXIS[""Longitude"", EAST],AXIS[""Latitude"", NORTH]],PROJECTION[""Mercator_1SP_Google""],PARAMETER[""latitude_of_origin"", 0.0],PARAMETER[""central_meridian"", 0.0],PARAMETER[""scale_factor"", 1.0],PARAMETER[""false_easting"", 0.0],PARAMETER[""false_northing"", 0.0],UNIT[""m"", 1.0],AXIS[""x"", EAST],AXIS[""y"", NORTH],AUTHORITY[""EPSG"",""900913""]]")
+        ''IO.File.WriteAllText(IO.Path.ChangeExtension(.FileName, "prj4"), "PROJCS[""Google Mercator"",GEOGCS[""WGS 84"",DATUM[""WGS_1984"",SPHEROID[""WGS84"",6378137,298.2572235630016,AUTHORITY[""EPSG"",""7030""]],AUTHORITY[""EPSG"",""6326""]],PRIMEM[""Greenwich"",0],UNIT[""degree"",0.0174532925199433],AUTHORITY[""EPSG"",""4326""]],PROJECTION[""Mercator_1SP""],PARAMETER[""central_meridian"",0],PARAMETER[""scale_factor"",1],PARAMETER[""false_easting"",0],PARAMETER[""false_northing"",0],UNIT[""metre"",1,AUTHORITY[""EPSG"",""9001""]]]")
+
+        ''+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs
+        ''+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +no_defs +over
+    End Sub
+
+    Public Function CreateGeoReferenceFile(ByVal aNorthEdge As Double, _
+                                           ByVal aWestEdge As Double, _
+                                           ByVal aZoom As Integer, _
+                                           ByVal aSaveAsFileName As String) As Boolean
+        'http://en.wikipedia.org/wiki/World_file
+        'http://support.esri.com/index.cfm?fa=knowledgebase.techarticles.articleShow&d=17489
+        ' and thanks to Bostjan for the idea
+
+        Dim lFormat As String = "0.00000000000000000"
+        Dim lMetersPerPixel As Double = MetersPerPixel(aZoom)
+        Dim lFileWriter As New IO.StreamWriter(aSaveAsFileName)
+        If lFileWriter IsNot Nothing Then
+            With lFileWriter
+                .WriteLine(Format(lMetersPerPixel, lFormat)) ' size of pixel in x direction
+                .WriteLine(lFormat)
+                .WriteLine(lFormat)
+                .WriteLine(Format(-lMetersPerPixel, lFormat)) ' size of pixel in y direction (same x to be square, but negative)
+                .WriteLine(Format(aWestEdge, lFormat))
+                .WriteLine(Format(aNorthEdge, lFormat))
+                .Close()
+                Return True
+            End With
+        End If
+        Return False
+    End Function
+
+    Private Sub DrewTiles(ByVal g As Graphics, ByVal aTopLeft As Point, ByVal aOffsetToCenter As Point)
+        'TODO:
+        '    If pBuddyAlarmEnabled OrElse pBuddyAlarmForm IsNot Nothing Then
+        '        Dim lWaypoint As New clsGPXwaypoint("wpt", pBuddyAlarmLat, pBuddyAlarmLon)
+        '        lWaypoint.sym = "circle"
+        '        Dim lBuddyAlarmLayer As clsLayerGPX = New clsLayerGPX("cursor", Me)
+        '        lBuddyAlarmLayer.SymbolPen = New Pen(Color.Red)
+        '        lBuddyAlarmLayer.SymbolSize = pBuddyAlarmMeters / MetersPerPixel(pZoom)
+        '        lBuddyAlarmLayer.DrawTrackpoint(g, lWaypoint, aTopLeft, aOffsetToCenter, -1, -1)
+        '    End If
+    End Sub
+
+    Private Sub ManuallyNavigated()
+        pGPSFollow = 0 'Manual navigation overrides automatic following of GPS
+        SanitizeCenterLatLon()
+        Redraw()
+    End Sub
+
+    Private Function MapRectangle() As Rectangle
+        'Dim lMenuHeight As Integer = 27
+        'If Me.MainMenuStrip IsNot Nothing Then lMenuHeight = MainMenuStrip.Height
+        'With ClientRectangle
+        'Return New Rectangle(.X, .Y + lMenuHeight, .Width, .Height - lMenuHeight)
+        'End With
+        Return ClientRectangle
+    End Function
+
+    Public Sub Redraw()
+        If pFormVisible Then 'TODO: AndAlso WindowState <> FormWindowState.Minimized Then
+            Dim lGraphics As Graphics = GetBitmapGraphics()
+            If lGraphics IsNot Nothing Then
+                DrawTiles(lGraphics)
+
+                If pShowTransparentTiles Then
+                    Dim lSaveURL As String = g_TileServerURL
+                    Dim lSaveCacheDir As String = g_TileCacheFolder
+                    g_TileServerURL = g_TileServerTransparentURL
+                    SetCacheFolderFromTileServer()
+                    DrawTiles(lGraphics)
+                    g_TileServerURL = lSaveURL
+                    g_TileCacheFolder = lSaveCacheDir
+                End If
+
+                ReleaseBitmapGraphics()
+                Refresh()
+                'TODO: If pCoordinatesForm IsNot Nothing Then pCoordinatesForm.Show(Me)
+            End If
+            Application.DoEvents()
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' Zoom level has been set, update Zoom menu to show current Zoom
+    ''' </summary>
+    Private Sub Zoomed()
+        'TODO:
+        'ZoomToolStripMenuItem.Text = "Zoom " & pZoom
+        'For Each lItem As ToolStripMenuItem In ZoomToolStripMenuItem.DropDownItems
+        '    If IsNumeric(lItem.Text) Then
+        '        lItem.Checked = (lItem.Text = pZoom)
+        '    End If
+        'Next
+        Redraw()
+    End Sub
+
+    Private Sub Event_KeyUp(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyEventArgs) Handles MyBase.KeyUp
+        e.Handled = True
+        Dim lNeedRedraw As Boolean = True
+        Select Case e.KeyCode
+            Case Keys.Right : CenterLon += MetersPerPixel(Zoom) * Me.Width / g_CircumferenceOfEarth * 180
+            Case Keys.Left : CenterLon -= MetersPerPixel(Zoom) * Me.Width / g_CircumferenceOfEarth * 180
+            Case Keys.Up
+                If pLastKeyDown = 131 Then 'using scroll wheel
+                    Zoom += 1 : lNeedRedraw = False
+                Else
+                    CenterLat += MetersPerPixel(Zoom) * Me.Height / g_CircumferenceOfEarth * 90
+                End If
+            Case Keys.Down
+                If pLastKeyDown = 131 Then 'using scroll wheel
+                    Zoom -= 1 : lNeedRedraw = False
+                Else
+                    CenterLat -= MetersPerPixel(Zoom) * Me.Height / g_CircumferenceOfEarth * 90
+                End If
+            Case Keys.A, Keys.OemMinus : Zoom -= 1 : lNeedRedraw = False
+            Case Keys.Q, Keys.Oemplus : Zoom += 1 : lNeedRedraw = False
+            Case Else
+                e.Handled = False
+                Exit Sub
+        End Select
+        If lNeedRedraw Then
+            SanitizeCenterLatLon()
+            Redraw()
+        End If
+    End Sub
+
+    Private Sub Event_MouseDown(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles Me.MouseDown
+        'If pBuddyAlarmForm IsNot Nothing Then
+        '    pBuddyAlarmLat = CenterLat - (e.Y - ClientRectangle.Height / 2) * LatHeight / ClientRectangle.Height
+        '    pBuddyAlarmLon = CenterLon + (e.X - ClientRectangle.Width / 2) * LonWidth / ClientRectangle.Width
+        '    pBuddyAlarmForm.AskUser(pBuddyAlarmLat, pBuddyAlarmLon)
+        '    MouseDownLeft(e)
+        'Else
+        Select Case e.Button
+            Case Windows.Forms.MouseButtons.Left
+                MouseDownLeft(e)
+            Case Windows.Forms.MouseButtons.Right
+                ClickedTileFilename = FindTileFilename(pBitmap.GetBounds(Drawing.GraphicsUnit.Pixel), e.X, e.Y)
+                If ClickedTileFilename.Length > 0 Then
+                    If RightClickMenu Is Nothing Then
+                        RefreshFromServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+                        RefreshFromServerToolStripMenuItem.Text = "Refresh From Server"
+                        RightClickMenu = New System.Windows.Forms.ContextMenuStrip()
+                        RightClickMenu.Items.AddRange(New System.Windows.Forms.ToolStripItem() {RefreshFromServerToolStripMenuItem}) ', GetAllDescendantsToolStripMenuItem})
+                        RightClickMenu.Size = New System.Drawing.Size(186, 48)
+                    End If
+                    RightClickMenu.Show(Me, e.Location)
+                End If
+        End Select
+        'End If
+    End Sub
+
+    Private Sub RefreshFromServerToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles RefreshFromServerToolStripMenuItem.Click
+        If ClickedTileFilename.Length > 0 Then
+            Try
+                Debug.WriteLine("Refreshing  '" & ClickedTileFilename & "'")
+                Downloader.DeleteTile(ClickedTileFilename)
+                Redraw()
+            Catch ex As Exception
+                MsgBox("Could not refresh '" & ClickedTileFilename & "'" & vbCrLf & ex.Message, MsgBoxStyle.Critical, "Error Refreshing Tile")
+            End Try
+            ClickedTileFilename = ""
+        End If
+    End Sub
+
+    Private Sub Event_MouseMove(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles Me.MouseMove
+        If MouseDragging Then
+            'If pBuddyAlarmForm IsNot Nothing Then
+            '    pBuddyAlarmMeters = MetersBetweenLatLon(pBuddyAlarmLat, pBuddyAlarmLon, _
+            '                                            pBuddyAlarmLat + (e.Y - pMouseDragStartLocation.Y) * LatHeight / Me.ClientRectangle.Height, _
+            '                                            pBuddyAlarmLon - (e.X - pMouseDragStartLocation.X) * LonWidth / Me.ClientRectangle.Width)
+            '    pBuddyAlarmForm.SetDistance(pBuddyAlarmMeters)
+            'Else
+            'GPSFollow = 0
+            CenterLat = MouseDownLat + (e.Y - MouseDragStartLocation.Y) * LatHeight / Height
+            CenterLon = MouseDownLon - (e.X - MouseDragStartLocation.X) * LonWidth / Width
+            SanitizeCenterLatLon()
+            'End If
+            Redraw()
+        End If
+    End Sub
+
+    Private Sub Event_MouseWheel(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles Me.MouseWheel
+        Select Case MouseWheelAction
+            Case EnumWheelAction.Zoom
+                If e.Delta > 0 Then
+                    Zoom += 1
+                Else
+                    Zoom -= 1
+                End If
+            Case EnumWheelAction.TileServer
+                'TODO:
+                'For lItemIndex As Integer = 0 To TileServerToolStripMenuItem.DropDownItems.Count - 2
+                '    Dim lItem As ToolStripMenuItem = TileServerToolStripMenuItem.DropDownItems(lItemIndex)
+                '    If lItem.Checked Then
+                '        If e.Delta > 0 Then
+                '            lItemIndex += 1
+                '            If lItemIndex >= TileServers.Keys.Count Then lItemIndex = 0
+                '        Else
+                '            lItemIndex -= 1
+                '            If lItemIndex < 0 Then lItemIndex = TileServers.Keys.Count - 1
+                '        End If
+                '        TileServer_Click(TileServerToolStripMenuItem.DropDownItems(lItemIndex), e)
+                '        Exit Sub
+                '    End If
+                'Next
+            Case EnumWheelAction.Layer
+                Dim lVisibleIndex As Integer = -1
+                For lVisibleIndex = 0 To Layers.Count - 1
+                    If Layers(lVisibleIndex).Visible Then
+                        Exit For
+                    End If
+                Next
+                If e.Delta > 0 Then
+                    lVisibleIndex += 1
+                    If lVisibleIndex >= Layers.Count Then lVisibleIndex = 0
+                Else
+                    lVisibleIndex -= 1
+                    If lVisibleIndex < 0 Then lVisibleIndex = Layers.Count - 1
+                End If
+
+                For lIndex As Integer = 0 To Layers.Count - 1
+                    If (lIndex = lVisibleIndex) Then
+                        Layers(lIndex).Visible = True
+                    Else
+                        Layers(lIndex).Visible = False
+                    End If
+                Next
+                Redraw()
+        End Select
+    End Sub
+
+#End Region 'Desktop
+#End If
+End Class

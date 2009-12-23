@@ -1,7 +1,7 @@
 Public Class clsLayer
     Public Filename As String
     Public Visible As Boolean = True
-    Public MapForm As frmMap 'used for clipping to current view
+    Public Map As ctlMap 'frmMap 'used for clipping to current view
 
     Public LabelField As String
     Public LabelMinZoom As Integer = 13
@@ -13,9 +13,9 @@ Public Class clsLayer
     Protected pBounds As clsGPXbounds
     Protected pLegendColor As Color = Drawing.Color.HotPink
 
-    Public Sub New(ByVal aFilename As String, ByVal aMapForm As frmMap)
+    Public Sub New(ByVal aFilename As String, ByVal aMap As ctlMap)
         Filename = aFilename
-        MapForm = aMapForm
+        Map = aMap
     End Sub
 
     Public Overridable Property Bounds() As clsGPXbounds
@@ -365,8 +365,8 @@ Public Class clsLayerGPX
         pDistSinceArrow = 0
     End Sub
 
-    Public Sub New(ByVal aFilename As String, ByVal aMapForm As frmMap)
-        MyBase.New(aFilename, aMapForm)
+    Public Sub New(ByVal aFilename As String, ByVal aMap As ctlMap)
+        MyBase.New(aFilename, aMap)
         SetDefaults()
         GPX = New clsGPX
         If IO.File.Exists(aFilename) Then
@@ -374,8 +374,8 @@ Public Class clsLayerGPX
         End If
     End Sub
 
-    Public Sub New(ByVal aWaypoints As Generic.List(Of clsGPXwaypoint), ByVal aMapForm As frmMap)
-        MyBase.New("", aMapForm)
+    Public Sub New(ByVal aWaypoints As Generic.List(Of clsGPXwaypoint), ByVal aMap As ctlMap)
+        MyBase.New("", aMap)
         SetDefaults()
         GPX = New clsGPX
         GPX.wpt = aWaypoints
@@ -413,10 +413,10 @@ Public Class clsLayerGPX
             Dim lDrawThisOne As Boolean = True
             If GPX.bounds IsNot Nothing Then
                 With GPX.bounds 'Skip drawing this one if it is not in view
-                    If .minlat > MapForm.LatMax OrElse _
-                        .maxlat < MapForm.LatMin OrElse _
-                        .minlon > MapForm.LonMax OrElse _
-                        .maxlon < MapForm.LonMin Then
+                    If .minlat > Map.LatMax OrElse _
+                        .maxlat < Map.LatMin OrElse _
+                        .minlon > Map.LonMax OrElse _
+                        .maxlon < Map.LonMin Then
                         lDrawThisOne = False
                     End If
                 End With
@@ -493,7 +493,7 @@ Public Class clsLayerGPX
             If True Then 'MapForm.LatLonInView(.lat, .lon) Then
                 Dim lTileXY As Point 'Which tile this point belongs in
                 Dim lTileOffset As Point 'Offset within lTileXY in pixels
-                lTileXY = CalcTileXY(.lat, .lon, MapForm.Zoom, lTileOffset)
+                lTileXY = CalcTileXY(.lat, .lon, Map.Zoom, lTileOffset)
                 Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileSize + aOffsetToCenter.X + lTileOffset.X
                 Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileSize + aOffsetToCenter.Y + lTileOffset.Y
                 Dim lBitmap As Drawing.Bitmap = Nothing
@@ -503,7 +503,7 @@ Public Class clsLayerGPX
                         g.DrawLine(PenWaypoint, lX - 3, lY - 3, lX + 3, lY + 3)
                         g.DrawLine(PenWaypoint, lX - 3, lY + 3, lX + 3, lY - 3)
                     Case "Geocache"
-                        If MapForm.Zoom > 10 AndAlso .type IsNot Nothing AndAlso g_WaypointIcons.ContainsKey(.type.ToLower) Then
+                        If Map.Zoom > 10 AndAlso .type IsNot Nothing AndAlso g_WaypointIcons.ContainsKey(.type.ToLower) Then
                             lBitmap = g_WaypointIcons.Item(.type.ToLower)
                         Else
                             g.DrawLine(PenGeocache, lX, lY - 8, lX, lY + 8)
@@ -554,7 +554,7 @@ Public Class clsLayerGPX
                     Dim color As Color = lBitmap.GetPixel(0, 0)
                     lImageAttributes.SetColorKey(color, color)
                     g.DrawImage(lBitmap, lRectDest, 0, 0, lBitmap.Width, lBitmap.Height, GraphicsUnit.Pixel, lImageAttributes)
-                    If MapForm.Zoom = g_ZoomMax Then  'Show more exact point at max zoom
+                    If Map.Zoom = g_ZoomMax Then  'Show more exact point at max zoom
                         g.DrawLine(PenGeocache, lX, lY - 8, lX, lY + 8)
                         g.DrawLine(PenGeocache, lX - 8, lY, lX + 8, lY)
                     End If
@@ -570,9 +570,14 @@ Public Class clsLayerGPX
     Private Sub DrawLabel(ByVal g As Graphics, _
                           ByVal aWaypoint As clsGPXwaypoint, _
                           ByVal aX As Integer, ByVal aY As Integer)
-        If MapForm.Zoom >= LabelMinZoom AndAlso LabelField IsNot Nothing AndAlso LabelField.Length > 0 Then
+        If Map.Zoom >= LabelMinZoom AndAlso LabelField IsNot Nothing AndAlso LabelField.Length > 0 Then
             Try
-                Dim lCharHeight As Integer = FontLabel.Height
+                Dim lCharHeight As Integer
+#If Smartphone Then
+                lCharHeight = 10
+#Else
+                lCharHeight = FontLabel.Height
+#End If
                 If Math.Abs(pLastLabelY - aY) > lCharHeight OrElse Math.Abs(pLastLabelX - aX) > pLastLabelWidth Then
                     Dim lLabelText As String = LabelText(aWaypoint)
                     If lLabelText IsNot Nothing AndAlso lLabelText.Length > 0 Then
@@ -639,10 +644,10 @@ Public Class clsLayerGPX
                                    ByRef aFromX As Integer, _
                                    ByRef aFromY As Integer) As Boolean
         With aWaypoint
-            If MapForm.LatLonInView(.lat, .lon) Then
+            If Map.LatLonInView(.lat, .lon) Then
                 Dim lTileXY As Point 'Which tile this point belongs in
                 Dim lTileOffset As Point 'Offset within lTileXY in pixels
-                lTileXY = CalcTileXY(.lat, .lon, MapForm.Zoom, lTileOffset)
+                lTileXY = CalcTileXY(.lat, .lon, Map.Zoom, lTileOffset)
                 Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileSize + aOffsetToCenter.X + lTileOffset.X
                 Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileSize + aOffsetToCenter.Y + lTileOffset.Y
 
@@ -705,10 +710,10 @@ Public Class clsLayerGPX
                                     ByRef aFromX As Integer, _
                                     ByRef aFromY As Integer) As Boolean
         With aWaypoint
-            If MapForm.LatLonInView(.lat, .lon) Then
+            If Map.LatLonInView(.lat, .lon) Then
                 Dim lTileXY As Point 'Which tile this point belongs in
                 Dim lTileOffset As Point 'Offset within lTileXY in pixels
-                lTileXY = CalcTileXY(.lat, .lon, MapForm.Zoom, lTileOffset)
+                lTileXY = CalcTileXY(.lat, .lon, Map.Zoom, lTileOffset)
                 Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileSize + aOffsetToCenter.X + lTileOffset.X
                 Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileSize + aOffsetToCenter.Y + lTileOffset.Y
 

@@ -1,10 +1,10 @@
 Public Class frmOpenCellID
 
-    Private pMapForm As frmMap
+    Private pMap As ctlMap
     Private pDownloader As clsDownloader
 
-    Public Sub AskUser(ByVal aMapForm As frmMap, ByVal aDownloader As clsDownloader)
-        pMapForm = aMapForm
+    Public Sub AskUser(ByVal aMap As ctlMap, ByVal aDownloader As clsDownloader)
+        pMap = aMap
         pDownloader = aDownloader
         lblWebSite.Text = clsCellLocationOpenCellID.WebsiteURL
         lblRawData.Text = clsCellLocationOpenCellID.RawDatabaseURL
@@ -75,7 +75,7 @@ Public Class frmOpenCellID
                 gunzip(aRawDataFilename, lUnzippedFilename)
                 aRawDataFilename = lUnzippedFilename
             End If
-            Dim lCells As New clsCellLayer(pMapForm)
+            Dim lCells As New clsCellLayer(pMap)
             If lCells.LoadRawCSV(aRawDataFilename, aMCCs) Then
                 If lCells.SaveBinary(aConvertedDataFilename) Then
                     SaveAppSetting("OpenCellIDbinary", aConvertedDataFilename)
@@ -123,7 +123,7 @@ Public Class frmOpenCellID
 
         Dim lCurFile As Integer = 1
 
-        Dim lCells As New clsCellLayer(pMapForm)
+        Dim lCells As New clsCellLayer(pMap)
         For Each lFilename As String In aFilenames
             Me.Text = "Loading " & lCurFile & "/" & lNumFiles & " '" & IO.Path.GetFileNameWithoutExtension(lFilename) & "'"
             Dim lGPX As New clsGPX
@@ -177,25 +177,25 @@ Public Class frmOpenCellID
     End Sub
 
     Private Sub btnMapCells_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnMapCells.Click
-        Dim lFilename As String = GetAppSetting("OpenCellIDbinary", Nothing)
+        'Dim lFilename As String = GetAppSetting("OpenCellIDbinary", Nothing)
 
-        If Not IO.File.Exists(lFilename) Then
-            Dim lOpenDialog As New Windows.Forms.OpenFileDialog
-            With lOpenDialog
-                .Title = "Open imported data file"
-                .FileName = "cells.cell"
-                .Filter = "*.cell|*.cell|*.*|*.*"
-                If .ShowDialog = Windows.Forms.DialogResult.OK Then
-                    lFilename = .FileName
-                    SaveAppSetting("OpenCellIDbinary", lFilename)
-                End If
-            End With
-        End If
+        'If Not IO.File.Exists(lFilename) Then
+        '    Dim lOpenDialog As New Windows.Forms.OpenFileDialog
+        '    With lOpenDialog
+        '        .Title = "Open imported data file"
+        '        .FileName = "cells.cell"
+        '        .Filter = "*.cell|*.cell|*.*|*.*"
+        '        If .ShowDialog = Windows.Forms.DialogResult.OK Then
+        '            lFilename = .FileName
+        '            SaveAppSetting("OpenCellIDbinary", lFilename)
+        '        End If
+        '    End With
+        'End If
 
-        If IO.File.Exists(lFilename) Then
-            pMapForm.OpenCell(lFilename)
-            Me.Close()
-        End If
+        'If IO.File.Exists(lFilename) Then
+        '    pMapForm.OpenCell(lFilename)
+        '    Me.Close()
+        'End If
     End Sub
 
 End Class

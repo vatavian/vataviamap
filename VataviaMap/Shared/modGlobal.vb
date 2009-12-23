@@ -64,12 +64,6 @@ Module modGlobal
         DegreesMinutesSeconds = 2
     End Enum
 
-    Public Enum EnumWheelAction
-        Zoom = 0
-        TileServer = 1
-        Layer = 2
-    End Enum
-
     Friend Function FormattedDegrees(ByVal aDegrees As Double, ByVal aFormat As EnumDegreeFormat) As String
         Dim lStr As String = Nothing, lStrMinutes As String = Nothing, lStrSeconds As String = Nothing
         Select Case aFormat
@@ -284,31 +278,6 @@ EndFound:
               AndAlso .X >= 0 AndAlso .Y >= 0 _
               AndAlso .X < (1 << aZoom) AndAlso .Y < (1 << aZoom)
         End With
-    End Function
-
-    Public Function CreateGeoReferenceFile(ByVal aNorthEdge As Double, _
-                                           ByVal aWestEdge As Double, _
-                                           ByVal aZoom As Integer, _
-                                           ByVal aSaveAsFileName As String) As Boolean
-        'http://en.wikipedia.org/wiki/World_file
-        'http://support.esri.com/index.cfm?fa=knowledgebase.techarticles.articleShow&d=17489
-        ' and thanks to Bostjan for the idea
-
-        Dim lFormat As String = "0.00000000000000000"
-        Dim lMetersPerPixel As Double = MetersPerPixel(aZoom)
-        Dim lFileWriter As New IO.StreamWriter(aSaveAsFileName)
-        If lFileWriter IsNot Nothing Then
-            With lFileWriter
-                .WriteLine(Format(lMetersPerPixel, lFormat)) ' size of pixel in x direction
-                .WriteLine(lFormat)
-                .WriteLine(lFormat)
-                .WriteLine(Format(-lMetersPerPixel, lFormat)) ' size of pixel in y direction (same x to be square, but negative)
-                .WriteLine(Format(aWestEdge, lFormat))
-                .WriteLine(Format(aNorthEdge, lFormat))
-                .Close()
-                CreateGeoReferenceFile = True
-            End With
-        End If
     End Function
 
     Public Function ReadableFromXML(ByVal aXML As String) As String
