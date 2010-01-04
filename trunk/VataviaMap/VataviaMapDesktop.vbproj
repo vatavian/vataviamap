@@ -105,9 +105,6 @@
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="Shared\ExifWorks.vb" />
-    <Compile Include="Shared\frmMapCommon.vb">
-      <SubType>Form</SubType>
-    </Compile>
     <Compile Include="Desktop\frmEditNameURL.Designer.vb">
       <DependentUpon>frmEditNameURL.vb</DependentUpon>
     </Compile>
