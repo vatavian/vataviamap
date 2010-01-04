@@ -74,6 +74,7 @@ Public Class frmMap
         Me.Activate()
         If e.Data.GetDataPresent(Windows.Forms.DataFormats.FileDrop) Then
             pMap.OpenFiles(e.Data.GetData(Windows.Forms.DataFormats.FileDrop))
+            pMap.NeedRedraw()
         End If
     End Sub
 
@@ -646,5 +647,14 @@ Public Class frmMap
     Private Sub pLayersForm_ZoomTo(ByVal aBounds As clsGPXbounds) Handles pLayersForm.ZoomTo
         pMap.PanTo(aBounds)
         pMap.Redraw()
+    End Sub
+
+    Private Sub pMap_Zoomed() Handles pMap.Zoomed
+        ZoomToolStripMenuItem.Text = "Zoom " & pMap.Zoom
+        For Each lItem As ToolStripMenuItem In ZoomToolStripMenuItem.DropDownItems
+            If IsNumeric(lItem.Text) Then
+                lItem.Checked = (lItem.Text = pMap.Zoom)
+            End If
+        Next
     End Sub
 End Class

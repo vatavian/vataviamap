@@ -9,6 +9,8 @@ Public Class ctlMap
     'bounds of map display area
     Public LatMin As Double, LatMax As Double, LonMin As Double, LonMax As Double
 
+    Public Event Zoomed()
+
     Private pZoom As Integer = 10 'varies from g_ZoomMin to g_ZoomMax
 
     Public Enum EnumWheelAction
@@ -123,9 +125,7 @@ Public Class ctlMap
     Public UploadTrackOnStop As Boolean = False   ' True to upload track when GPS stops
     Public UploadPeriodic As Boolean = False ' True to upload point periodically
 
-    ' Set to false when another form is covering main form, skip redrawing
-    Private pFormVisible As Boolean = False
-    Private pDark As Boolean = False
+    Private pDark As Boolean = False        ' True to draw simple black background instead of map
 
     Delegate Sub RefreshCallback()
     Private pRefreshCallback As New RefreshCallback(AddressOf Refresh)
@@ -133,7 +133,7 @@ Public Class ctlMap
     Private pRedrawing As Boolean = False
     Private pRedrawPending As Boolean = False
 
-    ' Set to false when we have a first-guess background (when zooming)
+    ' Set to false when we have a first-guess background (e.g. when zooming from tiles we have to ones we don't)
     Private pClearDelayedTiles As Boolean = True
 
     Public Uploader As New clsUploader
@@ -157,7 +157,7 @@ Public Class ctlMap
         Downloader.Enabled = True
         Uploader.Enabled = True
 
-        pFormVisible = True
+        Me.Visible = True
     End Sub
 
     Public Property TileCacheFolder() As String
@@ -228,12 +228,14 @@ Public Class ctlMap
         End Get
         Set(ByVal value As Boolean)
             pDark = value
+            NeedRedraw()
+#If Smartphone Then
             If pDark Then
                 StopKeepAwake()
             Else
                 StartKeepAwake()
             End If
-            Refresh()
+#End If
         End Set
     End Property
 
@@ -549,9 +551,10 @@ Public Class ctlMap
                     'ZoomPreview(value)
                     pZoom = value
                 End If
+                NeedRedraw()
+                RaiseEvent Zoomed()
+                pClearDelayedTiles = True
             End If
-            Zoomed()
-            pClearDelayedTiles = True
         End Set
     End Property
 
@@ -2317,22 +2320,7 @@ SetCenter:
             If pClickRefreshTile Then
                 pShowTileOutlines = True
                 'TODO: mnuViewTileOutlines.Checked = True
-                Refresh()
-            End If
-        End Set
-    End Property
-
-    Public Property ViewDark() As Boolean
-        Get
-            Return Dark
-        End Get
-        Set(ByVal value As Boolean)
-            pDark = value
-            NeedRedraw()
-            If pDark Then
-                StopKeepAwake()
-            Else
-                StartKeepAwake()
+                NeedRedraw()
             End If
         End Set
     End Property
@@ -2594,7 +2582,7 @@ SetCenter:
     End Function
 
     Public Sub Redraw()
-        If pFormVisible Then 'TODO: AndAlso WindowState <> FormWindowState.Minimized Then
+        If Me.Visible Then 'TODO: AndAlso WindowState <> FormWindowState.Minimized Then
             Dim lGraphics As Graphics = GetBitmapGraphics()
             If lGraphics IsNot Nothing Then
                 DrawTiles(lGraphics)
@@ -2615,20 +2603,6 @@ SetCenter:
             End If
             Application.DoEvents()
         End If
-    End Sub
-
-    ''' <summary>
-    ''' Zoom level has been set, update Zoom menu to show current Zoom
-    ''' </summary>
-    Private Sub Zoomed()
-        'TODO:
-        'ZoomToolStripMenuItem.Text = "Zoom " & pZoom
-        'For Each lItem As ToolStripMenuItem In ZoomToolStripMenuItem.DropDownItems
-        '    If IsNumeric(lItem.Text) Then
-        '        lItem.Checked = (lItem.Text = pZoom)
-        '    End If
-        'Next
-        Redraw()
     End Sub
 
     Private Sub Event_KeyUp(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyEventArgs) Handles MyBase.KeyUp
