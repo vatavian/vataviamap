@@ -1231,7 +1231,10 @@ Public Class ctlMap
         End If
 
         If lNeedToSearchTracks Then
-            Dim lPhotoDate As Date = lExif.DateTimeOriginal
+            Dim lPhotoDate As DateTime = lExif.GPSDateTime
+            If lPhotoDate.Year < 2 Then
+                lPhotoDate = lExif.DateTimeOriginal
+            End If
             Dim lPhotoTicks As Long = lPhotoDate.Ticks
             Dim lClosestTicks As Long = Long.MaxValue
             Dim lClosestPoint As clsGPXwaypoint = Nothing
@@ -1564,7 +1567,7 @@ Public Class ctlMap
             Dim lDetailsBrush As Brush = pBrushBlack
 
 RestartRedraw:
-            If pFormVisible Then
+            If Me.Visible Then
                 lGraphics = GetBitmapGraphics()
                 If lGraphics IsNot Nothing Then
                     If Dark Then
@@ -1637,10 +1640,6 @@ RestartRedraw:
     Private Function MapRectangle() As Rectangle
         Return ClientRectangle
     End Function
-
-    Private Sub Zoomed()
-        Redraw()
-    End Sub
 
     Private Sub DrewTiles(ByVal g As Graphics, ByVal aTopLeft As Point, ByVal aOffsetToCenter As Point)
         If GPS IsNot Nothing AndAlso GPS.Opened AndAlso GPS_POSITION IsNot Nothing AndAlso GPS_POSITION.LatitudeValid AndAlso GPS_POSITION.LongitudeValid Then
@@ -2063,7 +2062,7 @@ SetCenter:
     End Sub
 
     Public Sub ClosestGeocache()
-        pFormVisible = False
+        Me.Visible = False
 
         If Layers IsNot Nothing AndAlso Layers.Count > 0 Then
             Dim lMiddlemostCache As clsGPXwaypoint = Nothing
@@ -2255,7 +2254,7 @@ SetCenter:
 
             End If
         End If
-        pFormVisible = True
+        Me.Visible = True
         Redraw()
     End Sub
 
@@ -2509,11 +2508,21 @@ SetCenter:
     End Function
 
     Public Sub SaveImageAs(ByVal aFilename As String)
+        Dim lImageFormat As Imaging.ImageFormat = Imaging.ImageFormat.Png
+        Select Case IO.Path.GetExtension(aFilename).ToLower
+            Case ".bmp" : lImageFormat = Imaging.ImageFormat.Bmp
+            Case ".emf" : lImageFormat = Imaging.ImageFormat.Emf
+            Case ".gif" : lImageFormat = Imaging.ImageFormat.Gif
+            Case ".ico" : lImageFormat = Imaging.ImageFormat.Icon
+            Case ".jpg", ".jpeg" : lImageFormat = Imaging.ImageFormat.Jpeg
+            Case ".tif", ".tiff" : lImageFormat = Imaging.ImageFormat.Tiff
+            Case ".wmf" : lImageFormat = Imaging.ImageFormat.Wmf
+        End Select
         pBitmapMutex.WaitOne()
-        pBitmap.Save(aFilename)
+        pBitmap.Save(aFileName, lImageFormat)
         'SaveTiles(IO.Path.GetDirectoryName(.FileName) & "\" & IO.Path.GetFileNameWithoutExtension(.FileName) & "\")
         pBitmapMutex.ReleaseMutex()
-        ''CreateGeoReferenceFile(LatitudeToMeters(pCenterLat - pLatHeight * 1.66), _
+        'CreateGeoReferenceFile(LatitudeToMeters(pCenterLat - pLatHeight * 1.66), _
         CreateGeoReferenceFile(LatitudeToMeters(LatMax), _
                                LongitudeToMeters(LonMin), _
                                pZoom, ImageWorldFilename(aFilename))
