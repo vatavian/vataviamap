@@ -229,33 +229,37 @@ Public Class ExifWorks
         ExifFileSource = &HA300
         ExifSceneType = &HA301
         ExifCfaPattern = &HA302
-        GpsVer = &H0
-        GpsLatitudeRef = &H1
-        GpsLatitude = &H2
-        GpsLongitudeRef = &H3
-        GpsLongitude = &H4
-        GpsAltitudeRef = &H5
-        GpsAltitude = &H6
-        GpsGpsTime = &H7
-        GpsGpsSatellites = &H8
-        GpsGpsStatus = &H9
-        GpsGpsMeasureMode = &HA
-        GpsGpsDop = &HB
-        GpsSpeedRef = &HC
-        GpsSpeed = &HD
-        GpsTrackRef = &HE
-        GpsTrack = &HF
-        GpsImgDirRef = &H10
-        GpsImgDir = &H11
-        GpsMapDatum = &H12
-        GpsDestLatRef = &H13
-        GpsDestLat = &H14
-        GpsDestLongRef = &H15
-        GpsDestLong = &H16
-        GpsDestBearRef = &H17
-        GpsDestBear = &H18
-        GpsDestDistRef = &H19
-        GpsDestDist = &H1A
+        GPSVersionID = &H0
+        GPSLatitudeRef = &H1
+        GPSLatitude = &H2
+        GPSLongitudeRef = &H3
+        GPSLongitude = &H4
+        GPSAltitudeRef = &H5
+        GPSAltitude = &H6
+        GPSTimeStamp = &H7
+        GPSSatellites = &H8
+        GPSStatus = &H9
+        GPSMeasureMode = &HA
+        GPSDOP = &HB
+        GPSSpeedRef = &HC
+        GPSSpeed = &HD
+        GPSTrackRef = &HE
+        GPSTrack = &HF
+        GPSImgDirectionRef = &H10
+        GPSImgDirection = &H11
+        GPSMapDatum = &H12
+        GPSDestLatitudeRef = &H13
+        GPSDestLatitude = &H14
+        GPSDestLongitudeRef = &H15
+        GPSDestLongitude = &H16
+        GPSDestBearingRef = &H17
+        GPSDestBearing = &H18
+        GPSDestDistanceRef = &H19
+        GPSDestDistance = &H1A
+        GPSProcessingMethod = &H1B
+        GPSAreaInformation = &H1C
+        GPSDateStamp = &H1D
+        GPSDifferential = &H1E
     End Enum
 
     ''' <summary>
@@ -621,6 +625,41 @@ Public Class ExifWorks
         Set(ByVal value As DateTime)
             Try
                 SetPropertyString(TagNames.ExifDTOrig, value.ToString("yyyy\:MM\:dd HH\:mm\:ss"))
+            Catch
+            End Try
+        End Set
+    End Property
+
+
+    ''' <summary>
+    ''' GPS Date/Time when image was taken (EXIF GPSDateStamp and GPSTimeStamp).
+    ''' </summary>
+    Public Property GPSDateTime() As DateTime
+        Get
+            Dim lDate As Date = DateTime.MinValue
+            Try
+                Dim lDateStamp As String = GetPropertyString(TagNames.GPSDateStamp)
+                Dim lYear As Integer = lDateStamp.Substring(0, 4)
+                Dim lMonth As Integer = lDateStamp.Substring(5, 2)
+                Dim lDay As Integer = lDateStamp.Substring(8, 2)
+                Dim lHour As Integer = GetPropertyRational(TagNames.GPSTimeStamp, 0).ToDouble()
+                Dim lMinute As Integer = GetPropertyRational(TagNames.GPSTimeStamp, 1).ToDouble()
+                Dim lMillisecond As Double = GetPropertyRational(TagNames.GPSTimeStamp, 2).ToDouble() * 1000
+                Dim lSecond As Integer = Math.Floor(lMillisecond / 1000)
+                lMillisecond -= lSecond * 1000
+                lDate = New DateTime(lYear, lMonth, lDay, lHour, lMinute, lSecond, CInt(lMillisecond), DateTimeKind.Utc)
+            Catch
+            End Try
+            Return lDate
+        End Get
+        Set(ByVal value As DateTime)
+            Try
+                Dim lTimeUTC As DateTime = value.ToUniversalTime
+                SetPropertyString(TagNames.GPSDateStamp, lTimeUTC.ToString("yyyy:MM:dd"))
+                'TODO
+                'SetPropertyRational(TagNames.GPSTimeStamp, 0, lTimeUTC.Hour)
+                'SetPropertyRational(TagNames.GPSTimeStamp, 1, lTimeUTC.Minute)
+                'SetPropertyRational(TagNames.GPSTimeStamp, 2, lTimeUTC.Second) 'TODO: add milliseconds
             Catch
             End Try
         End Set
@@ -1301,12 +1340,12 @@ Public Class ExifWorks
     ''' <returns>Decimal degrees of latitude</returns>
     Public ReadOnly Property Latitude() As Double
         Get
-            If IsPropertyDefined(TagNames.GpsLatitude) Then
-                Dim deg As Rational = GetPropertyRational(TagNames.GpsLatitude, 0)
-                Dim min As Rational = GetPropertyRational(TagNames.GpsLatitude, 1)
-                Dim sec As Rational = GetPropertyRational(TagNames.GpsLatitude, 2)
+            If IsPropertyDefined(TagNames.GPSLatitude) Then
+                Dim deg As Rational = GetPropertyRational(TagNames.GPSLatitude, 0)
+                Dim min As Rational = GetPropertyRational(TagNames.GPSLatitude, 1)
+                Dim sec As Rational = GetPropertyRational(TagNames.GPSLatitude, 2)
                 Dim res As [Double] = DMStoDD(deg.ToDouble(), min.ToDouble(), sec.ToDouble())
-                Dim Ref As [String] = GetPropertyString(TagNames.GpsLatitudeRef)
+                Dim Ref As [String] = GetPropertyString(TagNames.GPSLatitudeRef)
                 If Ref <> "N" Then
                     res = -res
                 End If
@@ -1323,12 +1362,12 @@ Public Class ExifWorks
     ''' <returns>Decimal degrees of longitude</returns>
     Public ReadOnly Property Longitude() As Double
         Get
-            If IsPropertyDefined(TagNames.GpsLongitude) Then
-                Dim deg As Rational = GetPropertyRational(TagNames.GpsLongitude, 0)
-                Dim min As Rational = GetPropertyRational(TagNames.GpsLongitude, 1)
-                Dim sec As Rational = GetPropertyRational(TagNames.GpsLongitude, 2)
+            If IsPropertyDefined(TagNames.GPSLongitude) Then
+                Dim deg As Rational = GetPropertyRational(TagNames.GPSLongitude, 0)
+                Dim min As Rational = GetPropertyRational(TagNames.GPSLongitude, 1)
+                Dim sec As Rational = GetPropertyRational(TagNames.GPSLongitude, 2)
                 Dim res As [Double] = DMStoDD(deg.ToDouble(), min.ToDouble(), sec.ToDouble())
-                Dim Ref As [String] = GetPropertyString(TagNames.GpsLongitudeRef)
+                Dim Ref As [String] = GetPropertyString(TagNames.GPSLongitudeRef)
                 If Ref <> "E" Then
                     res = -res
                 End If
