@@ -84,6 +84,14 @@ Public Class frmMap
         End If
     End Sub
 
+    Private Sub frmMap_FormClosing(ByVal sender As Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles Me.FormClosing
+        If Me.WindowState = FormWindowState.Normal Then
+            SaveAppSetting("WindowWidth", Me.Width)
+            SaveAppSetting("WindowHeight", Me.Height)
+        End If
+        pMap.SaveSettings()
+    End Sub
+
     Private Sub frmMap_Shown(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Shown
         pMap.Redraw()
     End Sub
@@ -474,11 +482,7 @@ Public Class frmMap
 
     Private Sub FindBuddyToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles FindBuddyToolStripMenuItem.Click
         FindBuddyToolStripMenuItem.Checked = Not FindBuddyToolStripMenuItem.Checked
-        If FindBuddyToolStripMenuItem.Checked Then
-            pMap.StartBuddyTimer()
-        Else
-            pMap.StopBuddyTimer()
-        End If
+        pMap.FindBuddy = FindBuddyToolStripMenuItem.Checked
     End Sub
 
     Private Sub SetBuddyAlarmToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles SetBuddyAlarmToolStripMenuItem.Click

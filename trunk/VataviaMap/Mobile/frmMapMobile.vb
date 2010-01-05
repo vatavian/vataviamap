@@ -7,8 +7,6 @@ Public Class frmMap
     Public Sub New()
         InitializeComponent()
 
-        pMap.SharedNew()
-
         mnuRecordTrack.Checked = pMap.RecordTrack
         mnuViewTrack.Checked = pMap.DisplayTrack
         mnuViewMapTiles.Checked = pMap.ShowTileImages
@@ -32,9 +30,12 @@ Public Class frmMap
 
     Private Sub mnuStartStopGPS_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuStartStopGPS.Click
         If (mnuStartStopGPS.Text.StartsWith("Start")) Then
+            mnuStartStopGPS.Text = "Starting GPS..." : Application.DoEvents()
             pMap.StartGPS()
         Else
+            mnuStartStopGPS.Text = "Stopping GPS..." : Application.DoEvents()
             pMap.StopGPS()
+            mnuStartStopGPS.Text = "Start GPS" : Application.DoEvents()
         End If
     End Sub
     Private Sub mnuGeocache_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuGeocache.Click
@@ -241,11 +242,7 @@ Public Class frmMap
 
     Private Sub mnuFindBuddy_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuFindBuddy.Click
         mnuFindBuddy.Checked = Not mnuFindBuddy.Checked
-        If mnuFindBuddy.Checked Then
-            pMap.StartBuddyTimer()
-        Else
-            pMap.StopBuddyTimer()
-        End If
+        pMap.FindBuddy = mnuFindBuddy.Checked
     End Sub
 
     Private Sub mnuViewControls_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuViewControls.Click
@@ -287,4 +284,8 @@ Public Class frmMap
         pMap.ClickMakeWaypoint = mnuWaypoint.Checked
     End Sub
 
+    Private Sub pMap_LocationChanged(ByVal aPosition As GPS_API.GpsPosition) Handles pMap.LocationChanged
+        mnuStartStopGPS.Text = "Stop GPS " & aPosition.SatelliteCount & "/" & aPosition.SatellitesInViewCount
+        Application.DoEvents()
+    End Sub
 End Class
