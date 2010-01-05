@@ -1687,14 +1687,22 @@ RestartRedraw:
         Else
             lDetails = "(" & FormattedDegrees(GPS_POSITION.Latitude, g_DegreeFormat) & ", " _
                            & FormattedDegrees(GPS_POSITION.Longitude, g_DegreeFormat) & ")"
-            If (GPS_POSITION.SeaLevelAltitudeValid) Then lDetails &= " " & GPS_POSITION.SeaLevelAltitude & "m"
-            If (GPS_POSITION.SpeedValid AndAlso GPS_POSITION.Speed > 0) Then lDetails &= " " & GPS_POSITION.Speed * 1.15077945 & "mph"
+            If (GPS_POSITION.SeaLevelAltitudeValid) Then lDetails &= " " & CInt(GPS_POSITION.SeaLevelAltitude) & "m"
+            If (GPS_POSITION.SpeedValid AndAlso GPS_POSITION.Speed > 0) Then lDetails &= " " & CInt(GPS_POSITION.Speed * 1.15077945) & "mph"
 
             If GPS_POSITION.TimeValid Then
                 lDetails &= vbLf & GPS_POSITION.Time.ToString("yyyy-MM-dd HH:mm:ss") & "Z"
-                Dim lAgeOfPosition As TimeSpan = DateTime.Now - GPS_POSITION.Time.ToLocalTime()
+                Dim lAgeOfPosition As TimeSpan = DateTime.UtcNow - GPS_POSITION.Time
+                Dim lAgeString As String = ""
                 If (Math.Abs(lAgeOfPosition.TotalSeconds) > 5) Then
-                    lDetails &= " (" + lAgeOfPosition.ToString().TrimEnd("0"c) + " ago)"
+                    If Math.Abs(lAgeOfPosition.TotalDays) > 0 Then
+                        lAgeString = Format(lAgeOfPosition.TotalDays, "0.#") & " days"
+                    Else
+                        If Math.Abs(lAgeOfPosition.Hours) > 0 Then lAgeString = lAgeOfPosition.Hours & "h"
+                        If Math.Abs(lAgeOfPosition.Minutes) > 0 Then lAgeString &= lAgeOfPosition.Minutes & "m"
+                        If lAgeOfPosition.Hours = 0 Then lAgeString &= lAgeOfPosition.Seconds & "s"
+                    End If
+                    lDetails &= " (" & lAgeString & " ago)"
                 End If
             End If
         End If

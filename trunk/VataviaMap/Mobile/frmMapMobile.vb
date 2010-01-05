@@ -25,15 +25,16 @@ Public Class frmMap
     End Sub
 
     Private Sub frmMap_Closing(ByVal sender As Object, ByVal e As System.ComponentModel.CancelEventArgs) Handles MyBase.Closing
+        mnuStartStopGPS.Text = "Closing..." : Application.DoEvents()
         pMap.StopGPS()
     End Sub
 
     Private Sub mnuStartStopGPS_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuStartStopGPS.Click
-        If (mnuStartStopGPS.Text.StartsWith("Start")) Then
+        If (mnuStartStopGPS.Text.Equals("Start GPS")) Then
             mnuStartStopGPS.Text = "Starting GPS..." : Application.DoEvents()
             pMap.StartGPS()
         Else
-            mnuStartStopGPS.Text = "Stopping GPS..." : Application.DoEvents()
+            mnuStartStopGPS.Text = "Stopping..." : Application.DoEvents()
             pMap.StopGPS()
             mnuStartStopGPS.Text = "Start GPS" : Application.DoEvents()
         End If
