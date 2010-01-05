@@ -411,7 +411,7 @@ Public Class ctlMap
         TileServers.Add("VirtualEarthHybrid", MakeImageUrl(MapType.VirtualEarthHybrid, New Point(1, 2), 3))
     End Sub
 
-    Private Sub SaveSettings()
+    Public Sub SaveSettings()
         On Error Resume Next
         Dim lSoftwareKey As Microsoft.Win32.RegistryKey = Microsoft.Win32.Registry.CurrentUser.CreateSubKey("Software")
         If lSoftwareKey IsNot Nothing Then
@@ -454,11 +454,6 @@ Public Class ctlMap
 
                     .SetValue("CenterLat", CenterLat)
                     .SetValue("CenterLon", CenterLon)
-
-                    'If Me.WindowState = FormWindowState.Normal Then
-                    .SetValue("WindowWidth", Me.Width)
-                    .SetValue("WindowHeight", Me.Height)
-                    'End If
 
                     .SetValue("GPSAutoStart", pGPSAutoStart)
                     .SetValue("GPSFollow", pGPSFollow)
@@ -1456,15 +1451,32 @@ Public Class ctlMap
     End Sub
 
     ''' <summary>
+    ''' True to check for buddies, False to stop checking
+    ''' </summary>
+    ''' <value></value>
+    Public Property FindBuddy() As Boolean
+        Get
+            Return pBuddyTimer IsNot Nothing
+        End Get
+        Set(ByVal value As Boolean)
+            If value Then
+                StartBuddyTimer()
+            Else
+                StopBuddyTimer()
+            End If
+        End Set
+    End Property
+
+    ''' <summary>
     ''' Start timer that refreshes buddy positions
     ''' </summary>
     ''' <remarks></remarks>
-    Public Sub StartBuddyTimer()
+    Private Sub StartBuddyTimer()
         If pBuddyTimer Is Nothing Then
             pBuddyTimer = New System.Threading.Timer(New Threading.TimerCallback(AddressOf RequestBuddyPoint), Nothing, 0, 60000)
         End If
     End Sub
-    Public Sub StopBuddyTimer()
+    Private Sub StopBuddyTimer()
         If pBuddyTimer IsNot Nothing Then
             Try
                 pBuddyTimer.Dispose()
@@ -1481,6 +1493,8 @@ Public Class ctlMap
     Private WithEvents GPS As GPS_API.GPS
     Private GPS_DEVICE_STATE As GPS_API.GpsDeviceState
     Private GPS_POSITION As GPS_API.GpsPosition = Nothing
+
+    Public Event LocationChanged(ByVal aPosition As GPS_API.GpsPosition)
 
     Private pLastCellTower As clsCell
     Private pCellLocationProviders As New Generic.List(Of clsCellLocationProvider)
@@ -1554,7 +1568,6 @@ Public Class ctlMap
         pCursorLayer.SymbolPen = New Pen(Color.Red)
         pCursorLayer.SymbolSize = GPSSymbolSize
 
-        If Not Dark Then StartKeepAwake()
         If pGPSAutoStart Then StartGPS()
     End Sub
 
@@ -1763,7 +1776,6 @@ RestartRedraw:
     End Sub
 
     Public Sub StartGPS()
-        'TODO: mnuStartStopGPS.Text = "Starting GPS..."
         Application.DoEvents()
         If pGPSFollow = 0 Then
             pGPSFollow = 2
@@ -1772,6 +1784,8 @@ RestartRedraw:
         End If
         If GPS Is Nothing Then GPS = New GPS_API.GPS
         If Not GPS.Opened Then
+            If Not Dark Then StartKeepAwake()
+
             SetPowerRequirement(DeviceGPS, True)
 
             Dim lLogIndex As Integer = 0
@@ -1786,7 +1800,6 @@ RestartRedraw:
             pWaypointLogFilename = IO.Path.ChangeExtension(pTrackLogFilename, ".wpt.gpx")
             pTrackMutex.ReleaseMutex()
 
-            'TODO: mnuStartStopGPS.Text = "Opening GPS..."
             Application.DoEvents()
             GPS.Open()
             GPS_Listen = True
@@ -1796,19 +1809,14 @@ RestartRedraw:
 
     Public Sub StopGPS()
         GPS_Listen = False
-        Try
-            'TODO: mnuStartStopGPS.Text = "Stopping"
-            Application.DoEvents()
-        Catch
-        End Try
         Threading.Thread.Sleep(100)
         Me.SaveSettings() 'In case of crash, at least we can start again with the same settings
 
-        Try
-            'TODO: mnuStartStopGPS.Text = "Finishing Log..."
-            Application.DoEvents()
-        Catch
-        End Try
+        'Try
+        '    mnuStartStopGPS.Text = "Finishing Log..."
+        '    Application.DoEvents()
+        'Catch
+        'End Try
 
         pTrackMutex.WaitOne()
         CloseLog(pWaypointLogFilename, "</gpx>" & vbLf)
@@ -1817,22 +1825,18 @@ RestartRedraw:
 
         If GPS IsNot Nothing Then
             If GPS.Opened Then
-                Try
-                    'TODO: mnuStartStopGPS.Text = "Closing GPS..."
-                    Application.DoEvents()
-                Catch
-                End Try
+                'Try
+                '    mnuStartStopGPS.Text = "Closing GPS..."
+                '    Application.DoEvents()
+                'Catch
+                'End Try
                 If UploadOnStop Then UploadGpsPosition()
                 GPS.Close()
             End If
             GPS = Nothing
         End If
         SetPowerRequirement(DeviceGPS, False)
-        Try
-            'TODO: mnuStartStopGPS.Text = "Start GPS"
-            Application.DoEvents()
-        Catch
-        End Try
+        StopKeepAwake()
     End Sub
 
     Private Sub CloseLog(ByRef aFilename As String, ByVal aAppend As String)
@@ -1842,7 +1846,7 @@ RestartRedraw:
                 lFile.Write(aAppend)
                 lFile.Close()
             End If
-            If UploadOnStop AndAlso Uploader.Enabled Then
+            If UploadTrackOnStop AndAlso Uploader.Enabled Then
                 Uploader.Enqueue(g_UploadTrackURL, aFilename, QueueItemType.FileItem, 0)
             End If
         End If
@@ -1862,8 +1866,7 @@ RestartRedraw:
         Try
             If (GPS.Opened) Then
                 Try
-                    'TODO: mnuStartStopGPS.Text = "Stop GPS " & GPS_POSITION.SatelliteCount & "/" & GPS_POSITION.SatellitesInViewCount
-                    Application.DoEvents()
+                    RaiseEvent LocationChanged(GPS_POSITION)
                 Catch
                 End Try
                 If (GPS_POSITION IsNot Nothing AndAlso GPS_POSITION.LatitudeValid AndAlso GPS_POSITION.LongitudeValid) Then
@@ -2395,19 +2398,6 @@ SetCenter:
         Set(ByVal value As Boolean)
             pShowTileImages = value
             Redraw()
-        End Set
-    End Property
-
-    Public Property FindBuddy() As Boolean
-        Get
-            'TODO:
-        End Get
-        Set(ByVal value As Boolean)
-            If value Then
-                StartBuddyTimer()
-            Else
-                StopBuddyTimer()
-            End If
         End Set
     End Property
 
