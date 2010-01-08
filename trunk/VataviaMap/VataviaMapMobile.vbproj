@@ -80,6 +80,12 @@
     <Import Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Mobile\frmAbout.Designer.vb">
+      <DependentUpon>frmAbout.vb</DependentUpon>
+    </Compile>
+    <Compile Include="Mobile\frmAbout.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Shared\clsCell.vb" />
     <Compile Include="Shared\clsCellLayer.vb" />
     <Compile Include="Shared\clsCellLocationGoogle.vb" />
@@ -145,6 +151,10 @@
     <EmbeddedResource Include="Mobile\frmUploadMobile.resx">
       <DependentUpon>frmUploadMobile.vb</DependentUpon>
       <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Mobile\frmAbout.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>frmAbout.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Mobile\My Project\Resources.resx">
       <Generator>VbMyResourcesResXFileCodeGenerator</Generator>

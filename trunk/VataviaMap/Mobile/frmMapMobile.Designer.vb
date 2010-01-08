@@ -46,6 +46,7 @@ Partial Public Class frmMap
         Me.mnuFindBuddy = New System.Windows.Forms.MenuItem
         Me.mnuTakePicture = New System.Windows.Forms.MenuItem
         Me.pMap = New VataviaMap.ctlMap
+        Me.mnuAbout = New System.Windows.Forms.MenuItem
         Me.SuspendLayout()
         '
         'mnuMain
@@ -68,6 +69,7 @@ Partial Public Class frmMap
         Me.mnuOptions.MenuItems.Add(Me.mnuRefreshOnClick)
         Me.mnuOptions.MenuItems.Add(Me.mnuFindBuddy)
         Me.mnuOptions.MenuItems.Add(Me.mnuTakePicture)
+        Me.mnuOptions.MenuItems.Add(Me.mnuAbout)
         Me.mnuOptions.Text = "Options"
         '
         'mnuOptionsDownload
@@ -182,6 +184,10 @@ Partial Public Class frmMap
         Me.pMap.Size = New System.Drawing.Size(176, 180)
         Me.pMap.TabIndex = 0
         '
+        'mnuAbout
+        '
+        Me.mnuAbout.Text = "About"
+        '
         'frmMap
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(96.0!, 96.0!)
@@ -220,5 +226,6 @@ Partial Public Class frmMap
     Friend WithEvents mnuSetTime As System.Windows.Forms.MenuItem
     Friend WithEvents mnuWaypoint As System.Windows.Forms.MenuItem
     Friend WithEvents pMap As VataviaMap.ctlMap
+    Friend WithEvents mnuAbout As System.Windows.Forms.MenuItem
 
 End Class

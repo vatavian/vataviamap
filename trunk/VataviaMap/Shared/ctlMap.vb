@@ -257,38 +257,38 @@ Public Class ctlMap
             Next
         End If
         'TODO: move this to only get geocaching icons when they are absent and user wants them
-        If Not g_WaypointIcons.ContainsKey("geocache|webcam cache") Then
-            'get geocaching icons from http://www.geocaching.com/about/cache_types.aspx
-            Dim lBaseURL As String = "http://www.geocaching.com/images/"
-            Dim lTypeURL As String = lBaseURL & "WptTypes/"
-            lCacheIconFolder &= g_PathChar & "Geocache" & g_PathChar
-            With Downloader
-                .Enqueue(lTypeURL & "2.gif", lCacheIconFolder & "Traditional Cache.gif", QueueItemType.IconItem, 2, False)
-                .Enqueue(lTypeURL & "3.gif", lCacheIconFolder & "Multi-cache.gif", QueueItemType.IconItem, 2, False)
-                .Enqueue(lTypeURL & "8.gif", lCacheIconFolder & "Unknown Cache.gif", QueueItemType.IconItem, 2, False)
-                .Enqueue(lTypeURL & "5.gif", lCacheIconFolder & "Letterbox Hybrid.gif", QueueItemType.IconItem, 2, False)
-                .Enqueue(lTypeURL & "1858.gif", lCacheIconFolder & "Wherigo Cache.gif", QueueItemType.IconItem, 2, False)
-                .Enqueue(lTypeURL & "6.gif", lCacheIconFolder & "Event Cache.gif", QueueItemType.IconItem, 2, False)
-                .Enqueue(lTypeURL & "mega.gif", lCacheIconFolder & "Mega-Event Cache.gif", QueueItemType.IconItem, 2, False)
-                .Enqueue(lTypeURL & "13.gif", lCacheIconFolder & "Cache In Trash Out Event.gif", QueueItemType.IconItem, 2, False)
-                .Enqueue(lTypeURL & "earthcache.gif", lCacheIconFolder & "Earthcache.gif", QueueItemType.IconItem, 2, False)
-                .Enqueue(lTypeURL & "4.gif", lCacheIconFolder & "Virtual Cache.gif", QueueItemType.IconItem, 2, False)
-                .Enqueue(lTypeURL & "1304.gif", lCacheIconFolder & "GPS Adventures Exhibit.gif", QueueItemType.IconItem, 2, False)
-                .Enqueue(lTypeURL & "9.gif", lCacheIconFolder & "Project APE Cache.gif", QueueItemType.IconItem, 2, False)
-                .Enqueue(lTypeURL & "11.gif", lCacheIconFolder & "Webcam Cache.gif", QueueItemType.IconItem, 2, False)
-                Dim lIconURL As String = lBaseURL & "icons/"
-                .Enqueue(lIconURL & "icon_smile.gif", lCacheIconFolder & "icon_smile.gif", QueueItemType.IconItem, 2, False)
-                .Enqueue(lIconURL & "icon_sad.gif", lCacheIconFolder & "icon_sad.gif", QueueItemType.IconItem, 2, False)
-                .Enqueue(lIconURL & "icon_note.gif", lCacheIconFolder & "icon_note.gif", QueueItemType.IconItem, 2, False)
-                .Enqueue(lIconURL & "icon_maint.gif", lCacheIconFolder & "icon_maint.gif", QueueItemType.IconItem, 2, False)
-                .Enqueue(lIconURL & "icon_needsmaint.gif", lCacheIconFolder & "icon_needsmaint.gif", QueueItemType.IconItem, 2, False)
-                .Enqueue(lIconURL & "icon_disabled.gif", lCacheIconFolder & "icon_disabled.gif", QueueItemType.IconItem, 2, False)
-                .Enqueue(lIconURL & "icon_enabled.gif", lCacheIconFolder & "icon_enabled.gif", QueueItemType.IconItem, 2, False)
-                .Enqueue(lIconURL & "icon_greenlight.gif", lCacheIconFolder & "icon_greenlight.gif", QueueItemType.IconItem, 2, False)
-                .Enqueue(lIconURL & "coord_update.gif", lCacheIconFolder & "coord_update.gif", QueueItemType.IconItem, 2, False)
-                .Enqueue(lIconURL & "icon_rsvp.gif", lCacheIconFolder & "icon_rsvp.gif", QueueItemType.IconItem, 2, False)
-            End With
-        End If
+        'If Not g_WaypointIcons.ContainsKey("geocache|webcam cache") Then
+        '    'get geocaching icons from http://www.geocaching.com/about/cache_types.aspx
+        '    Dim lBaseURL As String = "http://www.geocaching.com/images/"
+        '    Dim lTypeURL As String = lBaseURL & "WptTypes/"
+        '    lCacheIconFolder &= g_PathChar & "Geocache" & g_PathChar
+        '    With Downloader
+        '        .Enqueue(lTypeURL & "2.gif", lCacheIconFolder & "Traditional Cache.gif", QueueItemType.IconItem, 2, False)
+        '        .Enqueue(lTypeURL & "3.gif", lCacheIconFolder & "Multi-cache.gif", QueueItemType.IconItem, 2, False)
+        '        .Enqueue(lTypeURL & "8.gif", lCacheIconFolder & "Unknown Cache.gif", QueueItemType.IconItem, 2, False)
+        '        .Enqueue(lTypeURL & "5.gif", lCacheIconFolder & "Letterbox Hybrid.gif", QueueItemType.IconItem, 2, False)
+        '        .Enqueue(lTypeURL & "1858.gif", lCacheIconFolder & "Wherigo Cache.gif", QueueItemType.IconItem, 2, False)
+        '        .Enqueue(lTypeURL & "6.gif", lCacheIconFolder & "Event Cache.gif", QueueItemType.IconItem, 2, False)
+        '        .Enqueue(lTypeURL & "mega.gif", lCacheIconFolder & "Mega-Event Cache.gif", QueueItemType.IconItem, 2, False)
+        '        .Enqueue(lTypeURL & "13.gif", lCacheIconFolder & "Cache In Trash Out Event.gif", QueueItemType.IconItem, 2, False)
+        '        .Enqueue(lTypeURL & "earthcache.gif", lCacheIconFolder & "Earthcache.gif", QueueItemType.IconItem, 2, False)
+        '        .Enqueue(lTypeURL & "4.gif", lCacheIconFolder & "Virtual Cache.gif", QueueItemType.IconItem, 2, False)
+        '        .Enqueue(lTypeURL & "1304.gif", lCacheIconFolder & "GPS Adventures Exhibit.gif", QueueItemType.IconItem, 2, False)
+        '        .Enqueue(lTypeURL & "9.gif", lCacheIconFolder & "Project APE Cache.gif", QueueItemType.IconItem, 2, False)
+        '        .Enqueue(lTypeURL & "11.gif", lCacheIconFolder & "Webcam Cache.gif", QueueItemType.IconItem, 2, False)
+        '        Dim lIconURL As String = lBaseURL & "icons/"
+        '        .Enqueue(lIconURL & "icon_smile.gif", lCacheIconFolder & "icon_smile.gif", QueueItemType.IconItem, 2, False)
+        '        .Enqueue(lIconURL & "icon_sad.gif", lCacheIconFolder & "icon_sad.gif", QueueItemType.IconItem, 2, False)
+        '        .Enqueue(lIconURL & "icon_note.gif", lCacheIconFolder & "icon_note.gif", QueueItemType.IconItem, 2, False)
+        '        .Enqueue(lIconURL & "icon_maint.gif", lCacheIconFolder & "icon_maint.gif", QueueItemType.IconItem, 2, False)
+        '        .Enqueue(lIconURL & "icon_needsmaint.gif", lCacheIconFolder & "icon_needsmaint.gif", QueueItemType.IconItem, 2, False)
+        '        .Enqueue(lIconURL & "icon_disabled.gif", lCacheIconFolder & "icon_disabled.gif", QueueItemType.IconItem, 2, False)
+        '        .Enqueue(lIconURL & "icon_enabled.gif", lCacheIconFolder & "icon_enabled.gif", QueueItemType.IconItem, 2, False)
+        '        .Enqueue(lIconURL & "icon_greenlight.gif", lCacheIconFolder & "icon_greenlight.gif", QueueItemType.IconItem, 2, False)
+        '        .Enqueue(lIconURL & "coord_update.gif", lCacheIconFolder & "coord_update.gif", QueueItemType.IconItem, 2, False)
+        '        .Enqueue(lIconURL & "icon_rsvp.gif", lCacheIconFolder & "icon_rsvp.gif", QueueItemType.IconItem, 2, False)
+        '    End With
+        'End If
     End Sub
 
     Private Sub GetSettings()
@@ -1099,6 +1099,47 @@ Public Class ctlMap
         MouseDownLon = CenterLon
     End Sub
 
+    Private Sub ctlMap_KeyDown(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyEventArgs) Handles MyBase.KeyDown
+        pLastKeyDown = e.KeyCode
+        If pLastKeyDown = 229 Then ' ProcessKey means we have to look harder to find actual key pressed
+            'For lKeyCode As Integer = 0 To 255
+            '    If GetAsyncKeyState(lKeyCode) And Windows.Forms.Keys.KeyCode Then
+            '        pLastKeyDown = lKeyCode
+            '        Exit Sub ' record the lowest numbered key code currently down, not necessarily the one triggering KeyDown
+            '    End If
+            'Next
+        End If
+    End Sub
+
+    Private Sub Event_KeyUp(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyEventArgs) Handles MyBase.KeyUp
+        e.Handled = True
+        Dim lNeedRedraw As Boolean = True
+        Select Case e.KeyCode
+            Case Keys.Right : CenterLon += MetersPerPixel(Zoom) * Me.Width / g_CircumferenceOfEarth * 180
+            Case Keys.Left : CenterLon -= MetersPerPixel(Zoom) * Me.Width / g_CircumferenceOfEarth * 180
+            Case Keys.Up
+                If pLastKeyDown = 131 Then 'using scroll wheel
+                    Zoom += 1 : lNeedRedraw = False
+                Else
+                    CenterLat += MetersPerPixel(Zoom) * Me.Height / g_CircumferenceOfEarth * 90
+                End If
+            Case Keys.Down
+                If pLastKeyDown = 131 Then 'using scroll wheel
+                    Zoom -= 1 : lNeedRedraw = False
+                Else
+                    CenterLat -= MetersPerPixel(Zoom) * Me.Height / g_CircumferenceOfEarth * 90
+                End If
+            Case Keys.A : Zoom -= 1 : lNeedRedraw = False
+            Case Keys.Q : Zoom += 1 : lNeedRedraw = False
+            Case Else
+                e.Handled = False
+                lNeedRedraw = False
+        End Select
+        If lNeedRedraw Then
+            ManuallyNavigated()
+        End If
+    End Sub
+
     Private Sub Event_MouseUp(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles Me.MouseUp
         MouseDragging = False
         If ControlsUse AndAlso _
@@ -1606,36 +1647,6 @@ RestartRedraw:
         End If
     End Sub
 
-
-    Private Sub frmMap_KeyUp(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyEventArgs) Handles MyBase.KeyUp
-        e.Handled = True
-        Dim lNeedRedraw As Boolean = True
-        Select Case e.KeyCode
-            Case Keys.Right : CenterLon += MetersPerPixel(Zoom) * Me.Width / g_CircumferenceOfEarth * 180
-            Case Keys.Left : CenterLon -= MetersPerPixel(Zoom) * Me.Width / g_CircumferenceOfEarth * 180
-            Case Keys.Up
-                If pLastKeyDown = 131 Then 'using scroll wheel
-                    Zoom += 1 : lNeedRedraw = False
-                Else
-                    CenterLat += MetersPerPixel(Zoom) * Me.Height / g_CircumferenceOfEarth * 90
-                End If
-            Case Keys.Down
-                If pLastKeyDown = 131 Then 'using scroll wheel
-                    Zoom -= 1 : lNeedRedraw = False
-                Else
-                    CenterLat -= MetersPerPixel(Zoom) * Me.Height / g_CircumferenceOfEarth * 90
-                End If
-            Case Keys.A : Zoom -= 1 : lNeedRedraw = False
-            Case Keys.Q : Zoom += 1 : lNeedRedraw = False
-            Case Else
-                e.Handled = False
-                lNeedRedraw = False
-        End Select
-        If lNeedRedraw Then
-            'TODO: ManuallyNavigated()
-        End If
-    End Sub
-
     Private Function EnsureCurrentTrack() As clsLayerGPX
         If Layers.Count = 0 OrElse Layers(0).Filename <> "current" Then
             Dim lCurrentTrack As New clsLayerGPX("current", Me)
@@ -1671,7 +1682,7 @@ RestartRedraw:
         'TODO: mnuFollow.Checked = False
         'TODO: mnuCenter.Checked = False
         SanitizeCenterLatLon()
-        Redraw()
+        NeedRedraw()
     End Sub
 
     Private Function GPSdetailsString() As String
@@ -1695,10 +1706,11 @@ RestartRedraw:
                 Dim lAgeOfPosition As TimeSpan = DateTime.UtcNow - GPS_POSITION.Time
                 Dim lAgeString As String = ""
                 If (Math.Abs(lAgeOfPosition.TotalSeconds) > 5) Then
-                    If Math.Abs(lAgeOfPosition.TotalDays) > 0 Then
+                    If Math.Abs(lAgeOfPosition.Days) > 1 Then
                         lAgeString = Format(lAgeOfPosition.TotalDays, "0.#") & " days"
                     Else
-                        If Math.Abs(lAgeOfPosition.Hours) > 0 Then lAgeString = lAgeOfPosition.Hours & "h"
+                        If Math.Abs(lAgeOfPosition.Days) > 0 Then lAgeString = lAgeOfPosition.Days & "day"
+                        If Math.Abs(lAgeOfPosition.Hours) > 0 Then lAgeString &= lAgeOfPosition.Hours & "h"
                         If Math.Abs(lAgeOfPosition.Minutes) > 0 Then lAgeString &= lAgeOfPosition.Minutes & "m"
                         If lAgeOfPosition.Hours = 0 Then lAgeString &= lAgeOfPosition.Seconds & "s"
                     End If
@@ -1720,35 +1732,6 @@ RestartRedraw:
         If Not RecordTrack Then lDetails &= vbLf & "Logging Off"
         Return lDetails
     End Function
-
-    Private Sub Event_KeyUp(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyEventArgs) Handles MyBase.KeyUp
-        e.Handled = True
-        Dim lNeedRedraw As Boolean = True
-        Select Case e.KeyCode
-            Case Keys.Right : CenterLon += MetersPerPixel(pZoom) * Me.Width / g_CircumferenceOfEarth * 180
-            Case Keys.Left : CenterLon -= MetersPerPixel(pZoom) * Me.Width / g_CircumferenceOfEarth * 180
-            Case Keys.Up
-                If pLastKeyDown = 131 Then 'using scroll wheel
-                    Zoom += 1 : lNeedRedraw = False
-                Else
-                    CenterLat += MetersPerPixel(pZoom) * Me.Height / g_CircumferenceOfEarth * 90
-                End If
-            Case Keys.Down
-                If pLastKeyDown = 131 Then 'using scroll wheel
-                    Zoom -= 1 : lNeedRedraw = False
-                Else
-                    CenterLat -= MetersPerPixel(pZoom) * Me.Height / g_CircumferenceOfEarth * 90
-                End If
-            Case Keys.A : Zoom -= 1 : lNeedRedraw = False
-            Case Keys.Q : Zoom += 1 : lNeedRedraw = False
-            Case Else
-                e.Handled = False
-                lNeedRedraw = False
-        End Select
-        If lNeedRedraw Then
-            ManuallyNavigated()
-        End If
-    End Sub
 
     Private Sub Event_MouseDown(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles Me.MouseDown
         Select Case e.Button
@@ -2609,36 +2592,6 @@ SetCenter:
                 'TODO: If pCoordinatesForm IsNot Nothing Then pCoordinatesForm.Show(Me)
             End If
             Application.DoEvents()
-        End If
-    End Sub
-
-    Private Sub Event_KeyUp(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyEventArgs) Handles MyBase.KeyUp
-        e.Handled = True
-        Dim lNeedRedraw As Boolean = True
-        Select Case e.KeyCode
-            Case Keys.Right : CenterLon += MetersPerPixel(Zoom) * Me.Width / g_CircumferenceOfEarth * 180
-            Case Keys.Left : CenterLon -= MetersPerPixel(Zoom) * Me.Width / g_CircumferenceOfEarth * 180
-            Case Keys.Up
-                If pLastKeyDown = 131 Then 'using scroll wheel
-                    Zoom += 1 : lNeedRedraw = False
-                Else
-                    CenterLat += MetersPerPixel(Zoom) * Me.Height / g_CircumferenceOfEarth * 90
-                End If
-            Case Keys.Down
-                If pLastKeyDown = 131 Then 'using scroll wheel
-                    Zoom -= 1 : lNeedRedraw = False
-                Else
-                    CenterLat -= MetersPerPixel(Zoom) * Me.Height / g_CircumferenceOfEarth * 90
-                End If
-            Case Keys.A, Keys.OemMinus : Zoom -= 1 : lNeedRedraw = False
-            Case Keys.Q, Keys.Oemplus : Zoom += 1 : lNeedRedraw = False
-            Case Else
-                e.Handled = False
-                Exit Sub
-        End Select
-        If lNeedRedraw Then
-            SanitizeCenterLatLon()
-            Redraw()
         End If
     End Sub
 
