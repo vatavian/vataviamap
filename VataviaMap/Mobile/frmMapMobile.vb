@@ -289,4 +289,9 @@ Public Class frmMap
         mnuStartStopGPS.Text = "Stop GPS " & aPosition.SatelliteCount & "/" & aPosition.SatellitesInViewCount
         Application.DoEvents()
     End Sub
+
+    Private Sub mnuAbout_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuAbout.Click
+        Dim lAbout As New frmAbout
+        lAbout.Show()
+    End Sub
 End Class
