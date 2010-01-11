@@ -20,6 +20,7 @@ Public Class frmMap
             Case 1 : mnuFollow.Checked = True
             Case 2 : mnuCenter.Checked = True
         End Select
+        pMap.NeedRedraw()
         mnuAutoStart.Checked = pMap.AutoStart
         If pMap.AutoStart Then pMap.StartGPS()
     End Sub
