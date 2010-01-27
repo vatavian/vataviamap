@@ -1,11 +1,66 @@
 Module modMain
-    Dim pForm As frmMain
+    Structure NLED_SETTINGS_INFO
+        Public LedNum As Integer
+        Public OffOnBlink As Integer
+        Public TotalCycleTime As Integer
+        Public OnTime As Integer
+        Public OffTime As Integer
+        Public MetaCycleOn As Integer
+        Public MetaCycleOff As Integer
+    End Structure
+
+    <System.Runtime.InteropServices.DllImport("Coredll")> Public Function NLedSetDevice(ByVal deviceId As Integer, ByRef info As NLED_SETTINGS_INFO) As Boolean
+    End Function
+
+    Sub SetVibrate(ByVal state As Boolean)
+        Dim info As New NLED_SETTINGS_INFO()
+        info.LedNum = 1
+        If state Then
+            info.OffOnBlink = 1
+        Else
+            info.OffOnBlink = 0
+        End If
+        NLedSetDevice(1, info)
+    End Sub
+
+    WithEvents pForm As frmMain
+    Private pFormClosed As Boolean = False
+
     Sub Main(ByVal args() As String)
         pForm = New frmMain
         For Each lArg As String In args
-            pForm.txtReceive.Text &= UrlDecode(args(0)) & vbCrLf
+            pForm.txtReceive.Text &= UrlDecode(lArg) & vbCrLf
         Next
-        pForm.ShowDialog()
+        pForm.Show()
+        If pForm.txtReceive.Text.Length = 0 Then pForm.Touch()
+        Application.DoEvents()
+        Dim lTick As Integer
+        Dim lCycles As Integer = 5
+        Do
+            If Not pForm.Touched Then 'Sound alarm until touched
+                Beep()
+                If lCycles = 5 Then
+                    SetVibrate(True)
+                    lCycles = 0
+                End If
+                For lTick = 1 To 100
+                    If pFormClosed Then Exit Do
+                    System.Threading.Thread.Sleep(10)
+                    Application.DoEvents()
+                Next
+                SetVibrate(False)
+            End If
+            For lTick = 1 To 2000
+                If pFormClosed Then Exit Do
+                System.Threading.Thread.Sleep(10)
+                Application.DoEvents()
+            Next
+            lCycles += 1
+        Loop Until pFormClosed
+    End Sub
+
+    Private Sub pForm_Closed(ByVal sender As Object, ByVal e As System.EventArgs) Handles pForm.Closed
+        pFormClosed = True
     End Sub
 
     Friend Function UrlEncode(ByVal input_url As String) As String
