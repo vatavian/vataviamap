@@ -20,16 +20,15 @@ Module modMain
     Private pRunFilename As String = "\My Documents\Run.txt"
     Private pRanFilename As String = "\My Documents\Ran.txt"
     Private pStopFilename As String = "\My Documents\Stop.txt"
+    Private pErrorFilename As String = "\My Documents\ErrLog.txt"
     Private pStoppedFilename As String = "\My Documents\Stopped.txt"
 
     Private GPS_Listen As Boolean = True
     Private WithEvents GPS As GPS_API.GPS
 
-    ' When we last uploaded a track point (UTC)
-    Private pUploadLastTime As DateTime
-    Private pLastGPStime As Date = New Date(1, 1, 1)
+    Private pLastTimeUpload As DateTime              'When we last uploaded a track point (UTC)
+    Private pLastTimeGPS As Date = New Date(1, 1, 1) 'Last time reported by GPS
     Private pLastCellID As String = ""
-    Private pLastGPSsuccess As Boolean = True
 
     ' True to upload whenever we enter a new cell
     Private pUploadNewCells As Boolean = True
@@ -46,7 +45,14 @@ Module modMain
     ' Wait this long before trying for another GPS fix if the last try failed
     Private pUploadWaitMinutesFailed As Integer = 15
 
-    Private pUploadWaitMinutes As Integer = pUploadWaitMinutesSuccess
+    Private pUploadWaitMinutes As Integer = pUploadWaitMinutesSuccess 'Wait this long till trying again to upload
+
+    'check for another new message even if it is not yet time to try for a new GPS fix when pLastTimeMessage within pMessageWaitMinutes
+    Private pLastTimeMessage As DateTime = New Date(1, 1, 1) 'When we last got a message to display
+    Private pMessageWaitMinutes As Integer = 10
+
+    'Sleep this long before restarting main loop
+    Private pSleepMilliseconds As Integer = 30000
 
     'Private Interceptor As MessageInterceptor
 
@@ -55,7 +61,7 @@ Module modMain
         'Interceptor.MessageCondition = New MessageCondition(MessageProperty.Body, MessagePropertyComparisonType.Contains, pSMScode)
         'AddHandler Interceptor.MessageReceived, AddressOf Interceptor_MessageReceived
 
-        pUploadLastTime = New DateTime(1, 1, 1)
+        pLastTimeUpload = New DateTime(1, 1, 1)
         Try
             pUploadWaitMinutesSuccess = Integer.Parse(GetAppSetting("UploadMinutes", pUploadWaitMinutesSuccess))
         Catch
@@ -85,7 +91,7 @@ Module modMain
                             IO.File.Delete(pRanFilename)
                         Catch
                         End Try
-                    End If                    
+                    End If
                     IO.File.Move(pRunFilename, pRanFilename)
                 Catch
                 End Try
@@ -107,14 +113,8 @@ Module modMain
             End If
 
             If CanSend() Then
-                Select Case PowerBatteryStrength
-                    Case Microsoft.WindowsMobile.Status.BatteryLevel.VeryLow : lWaitMultiplier = 20
-                    Case Microsoft.WindowsMobile.Status.BatteryLevel.Low : lWaitMultiplier = 10
-                    Case Microsoft.WindowsMobile.Status.BatteryLevel.Medium : lWaitMultiplier = 2
-                    Case Else : lWaitMultiplier = 1
-                End Select
                 'If time to wait has elapsed or we upload on new cells and have entered a new cell
-                If (DateTime.UtcNow.Subtract(New TimeSpan(0, pUploadWaitMinutes * lWaitMultiplier, 0)) >= pUploadLastTime) _
+                If (DateTime.UtcNow.Subtract(New TimeSpan(0, pUploadWaitMinutes * lWaitMultiplier, 0)) >= pLastTimeUpload) _
                    OrElse (pUploadNewCells AndAlso InNewCell()) Then
                     StartGPS()
                     System.Threading.Thread.Sleep(pWaitForFixMinutes * 60000)
@@ -124,10 +124,18 @@ Module modMain
                     Else
                         pUploadWaitMinutes = pUploadWaitMinutesSuccess
                     End If
+                    Select Case PowerBatteryStrength
+                        Case Microsoft.WindowsMobile.Status.BatteryLevel.VeryLow : lWaitMultiplier = 20
+                        Case Microsoft.WindowsMobile.Status.BatteryLevel.Low : lWaitMultiplier = 10
+                        Case Microsoft.WindowsMobile.Status.BatteryLevel.Medium : lWaitMultiplier = 2
+                        Case Else : lWaitMultiplier = 1
+                    End Select
+                ElseIf (DateTime.UtcNow < pLastTimeMessage.AddMinutes(pMessageWaitMinutes)) Then 'If there was a recent message, keep checking more often
+                    SendLocation(Nothing)
                 End If
             End If
 
-            System.Threading.Thread.Sleep(60000)
+            System.Threading.Thread.Sleep(pSleepMilliseconds)
 
         End While
         'RemoveHandler Interceptor.MessageReceived, AddressOf Interceptor_MessageReceived
@@ -140,6 +148,15 @@ Module modMain
         Return PhoneGprsCoverage OrElse ConnectionsDesktopCount > 0 OrElse ConnectionsNetworkCount > 0
     End Function
 
+    Private Sub LogEx(ByVal e As Exception, Optional ByVal aDetails As String = "")
+        Dim lStream As IO.TextWriter = IO.File.CreateText(pErrorFilename)
+        lStream.WriteLine(Now.ToShortDateString & "  " & Now.ToShortTimeString)
+        If aDetails.Length > 0 Then lStream.WriteLine(aDetails)
+        lStream.WriteLine(e.Message)
+        lStream.WriteLine(e.StackTrace)
+        lStream.Close()
+    End Sub
+
     Private Function GetAppSetting(ByVal aSettingName As String, ByVal aDefaultValue As Object) As Object
         Try
             Dim lSoftwareKey As Microsoft.Win32.RegistryKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("Software")
@@ -148,7 +165,7 @@ Module modMain
                 If lAppKey IsNot Nothing Then Return lAppKey.GetValue(aSettingName, aDefaultValue)
             End If
         Catch e As Exception
-            Debug.WriteLine("Exception getting '" & aSettingName & "': " & e.Message)
+            LogEx(e, "GetAppSetting " & aSettingName)
         End Try
         Return aDefaultValue
     End Function
@@ -161,7 +178,7 @@ Module modMain
                 If lAppKey IsNot Nothing Then lAppKey.SetValue(aSettingName, aValue)
             End If
         Catch e As Exception
-            Debug.WriteLine("Exception setting '" & aSettingName & "': " & e.Message)
+            LogEx(e, "SaveAppSetting " & aSettingName)
         End Try
     End Sub
 
@@ -210,15 +227,13 @@ Module modMain
                   AndAlso GPS_POSITION.LongitudeValid _
                   AndAlso GPS_POSITION.SatellitesInSolutionValid _
                   AndAlso GPS_POSITION.SatelliteCount > 2 _
-                  AndAlso GPS_POSITION.Time > pLastGPStime.AddMinutes(1)) Then
-                    pLastGPStime = GPS_POSITION.Time
-                    pUploadLastTime = DateTime.UtcNow
+                  AndAlso GPS_POSITION.Time > pLastTimeGPS) Then
+                    pLastTimeGPS = GPS_POSITION.Time
                     StopGPS()
                     SendLocation(GPS_POSITION)
-                    pUploadLastTime = DateTime.UtcNow
                 End If
             Catch e As Exception
-                Debug.WriteLine(e.Message)
+                LogEx(e, "GPS_DEVICE_LocationChanged")
             End Try
         End If
     End Sub
@@ -238,7 +253,7 @@ Module modMain
         If lURL IsNot Nothing AndAlso lURL.Length > 0 Then
             Try
                 If GPS_POSITION Is Nothing Then
-                    BuildURL(lURL, "Time", "", Date.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fff") & "Z", False)
+                    BuildURL(lURL, "Time", "", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fff") & "Z", False)
                     BuildURL(lURL, "Lat", "", "", False)
                     BuildURL(lURL, "Lon", "", "", False)
 
@@ -246,7 +261,7 @@ Module modMain
                     BuildURL(lURL, "Speed", "", "", False)
                     BuildURL(lURL, "Heading", "", "", False)
                 Else
-                    BuildURL(lURL, "Time", GPS_POSITION.Time.ToString("yyyy-MM-ddTHH:mm:ss.fff") & "Z", Date.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fff") & "Z", GPS_POSITION.TimeValid)
+                    BuildURL(lURL, "Time", GPS_POSITION.Time.ToString("yyyy-MM-ddTHH:mm:ss.fff") & "Z", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fff") & "Z", GPS_POSITION.TimeValid)
                     BuildURL(lURL, "Lat", GPS_POSITION.Latitude.ToString("#.########"), "", GPS_POSITION.LatitudeValid)
                     BuildURL(lURL, "Lon", GPS_POSITION.Longitude.ToString("#.########"), "", GPS_POSITION.LongitudeValid)
 
@@ -265,8 +280,10 @@ Module modMain
                     BuildURL(lURL, "CellID", lCellId, "", True)
                 End If
                 SendURL(lURL, True)
-            Catch
+            Catch e As Exception
+                LogEx(e, lURL)
             End Try
+            pLastTimeUpload = DateTime.UtcNow
         End If
     End Sub
 
@@ -484,6 +501,7 @@ Module modMain
                         If IO.File.Exists(pMessageApplication) Then
                             CloseMessage()
                             pMessageProcess = Process.Start(pMessageApplication, UrlEncode(lMessage))
+                            pLastTimeMessage = DateTime.UtcNow
                         End If
                     Case "sms"
                         Dim lSendTo As String = aInstruction.Substring(8, 10)
@@ -581,7 +599,7 @@ Module modMain
                 Try
                     pPowerHandle.Add(aDeviceName, SetPowerRequirement(aDeviceName, PowerState.D0, 4097, IntPtr.Zero, 0))
                 Catch e As Exception
-                    Debug.WriteLine(aDeviceName & ": SetPowerRequirement: " & e.Message)
+                    LogEx(e, "SetPowerRequirementaDeviceName " & aDeviceName)
                 End Try
             End If
         Else
