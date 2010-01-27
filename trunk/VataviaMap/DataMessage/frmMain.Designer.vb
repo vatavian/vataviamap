@@ -52,7 +52,7 @@ Partial Public Class frmMain
         Me.txtReceive.Multiline = True
         Me.txtReceive.Name = "txtReceive"
         Me.txtReceive.Size = New System.Drawing.Size(170, 117)
-        Me.txtReceive.TabIndex = 1
+        Me.txtReceive.TabIndex = 2
         '
         'txtSend
         '
@@ -65,13 +65,14 @@ Partial Public Class frmMain
         Me.txtSend.Multiline = True
         Me.txtSend.Name = "txtSend"
         Me.txtSend.Size = New System.Drawing.Size(169, 51)
-        Me.txtSend.TabIndex = 2
+        Me.txtSend.TabIndex = 1
         '
         'frmMain
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(96.0!, 96.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Dpi
         Me.AutoScroll = True
+        Me.BackColor = System.Drawing.Color.Red
         Me.ClientSize = New System.Drawing.Size(176, 180)
         Me.Controls.Add(Me.txtSend)
         Me.Controls.Add(Me.txtReceive)
