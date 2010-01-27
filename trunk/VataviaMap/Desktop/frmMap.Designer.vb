@@ -69,12 +69,9 @@ Partial Class frmMap
         Me.OpenCellIDToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.HelpToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.VataviaMapProjectPageToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
-        Me.RightClickMenu = New System.Windows.Forms.ContextMenuStrip(Me.components)
         Me.RefreshFromServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
-        Me.GetAllDescendantsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.pMap = New VataviaMap.ctlMap
         Me.MenuStripMain.SuspendLayout()
-        Me.RightClickMenu.SuspendLayout()
         Me.SuspendLayout()
         '
         'MenuStripMain
@@ -360,24 +357,6 @@ Partial Class frmMap
         Me.VataviaMapProjectPageToolStripMenuItem.Size = New System.Drawing.Size(205, 22)
         Me.VataviaMapProjectPageToolStripMenuItem.Text = "VataviaMap Project Page"
         '
-        'RightClickMenu
-        '
-        Me.RightClickMenu.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.RefreshFromServerToolStripMenuItem, Me.GetAllDescendantsToolStripMenuItem})
-        Me.RightClickMenu.Name = "ContextMenuStrip1"
-        Me.RightClickMenu.Size = New System.Drawing.Size(186, 48)
-        '
-        'RefreshFromServerToolStripMenuItem
-        '
-        Me.RefreshFromServerToolStripMenuItem.Name = "RefreshFromServerToolStripMenuItem"
-        Me.RefreshFromServerToolStripMenuItem.Size = New System.Drawing.Size(185, 22)
-        Me.RefreshFromServerToolStripMenuItem.Text = "Refresh From Server"
-        '
-        'GetAllDescendantsToolStripMenuItem
-        '
-        Me.GetAllDescendantsToolStripMenuItem.Name = "GetAllDescendantsToolStripMenuItem"
-        Me.GetAllDescendantsToolStripMenuItem.Size = New System.Drawing.Size(185, 22)
-        Me.GetAllDescendantsToolStripMenuItem.Text = "Get All Descendants"
-        '
         'pMap
         '
         Me.pMap.Dock = System.Windows.Forms.DockStyle.Fill
@@ -403,7 +382,6 @@ Partial Class frmMap
         Me.Text = "VataviaMap"
         Me.MenuStripMain.ResumeLayout(False)
         Me.MenuStripMain.PerformLayout()
-        Me.RightClickMenu.ResumeLayout(False)
         Me.ResumeLayout(False)
         Me.PerformLayout()
 
@@ -414,10 +392,8 @@ Partial Class frmMap
     Friend WithEvents ViewToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents TileOutlinesToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents TileNamesToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents RightClickMenu As System.Windows.Forms.ContextMenuStrip
     Friend WithEvents RefreshFromServerToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents TileImagesToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents GetAllDescendantsToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents AddLayerToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents RemoveAllLayersToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents TileServerToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem

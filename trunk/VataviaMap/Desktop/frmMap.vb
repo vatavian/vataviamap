@@ -133,22 +133,6 @@ Public Class frmMap
         End If
     End Sub
 
-    Private Sub GetAllDescendantsToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles GetAllDescendantsToolStripMenuItem.Click
-        'If pClickedTileFilename.Length > 0 Then
-        '    Me.UseWaitCursor = True
-        '    Try
-        '        Debug.WriteLine("Getting descendants of  '" & pClickedTileFilename & "'")
-        '        Dim lParentY As Integer = IO.Path.GetFileNameWithoutExtension(pClickedTileFilename)
-        '        Dim lParentX As Integer = IO.Path.GetFileName(IO.Path.GetDirectoryName(pClickedTileFilename))
-        '        pDownloader.DownloadDescendants(New Point(lParentX, lParentY), pZoom)
-        '    Catch ex As Exception
-        '        MsgBox("'" & pClickedTileFilename & "'" & vbCrLf & ex.Message, MsgBoxStyle.Critical, "Error Getting Descendant Tiles")
-        '    End Try
-        '    pClickedTileFilename = ""
-        '    Me.UseWaitCursor = False
-        'End If
-    End Sub
-
     Private Sub SaveAsToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles SaveAsToolStripMenuItem.Click
         Dim lSaveDialog As New SaveFileDialog
         With lSaveDialog
@@ -661,4 +645,5 @@ Public Class frmMap
             End If
         Next
     End Sub
+
 End Class

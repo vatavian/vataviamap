@@ -1527,6 +1527,201 @@ Public Class ctlMap
         End If
     End Sub
 
+    Public Sub ClosestGeocache()
+        'Me.Visible = False
+
+        If Layers IsNot Nothing AndAlso Layers.Count > 0 Then
+            Dim lMiddlemostCache As clsGPXwaypoint = Nothing
+            Dim lClosestDistance As Double = Double.MaxValue
+            Dim lThisDistance As Double
+            For Each lLayer As clsLayer In Layers
+                Try
+                    Dim lGPXLayer As clsLayerGPX = lLayer
+                    Dim lDrawThisOne As Boolean = True
+                    If lGPXLayer.GPX.bounds IsNot Nothing Then
+                        With lGPXLayer.GPX.bounds 'Skip drawing this one if it is not in view
+                            If .minlat > CenterLat + LatHeight / 2 OrElse _
+                                .maxlat < CenterLat - LatHeight / 2 OrElse _
+                                .minlon > CenterLon + LonWidth / 2 OrElse _
+                                .maxlon < CenterLon - LonWidth / 2 Then
+                                lDrawThisOne = False
+                            End If
+                        End With
+                    End If
+                    If lDrawThisOne Then
+                        For Each lWaypoint As clsGPXwaypoint In lGPXLayer.GPX.wpt
+                            lThisDistance = (lWaypoint.lat - CenterLat) ^ 2 + (lWaypoint.lon - CenterLon) ^ 2
+                            If lThisDistance < lClosestDistance Then
+                                lMiddlemostCache = lWaypoint
+                                lClosestDistance = lThisDistance
+                            End If
+                        Next
+                    End If
+                Catch
+                End Try
+            Next
+            If lMiddlemostCache IsNot Nothing Then
+                'Dim lGeocacheForm As New frmGeocacheMobile
+                'With lMiddlemostCache
+                '    lGeocacheForm.URL = .url
+                '    Dim lText As String = ""
+
+                '    lText &= .name & " " _
+                '          & FormattedDegrees(.lat, g_DegreeFormat) & ", " _
+                '          & FormattedDegrees(.lon, g_DegreeFormat) & vbLf
+
+                '    If .desc IsNot Nothing AndAlso .desc.Length > 0 Then
+                '        lText &= .desc & vbLf
+                '    ElseIf .urlname IsNot Nothing AndAlso .urlname.Length > 0 Then
+                '        lText &= .urlname
+                '        If .cache IsNot Nothing Then
+                '            lText &= " (" & Format(.cache.difficulty, "#.#") & "/" _
+                '                          & Format(.cache.terrain, "#.#") & ")"
+                '        End If
+                '        lText &= vbLf
+                '    End If
+
+                '    If .cmt IsNot Nothing AndAlso .cmt.Length > 0 Then lText &= "comment: " & .cmt & vbLf
+
+                '    If .cache IsNot Nothing AndAlso .cache.container IsNot Nothing AndAlso .cache.container.Length > 0 Then lText &= .cache.container & ", "
+                '    If .type IsNot Nothing AndAlso .type.Length > 0 Then
+                '        If .type.StartsWith("Geocache|") Then
+                '            lText &= "type: " & .type.Substring(9) & vbLf
+                '        Else
+                '            lText &= "type: " & .type & vbLf
+                '        End If
+                '    ElseIf .cache IsNot Nothing AndAlso .cache.cachetype IsNot Nothing AndAlso .cache.cachetype.Length > 0 Then
+                '        lText &= "type: " & .type & vbLf
+                '    End If
+
+                '    If .cache IsNot Nothing Then
+                '        If .cache.archived Then lText &= "ARCHIVED" & vbLf
+
+                '        If .cache.short_description IsNot Nothing AndAlso .cache.short_description.Length > 0 Then
+                '            lText &= .cache.short_description.Replace("<br>", vbLf) & vbLf
+                '        End If
+                '        If .cache.long_description IsNot Nothing AndAlso .cache.long_description.Length > 0 Then
+                '            lText &= .cache.long_description.Replace("<br>", vbLf) & vbLf
+                '        End If
+
+                '        If .cache.encoded_hints IsNot Nothing AndAlso .cache.encoded_hints.Length > 0 Then
+                '            lText &= "Hint: " & .cache.encoded_hints & vbLf
+                '        End If
+
+                '        If .cache.logs IsNot Nothing AndAlso .cache.logs.Length > 0 Then lText &= "Logs: " & .cache.logs & vbLf
+                '        If .cache.placed_by IsNot Nothing AndAlso .cache.placed_by.Length > 0 Then lText &= "Placed by: " & .cache.placed_by & vbLf
+                '        If .cache.owner IsNot Nothing AndAlso .cache.owner.Length > 0 Then lText &= "Owner: " & .cache.owner & vbLf
+                '        If .cache.travelbugs IsNot Nothing AndAlso .cache.travelbugs.Length > 0 Then lText &= "Travellers: " & .cache.travelbugs & vbLf
+
+                '    End If
+                '    If .extensions IsNot Nothing Then lText &= .extensions.OuterXml
+
+                '    lGeocacheForm.txtMain.Text = lText
+                'End With
+                'lGeocacheForm.Show()
+
+                With lMiddlemostCache
+                    Windows.Forms.Clipboard.SetDataObject(.name)
+                    Dim lText As String = "<html><head><title>" & .name & "</title></head><body>"
+
+                    lText &= "<b><a href=""" & .url & """>" & .name & "</a></b> " _
+                          & FormattedDegrees(.lat, g_DegreeFormat) & ", " _
+                          & FormattedDegrees(.lon, g_DegreeFormat) & "<br>"
+
+                    If .desc IsNot Nothing AndAlso .desc.Length > 0 Then
+                        lText &= .desc
+                    ElseIf .urlname IsNot Nothing AndAlso .urlname.Length > 0 Then
+                        lText &= .urlname
+                        If .cache IsNot Nothing Then
+                            lText &= " (" & Format(.cache.difficulty, "#.#") & "/" _
+                                          & Format(.cache.terrain, "#.#") & ")"
+                        End If
+                    End If
+
+                    Dim lType As String = Nothing
+                    If .type IsNot Nothing AndAlso .type.Length > 0 Then
+                        lType = .type
+                        If lType.StartsWith("Geocache|") Then lType = lType.Substring(9)
+                    End If
+                    If lType Is Nothing AndAlso .cache IsNot Nothing AndAlso .cache.cachetype IsNot Nothing AndAlso .cache.cachetype.Length > 0 Then
+                        lType = .cache.cachetype
+                    End If
+                    If lType IsNot Nothing AndAlso lText.IndexOf(lType) = -1 Then
+                        lText &= " <b>" & .type & "</b>"
+                    End If
+
+                    If .cache IsNot Nothing AndAlso .cache.container IsNot Nothing AndAlso .cache.container.Length > 0 Then lText &= " <b>" & .cache.container & "</b>"
+                    lText &= "<br>"
+
+                    If .cmt IsNot Nothing AndAlso .cmt.Length > 0 Then lText &= "<b>comment:</b> " & .cmt & "<br>"
+
+                    If .cache IsNot Nothing Then
+                        If .cache.archived Then lText &= "<h2>ARCHIVED</h2><br>"
+
+                        If .cache.short_description IsNot Nothing AndAlso .cache.short_description.Length > 0 Then
+                            lText &= .cache.short_description & "<br>"
+                        End If
+                        If .cache.long_description IsNot Nothing AndAlso .cache.long_description.Length > 0 Then
+                            lText &= .cache.long_description & "<br>"
+                        End If
+
+                        If .cache.encoded_hints IsNot Nothing AndAlso .cache.encoded_hints.Length > 0 Then
+                            lText &= "<b>Hint:</b> " & .cache.encoded_hints & "<br>"
+                        End If
+
+                        If .cache.logs IsNot Nothing AndAlso .cache.logs.Count > 0 Then
+                            'T19:00:00 is the time for all logs? remove it and format the entries a bit
+                            Dim lIconPath As String = pTileCacheFolder & "Icons" & g_PathChar & "Geocache" & g_PathChar
+                            Dim lIconFilename As String
+                            lText &= "<b>Logs:</b><br>"
+                            For Each lLog As clsGroundspeakLog In .cache.logs
+                                Select Case lLog.logtype
+                                    Case "Found it" : lIconFilename = lIconPath & "icon_smile.gif"
+                                    Case "Didn't find it" : lIconFilename = lIconPath & "icon_sad.gif"
+                                    Case "Write note" : lIconFilename = lIconPath & "icon_note.gif"
+                                    Case "Enable Listing" : lIconFilename = lIconPath & "icon_enabled.gif"
+                                    Case "Temporarily Disable Listing" : lIconFilename = lIconPath & "icon_disabled.gif"
+                                    Case "Needs Maintenance" : lIconFilename = lIconPath & "icon_needsmaint.gif"
+                                    Case "Owner Maintenance" : lIconFilename = lIconPath & "icon_maint.gif"
+                                    Case "Publish Listing" : lIconFilename = lIconPath & "icon_greenlight.gif"
+                                    Case "Update Coordinates" : lIconFilename = lIconPath & "coord_update.gif"
+                                    Case "Will Attend" : lIconFilename = lIconPath & "icon_rsvp.gif"
+                                    Case Else : lIconFilename = ""
+                                End Select
+                                If IO.File.Exists(lIconFilename) Then
+                                    lText &= "<img src=""" & lIconFilename & """>"
+                                Else
+                                    lText &= lLog.logtype
+                                End If
+                                lText &= "<b>" & lLog.logdate.Replace("T19:00:00", "") & "</b> " & lLog.logfinder & ": " & lLog.logtext & "<br>"
+                            Next
+                            'Dim lLastTimePos As Integer = 0
+                            'Dim lTimePos As Integer = .cache.logs.IndexOf()
+                            'While lTimePos > 0
+                            '    lText &= .cache.logs.Substring(lLastTimePos, lTimePos - lLastTimePos - 10) & "<br><b>" & .cache.logs.Substring(lTimePos - 10, 10) & "</b> "
+                            '    lLastTimePos = lTimePos + 9
+                            '    lTimePos = .cache.logs.IndexOf("T19:00:00", lTimePos + 10)
+                            'End While
+                            'lText &= .cache.logs.Substring(lLastTimePos + 9) & "<p>"
+                        End If
+                        If .cache.placed_by IsNot Nothing AndAlso .cache.placed_by.Length > 0 Then lText &= "<b>Placed by:</b> " & .cache.placed_by & "<br>"
+                        If .cache.owner IsNot Nothing AndAlso .cache.owner.Length > 0 Then lText &= "<b>Owner:</b> " & .cache.owner & "<br>"
+                        If .cache.travelbugs IsNot Nothing AndAlso .cache.travelbugs.Length > 0 Then lText &= "<b>Travellers:</b> " & .cache.travelbugs & "<br>"
+                    End If
+                    lText &= .extensionsString
+                    Dim lTempFilename As String = IO.Path.Combine(IO.Path.GetTempPath, "cache.html")
+                    Dim lStream As IO.StreamWriter = IO.File.CreateText(lTempFilename)
+                    lStream.Write(lText)
+                    lStream.Write("<br><a href=""http://wap.geocaching.com/"">Official WAP</a><br>")
+                    lStream.Close()
+                    OpenFile(lTempFilename)
+                End With
+            End If
+        End If
+        'Me.Visible = True
+        Redraw()
+    End Sub
+
 #If Smartphone Then
 
 #Region "Smartphone"
@@ -2055,203 +2250,6 @@ SetCenter:
         aURL = aURL.Replace("#" & aTag & "#", lReplacement)
     End Sub
 
-    Public Sub ClosestGeocache()
-        Me.Visible = False
-
-        If Layers IsNot Nothing AndAlso Layers.Count > 0 Then
-            Dim lMiddlemostCache As clsGPXwaypoint = Nothing
-            Dim lClosestDistance As Double = Double.MaxValue
-            Dim lThisDistance As Double
-            For Each lLayer As clsLayer In Layers
-                Try
-                    Dim lGPXLayer As clsLayerGPX = lLayer
-                    Dim lDrawThisOne As Boolean = True
-                    If lGPXLayer.GPX.bounds IsNot Nothing Then
-                        With lGPXLayer.GPX.bounds 'Skip drawing this one if it is not in view
-                            If .minlat > CenterLat + LatHeight / 2 OrElse _
-                                .maxlat < CenterLat - LatHeight / 2 OrElse _
-                                .minlon > CenterLon + LonWidth / 2 OrElse _
-                                .maxlon < CenterLon - LonWidth / 2 Then
-                                lDrawThisOne = False
-                            End If
-                        End With
-                    End If
-                    If lDrawThisOne Then
-                        For Each lWaypoint As clsGPXwaypoint In lGPXLayer.GPX.wpt
-                            lThisDistance = (lWaypoint.lat - CenterLat) ^ 2 + (lWaypoint.lon - CenterLon) ^ 2
-                            If lThisDistance < lClosestDistance Then
-                                lMiddlemostCache = lWaypoint
-                                lClosestDistance = lThisDistance
-                            End If
-                        Next
-                    End If
-                Catch
-                End Try
-            Next
-            If lMiddlemostCache IsNot Nothing Then
-                'Dim lGeocacheForm As New frmGeocacheMobile
-                'With lMiddlemostCache
-                '    lGeocacheForm.URL = .url
-                '    Dim lText As String = ""
-
-                '    lText &= .name & " " _
-                '          & FormattedDegrees(.lat, g_DegreeFormat) & ", " _
-                '          & FormattedDegrees(.lon, g_DegreeFormat) & vbLf
-
-                '    If .desc IsNot Nothing AndAlso .desc.Length > 0 Then
-                '        lText &= .desc & vbLf
-                '    ElseIf .urlname IsNot Nothing AndAlso .urlname.Length > 0 Then
-                '        lText &= .urlname
-                '        If .cache IsNot Nothing Then
-                '            lText &= " (" & Format(.cache.difficulty, "#.#") & "/" _
-                '                          & Format(.cache.terrain, "#.#") & ")"
-                '        End If
-                '        lText &= vbLf
-                '    End If
-
-                '    If .cmt IsNot Nothing AndAlso .cmt.Length > 0 Then lText &= "comment: " & .cmt & vbLf
-
-                '    If .cache IsNot Nothing AndAlso .cache.container IsNot Nothing AndAlso .cache.container.Length > 0 Then lText &= .cache.container & ", "
-                '    If .type IsNot Nothing AndAlso .type.Length > 0 Then
-                '        If .type.StartsWith("Geocache|") Then
-                '            lText &= "type: " & .type.Substring(9) & vbLf
-                '        Else
-                '            lText &= "type: " & .type & vbLf
-                '        End If
-                '    ElseIf .cache IsNot Nothing AndAlso .cache.cachetype IsNot Nothing AndAlso .cache.cachetype.Length > 0 Then
-                '        lText &= "type: " & .type & vbLf
-                '    End If
-
-                '    If .cache IsNot Nothing Then
-                '        If .cache.archived Then lText &= "ARCHIVED" & vbLf
-
-                '        If .cache.short_description IsNot Nothing AndAlso .cache.short_description.Length > 0 Then
-                '            lText &= .cache.short_description.Replace("<br>", vbLf) & vbLf
-                '        End If
-                '        If .cache.long_description IsNot Nothing AndAlso .cache.long_description.Length > 0 Then
-                '            lText &= .cache.long_description.Replace("<br>", vbLf) & vbLf
-                '        End If
-
-                '        If .cache.encoded_hints IsNot Nothing AndAlso .cache.encoded_hints.Length > 0 Then
-                '            lText &= "Hint: " & .cache.encoded_hints & vbLf
-                '        End If
-
-                '        If .cache.logs IsNot Nothing AndAlso .cache.logs.Length > 0 Then lText &= "Logs: " & .cache.logs & vbLf
-                '        If .cache.placed_by IsNot Nothing AndAlso .cache.placed_by.Length > 0 Then lText &= "Placed by: " & .cache.placed_by & vbLf
-                '        If .cache.owner IsNot Nothing AndAlso .cache.owner.Length > 0 Then lText &= "Owner: " & .cache.owner & vbLf
-                '        If .cache.travelbugs IsNot Nothing AndAlso .cache.travelbugs.Length > 0 Then lText &= "Travellers: " & .cache.travelbugs & vbLf
-
-                '    End If
-                '    If .extensions IsNot Nothing Then lText &= .extensions.OuterXml
-
-                '    lGeocacheForm.txtMain.Text = lText
-                'End With
-                'lGeocacheForm.Show()
-
-                With lMiddlemostCache
-                    Windows.Forms.Clipboard.SetDataObject(.name)
-                    Dim lText As String = "<html><head><title>" & .name & "</title></head><body>"
-
-                    lText &= "<b><a href=""" & .url & """>" & .name & "</a></b> " _
-                          & FormattedDegrees(.lat, g_DegreeFormat) & ", " _
-                          & FormattedDegrees(.lon, g_DegreeFormat) & "<br>"
-
-                    If .desc IsNot Nothing AndAlso .desc.Length > 0 Then
-                        lText &= .desc
-                    ElseIf .urlname IsNot Nothing AndAlso .urlname.Length > 0 Then
-                        lText &= .urlname
-                        If .cache IsNot Nothing Then
-                            lText &= " (" & Format(.cache.difficulty, "#.#") & "/" _
-                                          & Format(.cache.terrain, "#.#") & ")"
-                        End If
-                    End If
-
-                    Dim lType As String = Nothing
-                    If .type IsNot Nothing AndAlso .type.Length > 0 Then
-                        lType = .type
-                        If lType.StartsWith("Geocache|") Then lType = lType.Substring(9)
-                    End If
-                    If lType Is Nothing AndAlso .cache IsNot Nothing AndAlso .cache.cachetype IsNot Nothing AndAlso .cache.cachetype.Length > 0 Then
-                        lType = .cache.cachetype
-                    End If
-                    If lType IsNot Nothing AndAlso lText.IndexOf(lType) = -1 Then
-                        lText &= " <b>" & .type & "</b>"
-                    End If
-
-                    If .cache IsNot Nothing AndAlso .cache.container IsNot Nothing AndAlso .cache.container.Length > 0 Then lText &= " <b>" & .cache.container & "</b>"
-                    lText &= "<br>"
-
-                    If .cmt IsNot Nothing AndAlso .cmt.Length > 0 Then lText &= "<b>comment:</b> " & .cmt & "<br>"
-
-                    If .cache IsNot Nothing Then
-                        If .cache.archived Then lText &= "<h2>ARCHIVED</h2><br>"
-
-                        If .cache.short_description IsNot Nothing AndAlso .cache.short_description.Length > 0 Then
-                            lText &= .cache.short_description & "<br>"
-                        End If
-                        If .cache.long_description IsNot Nothing AndAlso .cache.long_description.Length > 0 Then
-                            lText &= .cache.long_description & "<br>"
-                        End If
-
-                        If .cache.encoded_hints IsNot Nothing AndAlso .cache.encoded_hints.Length > 0 Then
-                            lText &= "<b>Hint:</b> " & .cache.encoded_hints & "<br>"
-                        End If
-
-                        If .cache.logs IsNot Nothing AndAlso .cache.logs.Count > 0 Then
-                            'T19:00:00 is the time for all logs? remove it and format the entries a bit
-                            Dim lIconPath As String = pTileCacheFolder & "Icons" & g_PathChar & "Geocache" & g_PathChar
-                            Dim lIconFilename As String
-                            lText &= "<b>Logs:</b><br>"
-                            For Each lLog As clsGroundspeakLog In .cache.logs
-                                Select Case lLog.logtype
-                                    Case "Found it" : lIconFilename = lIconPath & "icon_smile.gif"
-                                    Case "Didn't find it" : lIconFilename = lIconPath & "icon_sad.gif"
-                                    Case "Write note" : lIconFilename = lIconPath & "icon_note.gif"
-                                    Case "Enable Listing" : lIconFilename = lIconPath & "icon_enabled.gif"
-                                    Case "Temporarily Disable Listing" : lIconFilename = lIconPath & "icon_disabled.gif"
-                                    Case "Needs Maintenance" : lIconFilename = lIconPath & "icon_needsmaint.gif"
-                                    Case "Owner Maintenance" : lIconFilename = lIconPath & "icon_maint.gif"
-                                    Case "Publish Listing" : lIconFilename = lIconPath & "icon_greenlight.gif"
-                                    Case "Update Coordinates" : lIconFilename = lIconPath & "coord_update.gif"
-                                    Case "Will Attend" : lIconFilename = lIconPath & "icon_rsvp.gif"
-                                    Case Else : lIconFilename = ""
-                                End Select
-                                If IO.File.Exists(lIconFilename) Then
-                                    lText &= "<img src=""" & lIconFilename & """>"
-                                Else
-                                    lText &= lLog.logtype
-                                End If
-                                lText &= "<b>" & lLog.logdate.Replace("T19:00:00", "") & "</b> " & lLog.logfinder & ": " & lLog.logtext & "<br>"
-                            Next
-                            'Dim lLastTimePos As Integer = 0
-                            'Dim lTimePos As Integer = .cache.logs.IndexOf()
-                            'While lTimePos > 0
-                            '    lText &= .cache.logs.Substring(lLastTimePos, lTimePos - lLastTimePos - 10) & "<br><b>" & .cache.logs.Substring(lTimePos - 10, 10) & "</b> "
-                            '    lLastTimePos = lTimePos + 9
-                            '    lTimePos = .cache.logs.IndexOf("T19:00:00", lTimePos + 10)
-                            'End While
-                            'lText &= .cache.logs.Substring(lLastTimePos + 9) & "<p>"
-                        End If
-                        If .cache.placed_by IsNot Nothing AndAlso .cache.placed_by.Length > 0 Then lText &= "<b>Placed by:</b> " & .cache.placed_by & "<br>"
-                        If .cache.owner IsNot Nothing AndAlso .cache.owner.Length > 0 Then lText &= "<b>Owner:</b> " & .cache.owner & "<br>"
-                        If .cache.travelbugs IsNot Nothing AndAlso .cache.travelbugs.Length > 0 Then lText &= "<b>Travellers:</b> " & .cache.travelbugs & "<br>"
-                    End If
-                    lText &= .extensionsString
-
-                    Dim lStream As IO.StreamWriter = IO.File.CreateText("\My Documents\cache.html")
-                    lStream.Write(lText)
-                    lStream.Write("<br><a href=""http://wap.geocaching.com/"">Official WAP</a><br>")
-                    lStream.Write("<br><a href=""http://rtr.ca/geo?W=" & .name & """>rtr.ca WAP</a></body></html>")
-                    lStream.Close()
-                    OpenFile("\My Documents\cache.html")
-                End With
-
-            End If
-        End If
-        Me.Visible = True
-        Redraw()
-    End Sub
-
     Public Property DisplayTrack() As Boolean
         Get
             Return pDisplayTrack
@@ -2473,6 +2471,7 @@ SetCenter:
 #Region "Desktop"
     Friend WithEvents RightClickMenu As System.Windows.Forms.ContextMenuStrip
     Friend WithEvents RefreshFromServerToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents ClosestGeocacheToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
 
     Public Sub CopyToClipboard()
         pBitmapMutex.WaitOne()
@@ -2611,9 +2610,11 @@ SetCenter:
                     If RightClickMenu Is Nothing Then
                         RefreshFromServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
                         RefreshFromServerToolStripMenuItem.Text = "Refresh From Server"
+                        ClosestGeocacheToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+                        ClosestGeocacheToolStripMenuItem.Text = "Closest Geocache"
                         RightClickMenu = New System.Windows.Forms.ContextMenuStrip()
-                        RightClickMenu.Items.AddRange(New System.Windows.Forms.ToolStripItem() {RefreshFromServerToolStripMenuItem}) ', GetAllDescendantsToolStripMenuItem})
-                        RightClickMenu.Size = New System.Drawing.Size(186, 48)
+                        RightClickMenu.Items.AddRange(New System.Windows.Forms.ToolStripItem() _
+                            {RefreshFromServerToolStripMenuItem, ClosestGeocacheToolStripMenuItem}) ', GetAllDescendantsToolStripMenuItem})
                     End If
                     RightClickMenu.Show(Me, e.Location)
                 End If
@@ -2632,6 +2633,10 @@ SetCenter:
             End Try
             ClickedTileFilename = ""
         End If
+    End Sub
+
+    Private Sub ClosestGeocacheToolStripMenuItem_Click(ByVal sender As Object, ByVal e As System.EventArgs) Handles ClosestGeocacheToolStripMenuItem.Click
+        ClosestGeocache()
     End Sub
 
     Private Sub Event_MouseMove(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles Me.MouseMove
