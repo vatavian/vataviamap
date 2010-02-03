@@ -71,6 +71,7 @@ Partial Class frmMap
         Me.VataviaMapProjectPageToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.RefreshFromServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.pMap = New VataviaMap.ctlMap
+        Me.TimeZoneToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.MenuStripMain.SuspendLayout()
         Me.SuspendLayout()
         '
@@ -85,7 +86,7 @@ Partial Class frmMap
         '
         'FileToolStripMenuItem
         '
-        Me.FileToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.SaveAsToolStripMenuItem, Me.CopyToClipboardToolStripMenuItem, Me.AddLayerToolStripMenuItem, Me.LayersToolStripMenuItem, Me.RemoveAllLayersToolStripMenuItem, Me.OpenOSMWebsiteToolStripMenuItem, Me.OpenJOSMToolStripMenuItem, Me.FollowOSMURLToolStripMenuItem, Me.GetOSMBugsToolStripMenuItem, Me.ExitToolStripSeparator, Me.ExitToolStripMenuItem})
+        Me.FileToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.SaveAsToolStripMenuItem, Me.CopyToClipboardToolStripMenuItem, Me.AddLayerToolStripMenuItem, Me.LayersToolStripMenuItem, Me.RemoveAllLayersToolStripMenuItem, Me.OpenOSMWebsiteToolStripMenuItem, Me.OpenJOSMToolStripMenuItem, Me.FollowOSMURLToolStripMenuItem, Me.GetOSMBugsToolStripMenuItem, Me.ExitToolStripSeparator, Me.ExitToolStripMenuItem, Me.TimeZoneToolStripMenuItem})
         Me.FileToolStripMenuItem.Name = "FileToolStripMenuItem"
         Me.FileToolStripMenuItem.Size = New System.Drawing.Size(35, 20)
         Me.FileToolStripMenuItem.Text = "File"
@@ -367,6 +368,12 @@ Partial Class frmMap
         Me.pMap.TileCacheFolder = ""
         Me.pMap.Zoom = 10
         '
+        'TimeZoneToolStripMenuItem
+        '
+        Me.TimeZoneToolStripMenuItem.Name = "TimeZoneToolStripMenuItem"
+        Me.TimeZoneToolStripMenuItem.Size = New System.Drawing.Size(223, 22)
+        Me.TimeZoneToolStripMenuItem.Text = "Time Zone"
+        '
         'frmMap
         '
         Me.AllowDrop = True
@@ -432,4 +439,5 @@ Partial Class frmMap
     Friend WithEvents WaypointsToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents TimestampToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents pMap As VataviaMap.ctlMap
+    Friend WithEvents TimeZoneToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
 End Class

@@ -86,14 +86,33 @@ Public Class frmLayers
                 End If
                 lItem.Checked = lLayer.Visible
                 If lLayer.GetType.Name = "clsLayerGPX" Then
+                    Dim lFirstPoint As clsGPXwaypoint = Nothing
+                    Dim lLastPoint As clsGPXwaypoint = Nothing
                     Dim lGPX As clsLayerGPX = lLayer
                     Dim lTracks As Generic.List(Of clsGPXtrack) = lGPX.GPX.trk
                     If lTracks IsNot Nothing AndAlso lTracks.Count > 0 Then
-                        Dim lFirstTrackPoint As clsGPXwaypoint = lTracks(0).trkseg(0).trkpt(0)
+                        lFirstPoint = lTracks(0).trkseg(0).trkpt(0)
                         Dim lLastTrackSeg As clsGPXtracksegment = lTracks(lTracks.Count - 1).trkseg(lTracks(lTracks.Count - 1).trkseg.Count - 1)
-                        Dim lLastTrackPoint As clsGPXwaypoint = lLastTrackSeg.trkpt(lLastTrackSeg.trkpt.Count - 1)
-                        lItem.SubItems.Add(lLastTrackPoint.time.Subtract(lFirstTrackPoint.time).ToString)
+                        lLastPoint = lLastTrackSeg.trkpt(lLastTrackSeg.trkpt.Count - 1)
+                    Else
+                        If lGPX.GPX.wpt IsNot Nothing AndAlso lGPX.GPX.wpt.Count > 0 Then
+                            lFirstPoint = lGPX.GPX.wpt(0)
+                            lLastPoint = lGPX.GPX.wpt(lGPX.GPX.wpt.Count - 1)
+                        End If
                     End If
+                    If lFirstPoint Is Nothing OrElse lFirstPoint.time.Year < 2 Then
+                        lItem.SubItems.Add("")
+                    Else
+                        lItem.SubItems.Add(lFirstPoint.time.ToString)
+                    End If
+                    If lLastPoint Is Nothing OrElse lLastPoint.time.Subtract(lFirstPoint.time).TotalSeconds < 1 Then
+                        lItem.SubItems.Add("")
+                    Else
+                        lItem.SubItems.Add(lLastPoint.time.Subtract(lFirstPoint.time).ToString)
+                    End If
+                Else
+                    lItem.SubItems.Add("") 'TODO: get file date from lLayer.Filename
+                    lItem.SubItems.Add("")
                 End If
                 If Not lLabelFieldsSet Then
                     cboLabelField.Items.Clear()

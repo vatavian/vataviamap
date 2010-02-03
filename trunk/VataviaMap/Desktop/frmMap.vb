@@ -7,6 +7,7 @@ Public Class frmMap
     WithEvents pCoordinatesForm As frmCoordinates
     WithEvents pTileServerForm As frmEditNameURL
     WithEvents pOpenCellIDForm As frmOpenCellID
+    WithEvents pTimeZoneForm As frmTimeZone
 
     Private pLastKeyDown As Integer = 0
 
@@ -94,6 +95,14 @@ Public Class frmMap
 
     Private Sub frmMap_Shown(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Shown
         pMap.Redraw()
+        Dim lOffsetHours As Integer = pMap.ImportOffsetFromUTC.Hours
+        Dim lOffsetSign As String = ""
+        If lOffsetHours >= 0 Then lOffsetSign = "+"
+        Dim lOffsetSuffix As String = ""
+        If pMap.ImportOffsetFromUTC.Minutes > 0 Then
+            lOffsetSuffix = ":" & Format(pMap.ImportOffsetFromUTC.Minutes, "00")
+        End If
+        TimeZoneToolStripMenuItem.Text = "Time Zone (UTC " & lOffsetSign & lOffsetHours & lOffsetSuffix & ")"
     End Sub
 
     ' Prevent flickering when default implementation redraws background
@@ -646,4 +655,21 @@ Public Class frmMap
         Next
     End Sub
 
+    Private Sub TimeZoneToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles TimeZoneToolStripMenuItem.Click
+        If pTimeZoneForm IsNot Nothing Then
+            Try
+                pTimeZoneForm.Close()
+            Catch
+            End Try
+        End If
+        pTimeZoneForm = New frmTimeZone
+        pTimeZoneForm.Icon = Me.Icon
+        pTimeZoneForm.numHours.Value = pMap.ImportOffsetFromUTC.Hours
+        pTimeZoneForm.numMinutes.Value = pMap.ImportOffsetFromUTC.Minutes
+        pTimeZoneForm.Show()
+    End Sub
+
+    Private Sub pTimeZoneForm_Changed(ByVal aUTCoffset As System.TimeSpan) Handles pTimeZoneForm.Changed
+        pMap.ImportOffsetFromUTC = aUTCoffset
+    End Sub
 End Class
