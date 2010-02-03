@@ -65,6 +65,12 @@
     <Compile Include="Desktop\frmOpenCellID.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Desktop\frmTimeZone.Designer.vb">
+      <DependentUpon>frmTimeZone.vb</DependentUpon>
+    </Compile>
+    <Compile Include="Desktop\frmTimeZone.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Desktop\frmWaypoints.Designer.vb">
       <DependentUpon>frmWaypoints.vb</DependentUpon>
     </Compile>
@@ -156,6 +162,10 @@
     <EmbeddedResource Include="Desktop\frmOpenCellID.resx">
       <SubType>Designer</SubType>
       <DependentUpon>frmOpenCellID.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Desktop\frmTimeZone.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>frmTimeZone.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Desktop\frmWaypoints.resx">
       <SubType>Designer</SubType>

@@ -63,6 +63,7 @@ Public Class ctlMap
     Private pBitmapMutex As New Threading.Mutex()
 
     Public Layers As New Generic.List(Of clsLayer)
+    Public LayersImportedByTime As New Generic.List(Of clsLayer)
 
     Public GPXPanTo As Boolean = True
     Public GPXZoomTo As Boolean = True
@@ -141,6 +142,8 @@ Public Class ctlMap
 
     Public TileServers As Dictionary(Of String, String)
 
+    Private pImportOffsetFromUTC As TimeSpan = DateTime.UtcNow.Subtract(DateTime.Now)
+
     'Private Declare Function GetAsyncKeyState Lib "user32" (ByVal vKey As Integer) As Integer
 
     Public Sub SharedNew()
@@ -159,6 +162,19 @@ Public Class ctlMap
 
         Me.Visible = True
     End Sub
+
+    Public Property ImportOffsetFromUTC() As TimeSpan
+        Get
+            Return pImportOffsetFromUTC
+        End Get
+        Set(ByVal value As TimeSpan)
+            If Math.Floor(value.TotalSeconds) <> Math.Floor(pImportOffsetFromUTC.TotalSeconds) Then
+                pImportOffsetFromUTC = value
+                ReImportLayersByDate()
+                Me.NeedRedraw()
+            End If
+        End Set
+    End Property
 
     Public Property TileCacheFolder() As String
         Get
@@ -1266,35 +1282,13 @@ Public Class ctlMap
             If Not lStrSeconds.Contains(".") Then lNeedToSearchTracks = True
         End If
 
-        If lNeedToSearchTracks Then
-            Dim lPhotoDate As DateTime = lExif.GPSDateTime
-            If lPhotoDate.Year < 2 Then
-                lPhotoDate = lExif.DateTimeOriginal
-            End If
-            Dim lPhotoTicks As Long = lPhotoDate.Ticks
-            Dim lClosestTicks As Long = Long.MaxValue
-            Dim lClosestPoint As clsGPXwaypoint = Nothing
+        Dim lPhotoDate As DateTime = lExif.GPSDateTime
+        If lPhotoDate.Year < 2 Then
+            lPhotoDate = lExif.DateTimeOriginal.Add(pImportOffsetFromUTC)
+        End If
 
-            If Layers IsNot Nothing AndAlso Layers.Count > 0 Then
-                For Each lTrackLayer As clsLayer In Layers
-                    If lTrackLayer.GetType.Name.Equals("clsLayerGPX") Then
-                        Dim lGPX As clsLayerGPX = lTrackLayer
-                        For Each lGpxTrack As clsGPXtrack In lGPX.GPX.trk
-                            For Each lGpxTrackSeg As clsGPXtracksegment In lGpxTrack.trkseg
-                                For Each lGpxTrackPoint As clsGPXwaypoint In lGpxTrackSeg.trkpt
-                                    If lGpxTrackPoint.timeSpecified Then
-                                        Dim lTicksDiff As Long = Math.Abs(lGpxTrackPoint.time.Ticks - lPhotoTicks)
-                                        If lTicksDiff < lClosestTicks Then
-                                            lClosestTicks = lTicksDiff
-                                            lClosestPoint = lGpxTrackPoint
-                                        End If
-                                    End If
-                                Next
-                            Next
-                        Next
-                    End If
-                Next
-            End If
+        If lNeedToSearchTracks Then
+            Dim lClosestPoint As clsGPXwaypoint = ClosestPoint(lPhotoDate)
 
             If lClosestPoint IsNot Nothing Then
                 Dim lMsg As String = ""
@@ -1322,9 +1316,14 @@ Public Class ctlMap
 
         Dim lWaypoints As New Generic.List(Of clsGPXwaypoint)
         Dim lWaypoint As New clsGPXwaypoint("wpt", lLatitude, lLongitude)
-        lWaypoint.name = IO.Path.GetFileNameWithoutExtension(aFilename)
-        lWaypoint.sym = aFilename
-        lWaypoint.url = aFilename
+        With lWaypoint
+            .name = IO.Path.GetFileNameWithoutExtension(aFilename)
+            .sym = aFilename
+            .url = aFilename
+            .time = lPhotoDate
+            .SetExtension("LocalTime", Format(lExif.DateTimeOriginal, "yyyy-MM-dd HH:mm:ss"))
+        End With
+
         lWaypoints.Add(lWaypoint)
 
         Dim lLayer As New clsLayerGPX(lWaypoints, Me)
@@ -1340,6 +1339,7 @@ Public Class ctlMap
         lLayer.Bounds = lBounds
 
         Me.Layers.Add(lLayer)
+        If lNeedToSearchTracks Then LayersImportedByTime.Add(lLayer)
 
         If GPXPanTo Then
             CenterLat = lLatitude
@@ -1351,6 +1351,55 @@ Public Class ctlMap
         End If
 #End If
     End Sub
+
+    Public Sub ReImportLayersByDate()
+        For Each lLayer As clsLayerGPX In LayersImportedByTime
+            lLayer.Bounds = New clsGPXbounds
+            For Each lWaypoint As clsGPXwaypoint In lLayer.GPX.wpt
+                Dim lLocalTime As Date = Date.Parse(lWaypoint.GetExtension("LocalTime") & "Z")
+                Dim lUTC As Date = lLocalTime.Add(pImportOffsetFromUTC)
+                Dim lClosestPoint As clsGPXwaypoint = ClosestPoint(lUTC)
+                If lClosestPoint IsNot Nothing Then
+                    lWaypoint.lat = lClosestPoint.lat
+                    lWaypoint.lon = lClosestPoint.lon
+                    lLayer.Bounds.Expand(lWaypoint.lat, lWaypoint.lon)
+                End If
+            Next
+        Next
+    End Sub
+
+    ''' <summary>
+    ''' Find the GPS location closest to the given date
+    ''' </summary>
+    ''' <param name="aDate">Date to search for</param>
+    ''' <returns></returns>
+    ''' <remarks>searches all currently loaded GPX layers</remarks>
+    Private Function ClosestPoint(ByVal aDate As Date) As clsGPXwaypoint
+        Dim lTargetTicks As Long = aDate.Ticks
+        Dim lClosestTicks As Long = Long.MaxValue
+        Dim lClosestPoint As clsGPXwaypoint = Nothing
+        If Layers IsNot Nothing AndAlso Layers.Count > 0 Then
+            For Each lTrackLayer As clsLayer In Layers
+                If lTrackLayer.GetType.Name.Equals("clsLayerGPX") Then
+                    Dim lGPX As clsLayerGPX = lTrackLayer
+                    For Each lGpxTrack As clsGPXtrack In lGPX.GPX.trk
+                        For Each lGpxTrackSeg As clsGPXtracksegment In lGpxTrack.trkseg
+                            For Each lGpxTrackPoint As clsGPXwaypoint In lGpxTrackSeg.trkpt
+                                If lGpxTrackPoint.timeSpecified Then
+                                    Dim lTicksDiff As Long = Math.Abs(lGpxTrackPoint.time.Ticks - lTargetTicks)
+                                    If lTicksDiff < lClosestTicks Then
+                                        lClosestTicks = lTicksDiff
+                                        lClosestPoint = lGpxTrackPoint
+                                    End If
+                                End If
+                            Next
+                        Next
+                    Next
+                End If
+            Next
+        End If
+        Return lClosestPoint
+    End Function
 
     Private Function OpenGPX(ByVal aFilename As String, Optional ByVal aInsertAt As Integer = -1) As clsLayerGPX
         Dim lNewLayer As clsLayerGPX = Nothing
@@ -2499,7 +2548,7 @@ SetCenter:
             Case ".wmf" : lImageFormat = Imaging.ImageFormat.Wmf
         End Select
         pBitmapMutex.WaitOne()
-        pBitmap.Save(aFileName, lImageFormat)
+        pBitmap.Save(aFilename, lImageFormat)
         'SaveTiles(IO.Path.GetDirectoryName(.FileName) & "\" & IO.Path.GetFileNameWithoutExtension(.FileName) & "\")
         pBitmapMutex.ReleaseMutex()
         'CreateGeoReferenceFile(LatitudeToMeters(pCenterLat - pLatHeight * 1.66), _

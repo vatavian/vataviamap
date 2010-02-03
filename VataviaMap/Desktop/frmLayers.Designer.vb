@@ -30,8 +30,8 @@ Partial Class frmLayers
         Me.lblArrowSize = New System.Windows.Forms.Label
         Me.txtArrowSize = New System.Windows.Forms.TextBox
         Me.lstLayers = New System.Windows.Forms.ListView
-        Me.Filename = New System.Windows.Forms.ColumnHeader
-        Me.Duration = New System.Windows.Forms.ColumnHeader
+        Me.ColumnFilename = New System.Windows.Forms.ColumnHeader
+        Me.ColumnDuration = New System.Windows.Forms.ColumnHeader
         Me.chkAllVisible = New System.Windows.Forms.CheckBox
         Me.grpColor = New System.Windows.Forms.GroupBox
         Me.btnColorSame = New System.Windows.Forms.Button
@@ -50,6 +50,7 @@ Partial Class frmLayers
         Me.lblLabelField = New System.Windows.Forms.Label
         Me.cboGroupField = New System.Windows.Forms.ComboBox
         Me.lblGroup = New System.Windows.Forms.Label
+        Me.ColumnDate = New System.Windows.Forms.ColumnHeader
         Me.grpColor.SuspendLayout()
         Me.LayerGridRightContextMenuStrip.SuspendLayout()
         Me.grpLabel.SuspendLayout()
@@ -115,7 +116,7 @@ Partial Class frmLayers
                     Or System.Windows.Forms.AnchorStyles.Left) _
                     Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.lstLayers.CheckBoxes = True
-        Me.lstLayers.Columns.AddRange(New System.Windows.Forms.ColumnHeader() {Me.Filename, Me.Duration})
+        Me.lstLayers.Columns.AddRange(New System.Windows.Forms.ColumnHeader() {Me.ColumnFilename, Me.ColumnDate, Me.ColumnDuration})
         Me.lstLayers.Location = New System.Drawing.Point(0, 0)
         Me.lstLayers.Name = "lstLayers"
         Me.lstLayers.Size = New System.Drawing.Size(631, 516)
@@ -123,14 +124,14 @@ Partial Class frmLayers
         Me.lstLayers.UseCompatibleStateImageBehavior = False
         Me.lstLayers.View = System.Windows.Forms.View.Details
         '
-        'Filename
+        'ColumnFilename
         '
-        Me.Filename.Text = "File Name"
-        Me.Filename.Width = 600
+        Me.ColumnFilename.Text = "File Name"
+        Me.ColumnFilename.Width = 506
         '
-        'Duration
+        'ColumnDuration
         '
-        Me.Duration.Text = "Duration"
+        Me.ColumnDuration.Text = "Duration"
         '
         'chkAllVisible
         '
@@ -202,18 +203,18 @@ Partial Class frmLayers
         '
         Me.LayerGridRightContextMenuStrip.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ZoomToToolStripMenuItem, Me.DetailsToolStripMenuItem})
         Me.LayerGridRightContextMenuStrip.Name = "LayerGridRightContextMenuStrip"
-        Me.LayerGridRightContextMenuStrip.Size = New System.Drawing.Size(155, 52)
+        Me.LayerGridRightContextMenuStrip.Size = New System.Drawing.Size(124, 48)
         '
         'ZoomToToolStripMenuItem
         '
         Me.ZoomToToolStripMenuItem.Name = "ZoomToToolStripMenuItem"
-        Me.ZoomToToolStripMenuItem.Size = New System.Drawing.Size(154, 24)
+        Me.ZoomToToolStripMenuItem.Size = New System.Drawing.Size(123, 22)
         Me.ZoomToToolStripMenuItem.Text = "ZoomTo"
         '
         'DetailsToolStripMenuItem
         '
         Me.DetailsToolStripMenuItem.Name = "DetailsToolStripMenuItem"
-        Me.DetailsToolStripMenuItem.Size = New System.Drawing.Size(154, 24)
+        Me.DetailsToolStripMenuItem.Size = New System.Drawing.Size(123, 22)
         Me.DetailsToolStripMenuItem.Text = "Details"
         '
         'grpLabel
@@ -305,6 +306,10 @@ Partial Class frmLayers
         Me.lblGroup.TabIndex = 15
         Me.lblGroup.Text = "Group"
         '
+        'ColumnDate
+        '
+        Me.ColumnDate.Text = "Date"
+        '
         'frmLayers
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
@@ -338,14 +343,14 @@ Partial Class frmLayers
     Friend WithEvents lblArrowSize As System.Windows.Forms.Label
     Friend WithEvents txtArrowSize As System.Windows.Forms.TextBox
     Friend WithEvents lstLayers As System.Windows.Forms.ListView
-    Friend WithEvents Filename As System.Windows.Forms.ColumnHeader
+    Friend WithEvents ColumnFilename As System.Windows.Forms.ColumnHeader
     Friend WithEvents chkAllVisible As System.Windows.Forms.CheckBox
     Friend WithEvents grpColor As System.Windows.Forms.GroupBox
     Friend WithEvents btnColor As System.Windows.Forms.Button
     Friend WithEvents btnColorSame As System.Windows.Forms.Button
     Friend WithEvents btnColorRamp As System.Windows.Forms.Button
     Friend WithEvents btnColorRandom As System.Windows.Forms.Button
-    Friend WithEvents Duration As System.Windows.Forms.ColumnHeader
+    Friend WithEvents ColumnDuration As System.Windows.Forms.ColumnHeader
     Friend WithEvents LayerGridRightContextMenuStrip As System.Windows.Forms.ContextMenuStrip
     Friend WithEvents ZoomToToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents DetailsToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
@@ -358,4 +363,5 @@ Partial Class frmLayers
     Friend WithEvents lblLabelMinZoom As System.Windows.Forms.Label
     Friend WithEvents cboGroupField As System.Windows.Forms.ComboBox
     Friend WithEvents lblGroup As System.Windows.Forms.Label
+    Friend WithEvents ColumnDate As System.Windows.Forms.ColumnHeader
 End Class
