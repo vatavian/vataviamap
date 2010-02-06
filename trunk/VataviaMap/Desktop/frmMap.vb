@@ -94,7 +94,7 @@ Public Class frmMap
     End Sub
 
     Private Sub frmMap_Shown(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Shown
-        pMap.Redraw()
+        pMap.NeedRedraw()
         Dim lOffsetHours As Integer = pMap.ImportOffsetFromUTC.Hours
         Dim lOffsetSign As String = ""
         If lOffsetHours >= 0 Then lOffsetSign = "+"
@@ -134,7 +134,7 @@ Public Class frmMap
             Try
                 Debug.WriteLine("Refreshing  '" & pMap.ClickedTileFilename & "'")
                 pMap.Downloader.DeleteTile(pMap.ClickedTileFilename)
-                pMap.Redraw()
+                pMap.NeedRedraw()
             Catch ex As Exception
                 MsgBox("Could not refresh '" & pMap.ClickedTileFilename & "'" & vbCrLf & ex.Message, MsgBoxStyle.Critical, "Error Refreshing Tile")
             End Try
@@ -220,7 +220,7 @@ Public Class frmMap
 
     Private Sub CloseGPXToolStripMenuItem_Click(ByVal sender As Object, ByVal e As System.EventArgs) Handles RemoveAllLayersToolStripMenuItem.Click
         pMap.CloseAllLayers()
-        pMap.Redraw()
+        pMap.NeedRedraw()
     End Sub
 
     Private Sub TileServer_Click(ByVal sender As System.Object, ByVal e As System.EventArgs)
@@ -235,7 +235,7 @@ Public Class frmMap
                 lItem.Checked = False
             End If
         Next
-        pMap.Redraw()
+        pMap.NeedRedraw()
     End Sub
 
     Private Sub NewTileServerForm()
@@ -271,7 +271,7 @@ Public Class frmMap
             pMap.TileServerName = aName
         End If
         BuildTileServerMenu()
-        pMap.Redraw()
+        pMap.NeedRedraw()
     End Sub
 
     Private Sub pTileServerForm_Remove(ByVal aOriginalName As String) Handles pTileServerForm.Remove
@@ -282,7 +282,7 @@ Public Class frmMap
                 pMap.TileServerName = lName
                 Exit For
             Next
-            pMap.Redraw()
+            pMap.NeedRedraw()
         End If
         BuildTileServerMenu()
     End Sub
@@ -439,7 +439,7 @@ Public Class frmMap
     End Sub
 
     Private Sub pLayersForm_Apply() Handles pLayersForm.Apply
-        pMap.Redraw()
+        pMap.NeedRedraw()
     End Sub
 
     Private Sub pLayersForm_CheckedItemsChanged(ByVal aSelectedLayers As Generic.List(Of String)) Handles pLayersForm.CheckedItemsChanged
@@ -466,7 +466,7 @@ Public Class frmMap
                 pMap.OpenFile(lFilename)
             End If
         Next
-        pMap.Redraw()
+        pMap.NeedRedraw()
     End Sub
 
     Private Sub ExitToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles ExitToolStripMenuItem.Click
@@ -522,7 +522,7 @@ Public Class frmMap
     Private Sub pBuddyListForm_Ok(ByVal aBuddies As System.Collections.Generic.Dictionary(Of String, clsBuddy)) Handles pBuddyListForm.Ok
         pMap.Buddies.Clear()
         pMap.Buddies = aBuddies
-        pMap.Redraw()
+        pMap.NeedRedraw()
     End Sub
 
     Private Sub WheelTileServerToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles WheelTileServerToolStripMenuItem.Click
@@ -643,7 +643,7 @@ Public Class frmMap
 
     Private Sub pLayersForm_ZoomTo(ByVal aBounds As clsGPXbounds) Handles pLayersForm.ZoomTo
         pMap.PanTo(aBounds)
-        pMap.Redraw()
+        pMap.NeedRedraw()
     End Sub
 
     Private Sub pMap_Zoomed() Handles pMap.Zoomed

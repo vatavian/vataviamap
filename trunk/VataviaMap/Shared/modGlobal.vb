@@ -233,9 +233,6 @@ Module modGlobal
                         Optional ByVal aReplaceWith As String = "") As String
         Dim lRetval As String = "" 'return string
         Dim lChr As String 'individual character in filename
-
-        'TODO: could use    Private pInvalidPathChars() As Char = IO.Path.GetInvalidPathChars()
-
         For i As Integer = 1 To aOriginalFilename.Length
             lChr = Mid(aOriginalFilename, i, 1)
             Select Case Asc(lChr)
@@ -245,7 +242,7 @@ Module modGlobal
             End Select
         Next
 EndFound:
-        Return lRetval
+        Return lRetval.Trim
     End Function
 
     ''' <summary>

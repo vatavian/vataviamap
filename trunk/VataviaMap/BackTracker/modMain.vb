@@ -3,13 +3,17 @@ Imports Microsoft.WindowsMobile.Status.SystemState
 
 Module modMain
 
-    Public Const g_AppName As String = "OSM_VBnet"
+    Public Const g_AppName As String = "BackTracker"
 
     ' If an incoming SMS starts with this text, the message will be intercepted as a command
     Public pSMScode As String = GetAppSetting("SMScode", "adgj")
 
     ' URL of server to upload points to (and get commands from)
     Private pUploadURL As String = GetAppSetting("UploadURL", "http://vatavia.net/cgi-bin/gps?u=unknown&y=#Lat#&x=#Lon#&e=#Alt#&s=#Speed#&h=#Heading#&t=#Time#&l=#Label#&c=#CellID#")
+
+    Private pSMSdestination As String = GetAppSetting("SMSdest", "")
+    Private pSMShours As Integer = 48
+    Private pSendNextSMS As Date = Date.UtcNow.AddHours(pSMShours)
 
     Private pAllGetProperties() As String = {"app", "bat", "pow", "cel", "cev", "cna", "pad", "pbs", "pcb", "pgc", "phs", "pio", "pnm", "pns", "pon", "pro", "prp", "pss", "tim", "lic", "cal", "tlk", "who", "gma", "guu", "guw", "gwf"}
 
@@ -26,7 +30,8 @@ Module modMain
     Private GPS_Listen As Boolean = True
     Private WithEvents GPS As GPS_API.GPS
 
-    Private pLastTimeUpload As DateTime              'When we last uploaded a track point (UTC)
+    Private pLastTimeUploaded As DateTime    'When we last checked server with or without reporting location (UTC)
+    Private pLastTimeUploadedGPS As DateTime 'When we last uploaded a track point (UTC)
     Private pLastTimeGPS As Date = New Date(1, 1, 1) 'Last time reported by GPS
     Private pLastCellID As String = ""
 
@@ -39,17 +44,15 @@ Module modMain
     ' Wait at most this long for a GPS fix
     Private pWaitForFixMinutes As Integer = 2
 
-    ' Wait this long before trying for another GPS fix if the last try succeeded
+    ' Wait this long before trying for another GPS fix if the last try succeeded and battery is High
     Private pUploadWaitMinutesSuccess As Integer = 5
 
-    ' Wait this long before trying for another GPS fix if the last try failed
+    ' Wait this long before trying for another GPS fix if the last try failed and battery is High
     Private pUploadWaitMinutesFailed As Integer = 15
 
-    Private pUploadWaitMinutes As Integer = pUploadWaitMinutesSuccess 'Wait this long till trying again to upload
+    Private pUploadWaitMinutesGPS As Integer = pUploadWaitMinutesSuccess 'Wait this long till trying again to upload
 
-    'check for another new message even if it is not yet time to try for a new GPS fix when pLastTimeMessage within pMessageWaitMinutes
-    Private pLastTimeMessage As DateTime = New Date(1, 1, 1) 'When we last got a message to display
-    Private pMessageWaitMinutes As Integer = 10
+    Private pUploadWaitMinutes As Integer = 1
 
     'Sleep this long before restarting main loop
     Private pSleepMilliseconds As Integer = 30000
@@ -61,7 +64,8 @@ Module modMain
         'Interceptor.MessageCondition = New MessageCondition(MessageProperty.Body, MessagePropertyComparisonType.Contains, pSMScode)
         'AddHandler Interceptor.MessageReceived, AddressOf Interceptor_MessageReceived
 
-        pLastTimeUpload = New DateTime(1, 1, 1)
+        pLastTimeUploaded = New DateTime(1, 1, 1)
+        pLastTimeUploadedGPS = pLastTimeUploaded
         Try
             pUploadWaitMinutesSuccess = Integer.Parse(GetAppSetting("UploadMinutes", pUploadWaitMinutesSuccess))
         Catch
@@ -114,15 +118,15 @@ Module modMain
 
             If CanSend() Then
                 'If time to wait has elapsed or we upload on new cells and have entered a new cell
-                If (DateTime.UtcNow.Subtract(New TimeSpan(0, pUploadWaitMinutes * lWaitMultiplier, 0)) >= pLastTimeUpload) _
+                If (DateTime.UtcNow.Subtract(New TimeSpan(0, pUploadWaitMinutesGPS * lWaitMultiplier, 0)) >= pLastTimeUploadedGPS) _
                    OrElse (pUploadNewCells AndAlso InNewCell()) Then
                     StartGPS()
                     System.Threading.Thread.Sleep(pWaitForFixMinutes * 60000)
                     If StopGPS() Then ' GPS was still searching for fix, report home without GPS location
                         SendLocation(Nothing)
-                        pUploadWaitMinutes = pUploadWaitMinutesFailed
+                        pUploadWaitMinutesGPS = pUploadWaitMinutesFailed
                     Else
-                        pUploadWaitMinutes = pUploadWaitMinutesSuccess
+                        pUploadWaitMinutesGPS = pUploadWaitMinutesSuccess
                     End If
                     Select Case PowerBatteryStrength
                         Case Microsoft.WindowsMobile.Status.BatteryLevel.VeryLow : lWaitMultiplier = 20
@@ -130,9 +134,14 @@ Module modMain
                         Case Microsoft.WindowsMobile.Status.BatteryLevel.Medium : lWaitMultiplier = 2
                         Case Else : lWaitMultiplier = 1
                     End Select
-                ElseIf (DateTime.UtcNow < pLastTimeMessage.AddMinutes(pMessageWaitMinutes)) Then 'If there was a recent message, keep checking more often
+                ElseIf lWaitMultiplier = 1 AndAlso _
+                       DateTime.UtcNow.Subtract(New TimeSpan(0, pUploadWaitMinutes, 0)) >= pLastTimeUploaded Then
                     SendLocation(Nothing)
                 End If
+            ElseIf pSMSdestination.Length > 0 AndAlso Not PhoneNoService AndAlso DateTime.UtcNow > pSendNextSMS Then
+                StartGPS()
+                System.Threading.Thread.Sleep(pWaitForFixMinutes * 60000)
+                If StopGPS() Then SendLocation(Nothing)
             End If
 
             System.Threading.Thread.Sleep(pSleepMilliseconds)
@@ -273,17 +282,25 @@ Module modMain
                 BuildURL(lURL, "Label", "BackTracker", "", True)
                 If lURL.IndexOf("CellID") > -1 Then
                     Dim lCellId As String = GPS_API.RIL.GetCellTowerString
-                    'If GPS_POSITION Is Nothing AndAlso lCellId = pLastCellID Then
-                    '    Exit Sub 'No new info, skip sending
-                    'End If
                     pLastCellID = lCellId
                     BuildURL(lURL, "CellID", lCellId, "", True)
                 End If
-                SendURL(lURL, True)
+
+                If DateTime.UtcNow > pSendNextSMS Then
+                    Dim lSMS As New Microsoft.WindowsMobile.PocketOutlook.SmsMessage(pSMSdestination, lURL.Substring(lURL.IndexOf("?") + 1))
+                    lSMS.Send()
+                    pSendNextSMS = Date.UtcNow.AddHours(pSMShours)
+                Else
+                    SendURL(lURL, True)
+                End If
             Catch e As Exception
                 LogEx(e, lURL)
             End Try
-            pLastTimeUpload = DateTime.UtcNow
+            pLastTimeUploaded = DateTime.UtcNow
+            If GPS_POSITION IsNot Nothing Then
+                pLastTimeUploadedGPS = pLastTimeUploaded
+
+            End If
         End If
     End Sub
 
@@ -318,6 +335,7 @@ Module modMain
                     End If
                 Loop
                 lResp.Close()
+                pSendNextSMS = Date.UtcNow.AddHours(pSMShours)
                 'Debug.WriteLine(lRespStr)
                 If aProcessResults Then
                     ProcessInstructions(lRespStr)
@@ -501,7 +519,6 @@ Module modMain
                         If IO.File.Exists(pMessageApplication) Then
                             CloseMessage()
                             pMessageProcess = Process.Start(pMessageApplication, UrlEncode(lMessage))
-                            pLastTimeMessage = DateTime.UtcNow
                         End If
                     Case "sms"
                         Dim lSendTo As String = aInstruction.Substring(8, 10)

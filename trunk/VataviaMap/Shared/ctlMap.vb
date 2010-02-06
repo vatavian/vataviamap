@@ -126,6 +126,7 @@ Public Class ctlMap
     Public UploadTrackOnStop As Boolean = False   ' True to upload track when GPS stops
     Public UploadPeriodic As Boolean = False ' True to upload point periodically
 
+    Private pActive As Boolean = False      ' False to disable all Redraw of control
     Private pDark As Boolean = False        ' True to draw simple black background instead of map
 
     Delegate Sub RefreshCallback()
@@ -133,6 +134,7 @@ Public Class ctlMap
     Private pRedrawCallback As New RefreshCallback(AddressOf Redraw)
     Private pRedrawing As Boolean = False
     Private pRedrawPending As Boolean = False
+    Private pRedrawWhenFinishedQueue As Boolean = False
 
     ' Set to false when we have a first-guess background (e.g. when zooming from tiles we have to ones we don't)
     Private pClearDelayedTiles As Boolean = True
@@ -159,8 +161,6 @@ Public Class ctlMap
         'Start the download and upload queue runners
         Downloader.Enabled = True
         Uploader.Enabled = True
-
-        Me.Visible = True
     End Sub
 
     Public Property ImportOffsetFromUTC() As TimeSpan
@@ -171,7 +171,7 @@ Public Class ctlMap
             If Math.Floor(value.TotalSeconds) <> Math.Floor(pImportOffsetFromUTC.TotalSeconds) Then
                 pImportOffsetFromUTC = value
                 ReImportLayersByDate()
-                Me.NeedRedraw()
+                NeedRedraw()
             End If
         End Set
     End Property
@@ -197,7 +197,7 @@ Public Class ctlMap
         Set(ByVal value As Boolean)
             If pShowDate <> value Then
                 pShowDate = value
-                Redraw()
+                NeedRedraw()
             End If
         End Set
     End Property
@@ -209,7 +209,7 @@ Public Class ctlMap
         Set(ByVal value As Boolean)
             If pShowTileImages <> value Then
                 pShowTileImages = value
-                Redraw()
+                NeedRedraw()
             End If
         End Set
     End Property
@@ -221,7 +221,7 @@ Public Class ctlMap
         Set(ByVal value As Boolean)
             If pShowTileNames <> value Then
                 pShowTileNames = value
-                Redraw()
+                NeedRedraw()
             End If
         End Set
     End Property
@@ -233,7 +233,7 @@ Public Class ctlMap
         Set(ByVal value As Boolean)
             If pShowTileOutlines <> value Then
                 pShowTileOutlines = value
-                Redraw()
+                NeedRedraw()
             End If
         End Set
     End Property
@@ -858,32 +858,35 @@ Public Class ctlMap
     ''' <param name="aTileFilename"></param>
     ''' <remarks></remarks>
     Public Sub DownloadedTile(ByVal aTilePoint As Point, ByVal aZoom As Integer, ByVal aTileFilename As String, ByVal aTileServerURL As String) Implements IQueueListener.DownloadedTile
-        If aTileServerURL = g_TileServerURL Then
-            Dim lGraphics As Graphics = GetBitmapGraphics()
-            If lGraphics IsNot Nothing Then
-                If aZoom = pZoom Then
-                    Dim lOffsetToCenter As Point
-                    Dim lTopLeft As Point
-                    Dim lBotRight As Point
+        If aTileServerURL = g_TileServerURL AndAlso aZoom = pZoom Then
+            NeedRedraw()
+            'pRedrawWhenFinishedQueue = True
+            'Just draw the tile downloaded, not the whole display
+            'Dim lGraphics As Graphics = GetBitmapGraphics()
+            'If lGraphics IsNot Nothing Then
+            '    If aZoom = pZoom Then
+            '        Dim lOffsetToCenter As Point
+            '        Dim lTopLeft As Point
+            '        Dim lBotRight As Point
 
-                    FindTileBounds(lGraphics.ClipBounds, lOffsetToCenter, lTopLeft, lBotRight)
+            '        FindTileBounds(lGraphics.ClipBounds, lOffsetToCenter, lTopLeft, lBotRight)
 
-                    Dim lOffsetFromWindowCorner As Point
-                    lOffsetFromWindowCorner.X = (aTilePoint.X - lTopLeft.X) * g_TileSize + lOffsetToCenter.X
-                    lOffsetFromWindowCorner.Y = (aTilePoint.Y - lTopLeft.Y) * g_TileSize + lOffsetToCenter.Y
-                    DrawTile(aTilePoint, aZoom, lGraphics, lOffsetFromWindowCorner, -1)
-                Else
-                    'TODO: draw tiles at different zoom levels? 
-                    'Would be nice when doing DownloadDescendants to see progress, but would also be confusing when tile download completes after zoom
-                End If
-                ReleaseBitmapGraphics()
+            '        Dim lOffsetFromWindowCorner As Point
+            '        lOffsetFromWindowCorner.X = (aTilePoint.X - lTopLeft.X) * g_TileSize + lOffsetToCenter.X
+            '        lOffsetFromWindowCorner.Y = (aTilePoint.Y - lTopLeft.Y) * g_TileSize + lOffsetToCenter.Y
+            '        DrawTile(aTilePoint, aZoom, lGraphics, lOffsetFromWindowCorner, -1)
+            '    Else
+            '        'TODO: draw tiles at different zoom levels? 
+            '        'Would be nice when doing DownloadDescendants to see progress, but would also be confusing when tile download completes after zoom
+            '    End If
+            '    ReleaseBitmapGraphics()
 
-                Try 'This method will be running in another thread, so we need to call Refresh in a complicated way
-                    Me.Invoke(pRefreshCallback)
-                Catch
-                    'Ignore if we could not refresh, probably because form is closing
-                End Try
-            End If
+            '    Try 'This method will be running in another thread, so we need to call Refresh in a complicated way
+            '        Me.Invoke(pRefreshCallback)
+            '    Catch
+            '        'Ignore if we could not refresh, probably because form is closing
+            '    End Try
+            'End If
         End If
     End Sub
 
@@ -898,23 +901,21 @@ Public Class ctlMap
     End Sub
 
     Public Sub DownloadedItem(ByVal aItem As clsQueueItem) Implements IQueueListener.DownloadedItem
+        Dim lNeedRedrawNow As Boolean = False
         Select Case aItem.ItemType
             Case QueueItemType.IconItem
-                Dim lCacheIconFolder As String = (pTileCacheFolder & "Icons").ToLower & g_PathChar
-                If aItem.Filename.ToLower.StartsWith(lCacheIconFolder) Then 'Geocache or other icon that lives in "Icons" folder in pTileCacheFolder
-                    Try
-                        Dim lBitmap As New Drawing.Bitmap(aItem.Filename)
+                Try
+                    Dim lBitmap As New Drawing.Bitmap(aItem.Filename)
+                    Dim lCacheIconFolder As String = (pTileCacheFolder & "Icons").ToLower & g_PathChar
+                    If aItem.Filename.ToLower.StartsWith(lCacheIconFolder) Then 'Geocache or other icon that lives in "Icons" folder in pTileCacheFolder
                         Dim lIconName As String = IO.Path.ChangeExtension(aItem.Filename, "").TrimEnd(".").Substring(lCacheIconFolder.Length).Replace(g_PathChar, "|")
                         g_WaypointIcons.Add(lIconName, lBitmap)
-                    Catch e As Exception
-                    End Try
-                Else
-                    Try
-                        Dim lBitmap As New Drawing.Bitmap(aItem.Filename)
+                    Else
                         g_WaypointIcons.Add(aItem.Filename.ToLower, lBitmap)
-                    Catch e As Exception
-                    End Try
-                End If
+                    End If
+                    pRedrawWhenFinishedQueue = True
+                Catch e As Exception
+                End Try
             Case QueueItemType.PointItem
                 Try
                     Dim lFileNameOnly As String = IO.Path.GetFileNameWithoutExtension(aItem.Filename)
@@ -940,8 +941,8 @@ Public Class ctlMap
     End Sub
 
     Public Sub NeedRedraw()
-        'This method will be running in another thread, so we need to call Refresh in a complicated way
         Try
+            'If running in another thread, can't call Refresh directly
             If Me.InvokeRequired Then
                 Me.Invoke(pRedrawCallback)
             Else
@@ -953,7 +954,10 @@ Public Class ctlMap
     End Sub
 
     Sub FinishedQueue(ByVal aQueueIndex As Integer) Implements IQueueListener.FinishedQueue
-        NeedRedraw()
+        If pRedrawWhenFinishedQueue Then
+            pRedrawWhenFinishedQueue = False
+            NeedRedraw()
+        End If
     End Sub
 
     Public Function LatLonInView(ByVal aLat As Double, ByVal aLon As Double) As Boolean
@@ -1224,7 +1228,7 @@ Public Class ctlMap
                 pBitmapMutex.ReleaseMutex()
             End If
         End With
-        Redraw()
+        NeedRedraw()
     End Sub
 
     Public Sub OpenFiles(ByVal aFilenames() As String)
@@ -1249,7 +1253,7 @@ Public Class ctlMap
             If GPXZoomTo Then ZoomToAll()
         End If
 
-        If Not GPXPanTo AndAlso Not GPXZoomTo Then Redraw()
+        If Not GPXPanTo AndAlso Not GPXZoomTo Then NeedRedraw()
     End Sub
 
     Public Sub OpenFile(ByVal aFilename As String)
@@ -1345,10 +1349,8 @@ Public Class ctlMap
             CenterLat = lLatitude
             CenterLon = lLongitude
             SanitizeCenterLatLon()
-            Redraw()
-        Else
-            NeedRedraw()
         End If
+        NeedRedraw()
 #End If
     End Sub
 
@@ -1424,7 +1426,7 @@ Public Class ctlMap
                        lNewLayer.Bounds.minlon < lNewLayer.Bounds.maxlon Then
                         Zoom = FindZoom(lNewLayer.Bounds)
                     Else
-                        Redraw()
+                        NeedRedraw()
                     End If
                     Application.DoEvents()
                 End If
@@ -1768,7 +1770,7 @@ Public Class ctlMap
             End If
         End If
         'Me.Visible = True
-        Redraw()
+        'Redraw()
     End Sub
 
 #If Smartphone Then
@@ -1856,6 +1858,16 @@ Public Class ctlMap
         If pGPSAutoStart Then StartGPS()
     End Sub
 
+    Public Property Active() As Boolean
+        Get
+            Return pActive
+        End Get
+        Set(ByVal value As Boolean)
+            pActive = value
+            If pActive Then Me.NeedRedraw()
+        End Set
+    End Property
+
     Private Sub Redraw()
         If pRedrawing Then
             pRedrawPending = True
@@ -1865,11 +1877,10 @@ Public Class ctlMap
             Dim lDetailsBrush As Brush = pBrushBlack
 
 RestartRedraw:
-            If Me.Visible Then
+            If Active Then
                 lGraphics = GetBitmapGraphics()
                 If lGraphics IsNot Nothing Then
                     If Dark Then
-                        'pDetailsForm.Details = GPSdetailsString()
                         lGraphics.Clear(Color.Black)
                         lDetailsBrush = pBrushWhite
                     Else
@@ -1984,7 +1995,7 @@ RestartRedraw:
                     Dim lBounds As New RectangleF(0, 0, pBitmap.Width, pBitmap.Height)
                     ClickedTileFilename = FindTileFilename(lBounds, e.X, e.Y)
                     Downloader.DeleteTile(ClickedTileFilename)
-                    Redraw()
+                    NeedRedraw()
                 ElseIf pClickWaypoint Then
                     AddWaypoint(CenterLat - (e.Y - Me.ClientRectangle.Height / 2) * LatHeight / Me.ClientRectangle.Height, _
                                 CenterLon + (e.X - Me.ClientRectangle.Width / 2) * LonWidth / Me.ClientRectangle.Width, _
@@ -2113,7 +2124,7 @@ RestartRedraw:
                     End If
 
                     If GPSSymbolSize > 0 OrElse lNeedRedraw Then
-                        Redraw()
+                        NeedRedraw()
                     End If
 
                     If pPendingUploadStart OrElse (UploadPeriodic AndAlso DateTime.UtcNow.Subtract(UploadMinInterval) >= pUploadLastTime) Then
@@ -2435,7 +2446,7 @@ SetCenter:
         End Get
         Set(ByVal value As Boolean)
             pShowTileImages = value
-            Redraw()
+            NeedRedraw()
         End Set
     End Property
 
@@ -2446,7 +2457,7 @@ SetCenter:
         Set(ByVal value As Boolean)
             ControlsShow = value
             ControlsUse = value
-            Redraw()
+            NeedRedraw()
         End Set
     End Property
 
@@ -2607,7 +2618,7 @@ SetCenter:
     Private Sub ManuallyNavigated()
         pGPSFollow = 0 'Manual navigation overrides automatic following of GPS
         SanitizeCenterLatLon()
-        Redraw()
+        NeedRedraw()
     End Sub
 
     Private Function MapRectangle() As Rectangle
@@ -2676,7 +2687,7 @@ SetCenter:
             Try
                 Debug.WriteLine("Refreshing  '" & ClickedTileFilename & "'")
                 Downloader.DeleteTile(ClickedTileFilename)
-                Redraw()
+                NeedRedraw()
             Catch ex As Exception
                 MsgBox("Could not refresh '" & ClickedTileFilename & "'" & vbCrLf & ex.Message, MsgBoxStyle.Critical, "Error Refreshing Tile")
             End Try
@@ -2701,7 +2712,7 @@ SetCenter:
             CenterLon = MouseDownLon - (e.X - MouseDragStartLocation.X) * LonWidth / Width
             SanitizeCenterLatLon()
             'End If
-            Redraw()
+            NeedRedraw()
         End If
     End Sub
 
@@ -2751,7 +2762,7 @@ SetCenter:
                         Layers(lIndex).Visible = False
                     End If
                 Next
-                Redraw()
+                NeedRedraw()
         End Select
     End Sub
 
