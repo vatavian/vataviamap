@@ -364,7 +364,7 @@ CheckCache:
 
                                 Dim lNewETag As String = response.Headers.Item("ETag")
                                 If lNewETag IsNot Nothing Then
-                                    lNewETag = lNewETag.Replace("""", "")
+                                    lNewETag = SafeFilename(lNewETag.Replace("""", ""))
                                     lMoveTo &= pETagExt & lNewETag
                                     lDownloadAs = lMoveTo & pPartialDownloadExtension
                                     If lNewETag.Length > 1 AndAlso _

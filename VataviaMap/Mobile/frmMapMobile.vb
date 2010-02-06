@@ -3,6 +3,11 @@ Public Class frmMap
     WithEvents pDownloadForm As frmDownloadMobile
     WithEvents pUploadForm As frmUploadMobile
     WithEvents pLayersForm As frmOptionsMobileGPX
+    WithEvents pActiveState As New Microsoft.WindowsMobile.Status.SystemState(Microsoft.WindowsMobile.Status.SystemProperty.ActiveApplication)
+
+    Private Sub pActiveState_Changed(ByVal sender As Object, ByVal args As Microsoft.WindowsMobile.Status.ChangeEventArgs) Handles pActiveState.Changed
+        pMap.Active = CStr(args.NewValue).EndsWith(Chr(27) & Me.Text)
+    End Sub
 
     Public Sub New()
         InitializeComponent()
@@ -20,9 +25,11 @@ Public Class frmMap
             Case 1 : mnuFollow.Checked = True
             Case 2 : mnuCenter.Checked = True
         End Select
-        pMap.NeedRedraw()
+
         mnuAutoStart.Checked = pMap.AutoStart
         If pMap.AutoStart Then pMap.StartGPS()
+
+        pMap.Active = True
     End Sub
 
     Private Sub frmMap_Closing(ByVal sender As Object, ByVal e As System.ComponentModel.CancelEventArgs) Handles MyBase.Closing
@@ -224,12 +231,12 @@ Public Class frmMap
 
     Private Sub mnuFollow_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuFollow.Click
         mnuFollow.Checked = Not mnuFollow.Checked
-        pMap.GPSFollow = mnuFollow.Checked 
+        pMap.GPSFollow = mnuFollow.Checked
     End Sub
 
     Private Sub mnuCenter_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuCenter.Click
         mnuCenter.Checked = Not mnuCenter.Checked
-        pMap.GPSCenter = mnuCenter.Checked 
+        pMap.GPSCenter = mnuCenter.Checked
     End Sub
 
     Private Sub mnuAutoStart_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuAutoStart.Click
@@ -278,7 +285,7 @@ Public Class frmMap
     End Sub
 
     Private Sub mnuSetTime_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuSetTime.Click
-       pmap.SetTime
+        pMap.SetTime()
     End Sub
 
     Private Sub mnuWaypoint_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuWaypoint.Click
