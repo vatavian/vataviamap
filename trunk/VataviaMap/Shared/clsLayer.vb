@@ -280,10 +280,14 @@ Public Class clsBuddy
                 If lFields.Length > 5 AndAlso lFields(5).Length > 0 Then .speed = lFields(5)
                 If lFields.Length > 6 AndAlso lFields(6).Length > 0 Then .course = lFields(6)
                 If lFields.Length > 7 AndAlso lFields(7).Length > 0 Then .ele = lFields(7)
-                If lFields.Length > 8 AndAlso lFields(8).Length > 0 Then
-                    .time = Date.Parse(lFields(8)) 'we have UTC from GPS in the record
-                Else                               'use local time from logged point
-                    .time = Date.Parse(lFields(0) & " " & lFields(1)).ToUniversalTime()
+                If lFields.Length > 8 AndAlso lFields(8).Length > 0 Then  'we have UTC from GPS in the record
+                    .time = Date.Parse(lFields(8), _
+                                       Globalization.CultureInfo.CurrentCulture.DateTimeFormat, _
+                                       Globalization.DateTimeStyles.AssumeUniversal).ToUniversalTime
+                Else    'use local time from logged point
+                    .time = Date.Parse(lFields(0) & " " & lFields(1), _
+                                       Globalization.CultureInfo.CurrentCulture.DateTimeFormat, _
+                                       Globalization.DateTimeStyles.AssumeLocal).ToUniversalTime()
                 End If
                 .name = Name
                 .sym = Name

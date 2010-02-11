@@ -251,27 +251,27 @@ Public Class frmMap
 
     Private Sub AddTileServerMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles AddTileServerMenuItem.Click
         NewTileServerForm()
-        pTileServerForm.AskUser("Add New Tile Server", g_TileServerName, g_TileServerURL, g_TileServerExampleLabel, g_TileServerExampleFile)
+        pTileServerForm.AskUser("Add New Tile Server", g_TileServerName, g_TileServerURL, False, g_TileServerExampleLabel, g_TileServerExampleFile)
         'http://opentiles.appspot.com/tile/get/ma/' 12/1242/1512.png
     End Sub
 
     Private Sub EditTileServerMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs)
         Dim lItemClicked As ToolStripMenuItem = sender
         NewTileServerForm()
-        pTileServerForm.AskUser("Edit Tile Server", lItemClicked.Text, pMap.TileServers.Item(lItemClicked.Text), g_TileServerExampleLabel, g_TileServerExampleFile)
+        pTileServerForm.AskUser("Edit Tile Server", lItemClicked.Text, pMap.TileServers.Item(lItemClicked.Text), True, g_TileServerExampleLabel, g_TileServerExampleFile)
     End Sub
 
-    Private Sub pTileServerForm_Ok(ByVal aOriginalName As String, ByVal aName As String, ByVal aURL As String) Handles pTileServerForm.Ok
-        pMap.TileServers.Remove(aOriginalName)
-
+    Private Sub pTileServerForm_Add(ByVal aName As String, ByVal aURL As String) Handles pTileServerForm.Add
         If aURL.Length > 0 AndAlso Not aURL.EndsWith("/") Then aURL &= "/"
         pMap.TileServers.Add(aName, aURL)
         pMap.TileServerName = aName
-        If g_TileServerName = aOriginalName Then
-            pMap.TileServerName = aName
-        End If
         BuildTileServerMenu()
         pMap.NeedRedraw()
+    End Sub
+
+    Private Sub pTileServerForm_Change(ByVal aOriginalName As String, ByVal aName As String, ByVal aURL As String) Handles pTileServerForm.Change
+        pMap.TileServers.Remove(aOriginalName)
+        pTileServerForm_Add(aName, aURL)
     End Sub
 
     Private Sub pTileServerForm_Remove(ByVal aOriginalName As String) Handles pTileServerForm.Remove

@@ -37,7 +37,7 @@ Public Class frmBuddyList
 
     Private Sub btnAdd_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnAdd.Click
         NewEditBuddyForm()
-        pEditBuddyForm.AskUser("Add Buddy", "Buddy Name", "http://www.google.com/latitude/apps/badge/api?user=BuddyBadgeNumber&type=json", "Buddy Location URL", "http://code.google.com/p/vataviamap/wiki/FindBuddies")
+        pEditBuddyForm.AskUser("Add Buddy", "Buddy Name", "http://www.google.com/latitude/apps/badge/api?user=BuddyBadgeNumber&type=json", False, "Buddy Location URL", "http://code.google.com/p/vataviamap/wiki/FindBuddies")
     End Sub
 
     Private Function SelectedBuddy() As clsBuddy
@@ -62,7 +62,15 @@ Public Class frmBuddyList
         Me.Close()
     End Sub
 
-    Private Sub pEditBuddyForm_Ok(ByVal aOriginalName As String, ByVal aName As String, ByVal aURL As String) Handles pEditBuddyForm.Ok
+    Private Sub pEditBuddyForm_Add(ByVal aName As String, ByVal aURL As String) Handles pEditBuddyForm.Add
+        BuddyAddOrEdit(Nothing, aName, aURL)
+    End Sub
+
+    Private Sub pEditBuddyForm_Change(ByVal aOriginalName As String, ByVal aName As String, ByVal aURL As String) Handles pEditBuddyForm.Change
+        BuddyAddOrEdit(aOriginalName, aName, aURL)
+    End Sub
+
+    Private Sub BuddyAddOrEdit(ByVal aOriginalName As String, ByVal aName As String, ByVal aURL As String)
         Dim lBuddy As clsBuddy
         If pBuddies.ContainsKey(aOriginalName) Then
             lBuddy = pBuddies(aOriginalName)
@@ -92,7 +100,7 @@ Public Class frmBuddyList
             btnAdd_Click(sender, e)
         Else
             NewEditBuddyForm()
-            pEditBuddyForm.AskUser("Edit Buddy", lBuddy.Name, lBuddy.LocationURL, "Google Latitude kml URL", "http://www.google.com/latitude/apps/badge")
+            pEditBuddyForm.AskUser("Edit Buddy", lBuddy.Name, lBuddy.LocationURL, True, "Google Latitude kml URL", "http://www.google.com/latitude/apps/badge")
         End If
     End Sub
 

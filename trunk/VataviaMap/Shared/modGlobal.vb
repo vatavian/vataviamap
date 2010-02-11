@@ -559,7 +559,9 @@ EndFound:
 #End If
     End Function
 
+    Private pDebugMutex As New Threading.Mutex()
     Public Sub Dbg(ByVal aMessage As String)
+        pDebugMutex.WaitOne()
         Debug.WriteLine(aMessage)
         If g_Debug Then
             Try
@@ -573,6 +575,7 @@ EndFound:
                 MsgBox("Could not log message to '" & g_DebugFilename & "'" & vbLf & e.Message & vbLf & aMessage)
             End Try
         End If
+        pDebugMutex.ReleaseMutex()
     End Sub
 
 #Region "GMap code from http://www.codeplex.com/gmap4dotnet"
