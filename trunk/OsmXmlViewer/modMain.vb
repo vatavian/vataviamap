@@ -4,8 +4,9 @@ Imports System.Collections
 Imports atcUtility
 
 Module modMain
-    Public pLocation As String = "intownATL" '"decatur", "metroATL", "intownATL" 
+    Public pLocation As String = "dekalb" '"intownATL" '"decatur", "metroATL", "intownATL" 
     Public pTerse As Boolean = True
+    Public pReferenceMax As Integer = 100000
 
     Public pSB As New StringBuilder
     Public pBounds As Bounds
@@ -24,6 +25,12 @@ Module modMain
         IO.Directory.SetCurrentDirectory("C:\mapnik_0_6_1\decatur\download")
 
         Select Case pLocation
+            Case "dekalb"
+                pXmlFileName = "georgia.osm"
+                pMinLat = 33.61
+                pMaxLat = 33.97
+                pMinLon = -84.34
+                pMaxLon = -84.03
             Case "decatur"
                 pXmlFileName = "decatur.osm"
                 pMinLat = 33.58
@@ -141,6 +148,7 @@ Module modMain
         pSB = Nothing
         pSB = New StringBuilder
         pSB.AppendLine(vbCrLf & "TagNames " & Tags.TagNames.Count)
+        Dim pXmlSB As New StringBuilder
         For Each lTagName As KeyValuePair(Of String, SortedList) In Tags.TagNames
             Dim lValueCollection As SortedList = lTagName.Value
             pSB.AppendLine(vbCrLf & lTagName.Key & "(" & lValueCollection.Count & ")")
@@ -148,11 +156,26 @@ Module modMain
                 For Each lValueEntry As DictionaryEntry In lValueCollection
                     Dim lReferenceCollection As SortedList = lValueEntry.Value
                     pSB.AppendLine(vbTab & lValueEntry.Key & " (" & lReferenceCollection.Count & ")")
-                    If Not pTerse Then
-                        Dim lReferenceMax As Integer = Math.Min(lReferenceCollection.Count - 1, 20)
+                    If Not pTerse OrElse (lTagName.Key = "building") Then
+                        Dim lReferenceMax As Integer = Math.Min(lReferenceCollection.Count - 1, pReferenceMax)
                         For lReferenceIndex As Integer = 0 To lReferenceMax
                             Dim lReference As Object = lReferenceCollection.Values(lReferenceIndex)
                             pSB.AppendLine(vbTab & vbTab & lReference.GetType.Name & ":" & lReference.id)
+                            Select Case lReference.GetType.Name
+                                Case "Node"
+                                    Dim lNode As Node = lReference
+                                    pXmlSB.AppendLine(lNode.XML.OuterXml)
+                                Case "Way"
+                                    Dim lWay As Way = lReference
+                                    For lNodeIndex As Integer = 0 To lWay.NodeKeys.Count - 1
+                                        Dim lNode As Node = Nodes(lWay.NodeKeys(lNodeIndex))
+                                        pXmlSB.AppendLine(lNode.XML.OuterXml)
+                                    Next
+                                Case "Relation"
+                                    'TODO: something here
+                                Case Else
+                                    Debug.Print("Why!")
+                            End Select
                         Next
                         If lReferenceMax < lReferenceCollection.Count - 1 Then
                             pSB.AppendLine(vbTab & vbTab & "...")
@@ -163,7 +186,8 @@ Module modMain
         Next
         lOutFileName = pLocation & Format(IO.File.GetCreationTime(pXmlFileName), "yyyy-MM-dd-hh-mm") & "Tags.txt"
         IO.File.WriteAllText(lOutFileName, pSB.ToString)
-
+        lOutFileName = pLocation & Format(IO.File.GetCreationTime(pXmlFileName), "yyyy-MM-dd-hh-mm") & "Buildings.xml"
+        IO.File.WriteAllText(lOutFileName, pXmlSB.ToString)
     End Sub
 
     Private Function MemUsage() As String
