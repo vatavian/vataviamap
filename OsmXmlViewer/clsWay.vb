@@ -80,4 +80,25 @@ Public Class Way
             End Select
         Next
     End Sub
+
+    Public Function XML() As Xml.XmlNode
+        Dim lXmlDocument As New Xml.XmlDocument
+        Dim lXmlNode As Xml.XmlElement = lXmlDocument.CreateElement("way")
+        If Id.Length > 0 Then lXmlNode.SetAttribute("id", Id)
+        If Version <> 0 Then lXmlNode.SetAttribute("version", Version)
+        If Changeset <> 0 Then lXmlNode.SetAttribute("changeset", Version)
+        If User.Length > 0 Then lXmlNode.SetAttribute("user", User)
+        If UId > 0 Then lXmlNode.SetAttribute("uid", UId)
+        If Actor > 0 Then lXmlNode.SetAttribute("actor", Actor)
+        If Timestamp.ToString.Length > 0 Then lXmlNode.SetAttribute("timestamp", Timestamp)
+        For lNodeKeyIndex As Integer = 0 To NodeKeys.Count - 1
+            Dim lXmlNodeChild As Xml.XmlElement = lXmlDocument.CreateElement("nd")
+            lXmlNodeChild.SetAttribute("ref", NodeKeys(lNodeKeyIndex).Substring(2))
+            lXmlNode.AppendChild(lXmlNodeChild)
+        Next
+        For Each lTag As Tag In Tags
+            lXmlNode.AppendChild(lTag.XML(lXmlDocument))
+        Next
+        Return lXmlNode
+    End Function
 End Class

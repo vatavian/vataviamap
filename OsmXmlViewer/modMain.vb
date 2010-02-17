@@ -167,6 +167,7 @@ Module modMain
                                     pXmlSB.AppendLine(lNode.XML.OuterXml)
                                 Case "Way"
                                     Dim lWay As Way = lReference
+                                    pXmlSB.AppendLine(lWay.XML.OuterXml)
                                     For lNodeIndex As Integer = 0 To lWay.NodeKeys.Count - 1
                                         Dim lNode As Node = Nodes(lWay.NodeKeys(lNodeIndex))
                                         pXmlSB.AppendLine(lNode.XML.OuterXml)
