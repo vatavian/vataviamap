@@ -292,6 +292,40 @@ Public Class frmLayers
         End If
     End Sub
 
+    Private Sub ZoomToStartToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles ZoomToStartToolStripMenuItem.Click
+        If pRightClickedIndex > -1 Then
+            If TypeOf (pLayers(pRightClickedIndex)) Is clsLayerGPX Then
+                Dim lGPX As clsLayerGPX = pLayers(pRightClickedIndex)
+                Dim lCenter As clsGPXwaypoint = lGPX.GPX.trkFirstPoint
+                Dim lBounds As New clsGPXbounds
+                With lBounds
+                    .maxlat = lCenter.lat + 0.01
+                    .minlat = lCenter.lat - 0.01
+                    .maxlon = lCenter.lon + 0.01
+                    .minlon = lCenter.lon - 0.01
+                End With
+                RaiseEvent ZoomTo(lBounds)
+            End If
+        End If
+    End Sub
+
+    Private Sub ZoomToEndToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles ZoomToEndToolStripMenuItem.Click
+        If pRightClickedIndex > -1 Then
+            If TypeOf (pLayers(pRightClickedIndex)) Is clsLayerGPX Then
+                Dim lGPX As clsLayerGPX = pLayers(pRightClickedIndex)
+                Dim lCenter As clsGPXwaypoint = lGPX.GPX.trkLastPoint
+                Dim lBounds As New clsGPXbounds
+                With lBounds
+                    .maxlat = lCenter.lat + 0.01
+                    .minlat = lCenter.lat - 0.01
+                    .maxlon = lCenter.lon + 0.01
+                    .minlon = lCenter.lon - 0.01
+                End With
+                RaiseEvent ZoomTo(lBounds)
+            End If
+        End If
+    End Sub
+
     Private Sub DetailsToolStripMenuItem_Click(ByVal sender As Object, ByVal e As System.EventArgs) Handles DetailsToolStripMenuItem.Click
         If pRightClickedIndex > -1 Then
             With pLayers(pRightClickedIndex)

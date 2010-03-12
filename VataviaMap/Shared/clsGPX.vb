@@ -162,6 +162,35 @@ LoadedXML:
         End Set
     End Property
 
+    Public Function trkFirstPoint() As clsGPXwaypoint
+        If pTracks IsNot Nothing AndAlso pTracks.Count > 0 Then
+            With pTracks(0)
+                If .trkseg IsNot Nothing AndAlso .trkseg.Count > 0 Then
+                    With .trkseg(0)
+                        If .trkpt IsNot Nothing AndAlso .trkpt.Count > 0 Then
+                            Return .trkpt(0)
+                        End If
+                    End With
+                End If
+            End With
+        End If
+        Return Nothing
+    End Function
+
+    Public Function trkLastPoint() As clsGPXwaypoint
+        If pTracks IsNot Nothing AndAlso pTracks.Count > 0 Then
+            With pTracks(pTracks.Count - 1)
+                If .trkseg IsNot Nothing AndAlso .trkseg.Count > 0 Then
+                    With .trkseg(.trkseg.Count - 1)
+                        If .trkpt IsNot Nothing AndAlso .trkpt.Count > 0 Then
+                            Return .trkpt(.trkpt.Count - 1)
+                        End If
+                    End With
+                End If
+            End With
+        End If
+        Return Nothing
+    End Function
 
     <System.Xml.Serialization.XmlAttributeAttribute()> _
     Public Property version() As String
