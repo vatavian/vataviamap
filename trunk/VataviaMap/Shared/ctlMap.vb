@@ -9,6 +9,8 @@ Public Class ctlMap
     'bounds of map display area
     Public LatMin As Double, LatMax As Double, LonMin As Double, LonMax As Double
 
+    Public Event OpenedLayer(ByVal aLayer As clsLayer)
+    Public Event ClosedLayer()
     Public Event Zoomed()
 
     Private pZoom As Integer = 10 'varies from g_ZoomMin to g_ZoomMax
@@ -1256,21 +1258,28 @@ Public Class ctlMap
         If Not GPXPanTo AndAlso Not GPXZoomTo Then NeedRedraw()
     End Sub
 
-    Public Sub OpenFile(ByVal aFilename As String)
+    Public Function OpenFile(ByVal aFilename As String) As clsLayer
+        Dim lLayer As clsLayer = Nothing
         Select Case IO.Path.GetExtension(aFilename).ToLower
-            Case ".cell" : OpenCell(aFilename)
-            Case ".jpg", ".jpeg" : OpenPhoto(aFilename)
-            Case Else : OpenGPX(aFilename)
+            Case ".cell" : lLayer = OpenCell(aFilename)
+            Case ".jpg", ".jpeg" : lLayer = OpenPhoto(aFilename)
+            Case Else : lLayer = OpenGPX(aFilename)
         End Select
-    End Sub
+        If lLayer IsNot Nothing Then
+            RaiseEvent OpenedLayer(lLayer)
+        End If
+        Return lLayer
+    End Function
 
-    Public Sub OpenCell(ByVal aFilename As String)
+    Public Function OpenCell(ByVal aFilename As String) As clsCellLayer
         Dim lLayer As New clsCellLayer(aFilename, Me)
         Layers.Add(lLayer)
         NeedRedraw()
-    End Sub
+        Return lLayer
+    End Function
 
-    Public Sub OpenPhoto(ByVal aFilename As String)
+    Public Function OpenPhoto(ByVal aFilename As String) As clsLayer
+        Dim lLayer As clsLayerGPX = Nothing
 #If Not Smartphone Then
         Dim lExif As New ExifWorks(aFilename)
         Dim lNeedToSearchTracks As Boolean = False
@@ -1316,43 +1325,44 @@ Public Class ctlMap
                 Dbg(lMsg)
             End If
         End If
-        If Double.IsNaN(lLatitude) OrElse Double.IsNaN(lLongitude) Then Exit Sub
+        If Not Double.IsNaN(lLatitude) AndAlso Not Double.IsNaN(lLongitude) Then
+            Dim lWaypoints As New Generic.List(Of clsGPXwaypoint)
+            Dim lWaypoint As New clsGPXwaypoint("wpt", lLatitude, lLongitude)
+            With lWaypoint
+                .name = IO.Path.GetFileNameWithoutExtension(aFilename)
+                .sym = aFilename
+                .url = aFilename
+                .time = lPhotoDate
+                .SetExtension("LocalTime", Format(lExif.DateTimeOriginal, "yyyy-MM-dd HH:mm:ss"))
+            End With
 
-        Dim lWaypoints As New Generic.List(Of clsGPXwaypoint)
-        Dim lWaypoint As New clsGPXwaypoint("wpt", lLatitude, lLongitude)
-        With lWaypoint
-            .name = IO.Path.GetFileNameWithoutExtension(aFilename)
-            .sym = aFilename
-            .url = aFilename
-            .time = lPhotoDate
-            .SetExtension("LocalTime", Format(lExif.DateTimeOriginal, "yyyy-MM-dd HH:mm:ss"))
-        End With
+            lWaypoints.Add(lWaypoint)
 
-        lWaypoints.Add(lWaypoint)
+            lLayer = New clsLayerGPX(lWaypoints, Me)
+            lLayer.Filename = aFilename
+            lLayer.LabelField = "name"
+            Dim lBounds As New clsGPXbounds()
+            With lBounds
+                .maxlat = lLatitude
+                .minlat = lLatitude
+                .maxlon = lLongitude
+                .minlon = lLongitude
+            End With
+            lLayer.Bounds = lBounds
 
-        Dim lLayer As New clsLayerGPX(lWaypoints, Me)
-        lLayer.Filename = aFilename
-        lLayer.LabelField = "name"
-        Dim lBounds As New clsGPXbounds()
-        With lBounds
-            .maxlat = lLatitude
-            .minlat = lLatitude
-            .maxlon = lLongitude
-            .minlon = lLongitude
-        End With
-        lLayer.Bounds = lBounds
+            Me.Layers.Add(lLayer)
+            If lNeedToSearchTracks Then LayersImportedByTime.Add(lLayer)
 
-        Me.Layers.Add(lLayer)
-        If lNeedToSearchTracks Then LayersImportedByTime.Add(lLayer)
-
-        If GPXPanTo Then
-            CenterLat = lLatitude
-            CenterLon = lLongitude
-            SanitizeCenterLatLon()
+            If GPXPanTo Then
+                CenterLat = lLatitude
+                CenterLon = lLongitude
+                SanitizeCenterLatLon()
+            End If
+            NeedRedraw()
         End If
-        NeedRedraw()
 #End If
-    End Sub
+        Return lLayer
+    End Function
 
     Public Sub ReImportLayersByDate()
         For Each lLayer As clsLayerGPX In LayersImportedByTime
@@ -1493,6 +1503,23 @@ Public Class ctlMap
         End With
     End Function
 
+    ''' <summary>
+    ''' Pan and zoom the view to best contain the given bounds
+    ''' </summary>
+    ''' <param name="aBounds">Bounds to center on and zoom to</param>
+    ''' <remarks>Redraws map</remarks>
+    Public Sub ZoomTo(ByVal aBounds As clsGPXbounds, _
+             Optional ByVal aZoomIn As Boolean = True, _
+             Optional ByVal aZoomOut As Boolean = True)
+        PanTo(aBounds)
+        Dim lZoom As Integer = FindZoom(aBounds, aZoomIn, aZoomOut)
+        If lZoom = Zoom Then
+            NeedRedraw() 'Don't need to change zoom, just redraw
+        Else
+            Zoom = lZoom 'Changing zoom will also redraw
+        End If
+    End Sub
+
     Public Sub ZoomToAll()
         Dim lFirstLayer As Boolean = True 'Zoom in on first layer, then zoom out to include all layers
         Dim lAllBounds As clsGPXbounds = Nothing
@@ -1508,8 +1535,7 @@ Public Class ctlMap
             End If
         Next
         If lAllBounds IsNot Nothing Then
-            PanTo(lAllBounds)
-            Zoom = FindZoom(lAllBounds)
+            ZoomTo(lAllBounds)
         End If
     End Sub
 
@@ -1533,6 +1559,7 @@ Public Class ctlMap
     Private Sub CloseLayer(ByVal aLayer As clsLayer)
         aLayer.Clear()
         Layers.Remove(aLayer)
+        RaiseEvent ClosedLayer()
     End Sub
 
     Public Sub CloseAllLayers()
@@ -1540,6 +1567,7 @@ Public Class ctlMap
             lLayer.Clear()
         Next
         Layers.Clear()
+        RaiseEvent ClosedLayer()
     End Sub
 
     ''' <summary>

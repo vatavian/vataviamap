@@ -422,7 +422,7 @@ Public Class frmMap
         End If
         pCoordinatesForm = New frmCoordinates
         pCoordinatesForm.Icon = Me.Icon
-        pCoordinatesForm.Show(Me)
+        pCoordinatesForm.Show(pMap)
     End Sub
 
     Private Sub LayersToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles LayersToolStripMenuItem.Click
@@ -642,8 +642,23 @@ Public Class frmMap
     End Sub
 
     Private Sub pLayersForm_ZoomTo(ByVal aBounds As clsGPXbounds) Handles pLayersForm.ZoomTo
-        pMap.PanTo(aBounds)
-        pMap.NeedRedraw()
+        pMap.ZoomTo(aBounds)
+    End Sub
+
+    Private Sub pMap_ClosedLayer() Handles pMap.ClosedLayer
+        If pLayersForm IsNot Nothing Then
+            pLayersForm.PopulateList(pMap.Layers)
+        End If
+    End Sub
+
+    Private Sub pMap_OpenedLayer(ByVal aLayer As clsLayer) Handles pMap.OpenedLayer
+        If pLayersForm IsNot Nothing Then
+            pLayersForm.PopulateList(pMap.Layers)
+        End If
+    End Sub
+
+    Private Sub pMap_RegionChanged(ByVal sender As Object, ByVal e As System.EventArgs) Handles pMap.RegionChanged
+        If pCoordinatesForm IsNot Nothing Then pCoordinatesForm.Show(pMap)
     End Sub
 
     Private Sub pMap_Zoomed() Handles pMap.Zoomed

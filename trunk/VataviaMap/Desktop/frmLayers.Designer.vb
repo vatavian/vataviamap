@@ -31,6 +31,7 @@ Partial Class frmLayers
         Me.txtArrowSize = New System.Windows.Forms.TextBox
         Me.lstLayers = New System.Windows.Forms.ListView
         Me.ColumnFilename = New System.Windows.Forms.ColumnHeader
+        Me.ColumnDate = New System.Windows.Forms.ColumnHeader
         Me.ColumnDuration = New System.Windows.Forms.ColumnHeader
         Me.chkAllVisible = New System.Windows.Forms.CheckBox
         Me.grpColor = New System.Windows.Forms.GroupBox
@@ -50,7 +51,8 @@ Partial Class frmLayers
         Me.lblLabelField = New System.Windows.Forms.Label
         Me.cboGroupField = New System.Windows.Forms.ComboBox
         Me.lblGroup = New System.Windows.Forms.Label
-        Me.ColumnDate = New System.Windows.Forms.ColumnHeader
+        Me.ZoomToStartToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.ZoomToEndToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.grpColor.SuspendLayout()
         Me.LayerGridRightContextMenuStrip.SuspendLayout()
         Me.grpLabel.SuspendLayout()
@@ -129,6 +131,10 @@ Partial Class frmLayers
         Me.ColumnFilename.Text = "File Name"
         Me.ColumnFilename.Width = 506
         '
+        'ColumnDate
+        '
+        Me.ColumnDate.Text = "Date"
+        '
         'ColumnDuration
         '
         Me.ColumnDuration.Text = "Duration"
@@ -201,20 +207,20 @@ Partial Class frmLayers
         '
         'LayerGridRightContextMenuStrip
         '
-        Me.LayerGridRightContextMenuStrip.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ZoomToToolStripMenuItem, Me.DetailsToolStripMenuItem})
+        Me.LayerGridRightContextMenuStrip.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ZoomToToolStripMenuItem, Me.ZoomToStartToolStripMenuItem, Me.ZoomToEndToolStripMenuItem, Me.DetailsToolStripMenuItem})
         Me.LayerGridRightContextMenuStrip.Name = "LayerGridRightContextMenuStrip"
-        Me.LayerGridRightContextMenuStrip.Size = New System.Drawing.Size(124, 48)
+        Me.LayerGridRightContextMenuStrip.Size = New System.Drawing.Size(198, 122)
         '
         'ZoomToToolStripMenuItem
         '
         Me.ZoomToToolStripMenuItem.Name = "ZoomToToolStripMenuItem"
-        Me.ZoomToToolStripMenuItem.Size = New System.Drawing.Size(123, 22)
-        Me.ZoomToToolStripMenuItem.Text = "ZoomTo"
+        Me.ZoomToToolStripMenuItem.Size = New System.Drawing.Size(197, 24)
+        Me.ZoomToToolStripMenuItem.Text = "Zoom To"
         '
         'DetailsToolStripMenuItem
         '
         Me.DetailsToolStripMenuItem.Name = "DetailsToolStripMenuItem"
-        Me.DetailsToolStripMenuItem.Size = New System.Drawing.Size(123, 22)
+        Me.DetailsToolStripMenuItem.Size = New System.Drawing.Size(197, 24)
         Me.DetailsToolStripMenuItem.Text = "Details"
         '
         'grpLabel
@@ -289,8 +295,7 @@ Partial Class frmLayers
         '
         'cboGroupField
         '
-        Me.cboGroupField.Anchor = CType(((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Left) _
-                    Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.cboGroupField.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
         Me.cboGroupField.FormattingEnabled = True
         Me.cboGroupField.Location = New System.Drawing.Point(304, 630)
         Me.cboGroupField.Name = "cboGroupField"
@@ -299,6 +304,7 @@ Partial Class frmLayers
         '
         'lblGroup
         '
+        Me.lblGroup.Anchor = CType((System.Windows.Forms.AnchorStyles.Bottom Or System.Windows.Forms.AnchorStyles.Left), System.Windows.Forms.AnchorStyles)
         Me.lblGroup.AutoSize = True
         Me.lblGroup.Location = New System.Drawing.Point(257, 633)
         Me.lblGroup.Name = "lblGroup"
@@ -306,9 +312,17 @@ Partial Class frmLayers
         Me.lblGroup.TabIndex = 15
         Me.lblGroup.Text = "Group"
         '
-        'ColumnDate
+        'ZoomToStartToolStripMenuItem
         '
-        Me.ColumnDate.Text = "Date"
+        Me.ZoomToStartToolStripMenuItem.Name = "ZoomToStartToolStripMenuItem"
+        Me.ZoomToStartToolStripMenuItem.Size = New System.Drawing.Size(197, 24)
+        Me.ZoomToStartToolStripMenuItem.Text = "Zoom To Start"
+        '
+        'ZoomToEndToolStripMenuItem
+        '
+        Me.ZoomToEndToolStripMenuItem.Name = "ZoomToEndToolStripMenuItem"
+        Me.ZoomToEndToolStripMenuItem.Size = New System.Drawing.Size(197, 24)
+        Me.ZoomToEndToolStripMenuItem.Text = "Zoom To End"
         '
         'frmLayers
         '
@@ -364,4 +378,6 @@ Partial Class frmLayers
     Friend WithEvents cboGroupField As System.Windows.Forms.ComboBox
     Friend WithEvents lblGroup As System.Windows.Forms.Label
     Friend WithEvents ColumnDate As System.Windows.Forms.ColumnHeader
+    Friend WithEvents ZoomToStartToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents ZoomToEndToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
 End Class
