@@ -12,6 +12,8 @@ Module modGlobal
     Public Const g_HalfCircumferenceOfEarth As Double = g_CircumferenceOfEarth / 2
 
     Public Const g_MetersPerMile As Double = 1609.344
+    Public Const g_FeetPerMeter As Double = 3.2808399
+    Public Const g_MilesPerKnot As Double = 1.15077945
 
     Public g_TileExtension As String = ".png"
     Public g_PathChar As String = IO.Path.DirectorySeparatorChar
@@ -57,6 +59,7 @@ Module modGlobal
 
     Public g_Debug As Boolean = True
     Public g_DebugFilename As String = Nothing
+    Public g_DebugWriter As System.IO.TextWriter = Nothing
 
     Public Enum EnumDegreeFormat
         DecimalDegrees = 0
@@ -561,21 +564,21 @@ EndFound:
 
     Private pDebugMutex As New Threading.Mutex()
     Public Sub Dbg(ByVal aMessage As String)
-        pDebugMutex.WaitOne()
-        Debug.WriteLine(aMessage)
         If g_Debug Then
+            pDebugMutex.WaitOne()
+            Debug.WriteLine(aMessage)
             Try
-                If g_DebugFilename Is Nothing Then
-                    g_DebugFilename = IO.Path.GetTempPath & "VataviaMapLog" & DateTime.Now.ToString("yyyy-MM-dd_HH-mm") & ".txt"
+                If g_DebugWriter Is Nothing Then
+                    g_DebugFilename = IO.Path.GetTempPath & "VataviaMapLog" & DateTime.Now.ToString("yyyy-MM-dd_HH-mm.ss") & ".txt"
+                    g_DebugWriter = IO.StreamWriter.Synchronized(IO.File.AppendText(g_DebugFilename))
                 End If
-                Dim lWriter As System.IO.StreamWriter = IO.File.AppendText(g_DebugFilename)
-                lWriter.WriteLine(DateTime.Now.ToString("HH:mm:ss ") & aMessage)
-                lWriter.Close()
+                g_DebugWriter.WriteLine(DateTime.Now.ToString("HH:mm:ss ") & aMessage)
+                g_DebugWriter.Flush()
             Catch e As Exception
-                MsgBox("Could not log message to '" & g_DebugFilename & "'" & vbLf & e.Message & vbLf & aMessage)
+                'MsgBox("Could not log message to '" & g_DebugFilename & "'" & vbLf & e.Message & vbLf & aMessage)
             End Try
+            pDebugMutex.ReleaseMutex()
         End If
-        pDebugMutex.ReleaseMutex()
     End Sub
 
 #Region "GMap code from http://www.codeplex.com/gmap4dotnet"

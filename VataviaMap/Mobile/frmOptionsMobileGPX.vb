@@ -14,9 +14,9 @@ Public Class frmOptionsMobileGPX
     Private Sub txtGPXFolder_KeyDown(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyEventArgs) Handles txtGPXFolder.KeyDown
         If e.KeyCode = Keys.Up Then 'rotate between common locations
             Select Case txtGPXFolder.Text
-                Case "\My Documents\" : txtGPXFolder.Text = "\My Documents\gps\"
-                Case "\My Documents\gps\" : txtGPXFolder.Text = "\Storage Card\"
-                Case Else : txtGPXFolder.Text = "\My Documents\"
+                Case g_PathChar & "My Documents" & g_PathChar : txtGPXFolder.Text = g_PathChar & "My Documents" & g_PathChar & "gps" & g_PathChar
+                Case g_PathChar & "My Documents" & g_PathChar & "gps" & g_PathChar : txtGPXFolder.Text = g_PathChar & "Storage Card" & g_PathChar
+                Case Else : txtGPXFolder.Text = g_PathChar & "My Documents" & g_PathChar
             End Select
         End If
     End Sub

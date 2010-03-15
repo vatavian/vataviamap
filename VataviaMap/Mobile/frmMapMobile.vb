@@ -264,8 +264,8 @@ Public Class frmMap
     Private Sub mnuTakePicture_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuTakePicture.Click
         Dim ccd As New Microsoft.WindowsMobile.Forms.CameraCaptureDialog
         With ccd
-            .InitialDirectory = "\My Documents\My Pictures"
-            Dim lBaseName As String = "\MapImage_"
+            .InitialDirectory = g_PathChar & "My Documents" & g_PathChar & "My Pictures"
+            Dim lBaseName As String = g_PathChar & "MapImage_"
             Dim lFilename As String
             Dim lIndex As Integer = 1
             Do
@@ -279,7 +279,7 @@ Public Class frmMap
             .Owner = Me
             .Title = .DefaultFileName
             If ccd.ShowDialog() = Windows.Forms.DialogResult.OK Then
-                'MsgBox(ccd.FileName)
+                'Todo: geotag photo
             End If
         End With
     End Sub

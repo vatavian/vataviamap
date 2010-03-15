@@ -30,7 +30,7 @@ Public Class clsQueueItem
 
     Public Overrides Function ToString() As String
         If ItemType = QueueItemType.TileItem Then
-            Return Zoom & " " & TilePoint.ToString
+            Return Zoom & "/" & TilePoint.X & "/" & TilePoint.Y
         Else
             Return URL
         End If

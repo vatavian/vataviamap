@@ -23,7 +23,7 @@ Public Class ctlMap
     Public MouseWheelAction As EnumWheelAction = EnumWheelAction.Zoom
 
     'Top-level tile cache folder. 
-    'We name a folder inside here after the tile server, then zoom\x\y.png
+    'We name a folder inside here after the tile server, then zoom/x/y.png
     'Changing the tile server also changes g_TileCacheFolder
     Private pTileCacheFolder As String = ""
 
@@ -49,6 +49,7 @@ Public Class ctlMap
     Private pPenCursor As New Pen(Color.Red)
 
     Private pFontTileLabel As New Font("Arial", 10, FontStyle.Regular)
+    Private pFontGpsDetails As New Font("Arial", 10, FontStyle.Regular)
     Private pFontCopyright As New Font(FontFamily.GenericSansSerif, 7, FontStyle.Regular)
     Private pBrushCopyright As New SolidBrush(Color.Black)
     Private pShowCopyright As Boolean = True
@@ -151,7 +152,7 @@ Public Class ctlMap
     'Private Declare Function GetAsyncKeyState Lib "user32" (ByVal vKey As Integer) As Integer
 
     Public Sub SharedNew()
-        GPXFolder = "\My Documents\gps"
+        GPXFolder = g_PathChar & "My Documents" & g_PathChar & "gps"
         GetSettings()
 
         LoadCachedIcons()
@@ -246,14 +247,16 @@ Public Class ctlMap
         End Get
         Set(ByVal value As Boolean)
             pDark = value
-            NeedRedraw()
 #If Smartphone Then
             If pDark Then
                 StopKeepAwake()
+                pFontGpsDetails = New Font(pFontGpsDetails.Name, 20, pFontGpsDetails.Style)
             Else
                 StartKeepAwake()
+                pFontGpsDetails = New Font(pFontGpsDetails.Name, 10, pFontGpsDetails.Style)
             End If
 #End If
+            NeedRedraw()
         End Set
     End Property
 
@@ -1809,6 +1812,7 @@ Public Class ctlMap
     Private GPS_DEVICE_STATE As GPS_API.GpsDeviceState
     Private GPS_POSITION As GPS_API.GpsPosition = Nothing
 
+    <CLSCompliant(False)> _
     Public Event LocationChanged(ByVal aPosition As GPS_API.GpsPosition)
 
     Private pLastCellTower As clsCell
@@ -1820,7 +1824,7 @@ Public Class ctlMap
     Private pTrackWaypoints As New System.Text.StringBuilder()
 
     ' File name of waypoints currently being written
-    Private pWaypointLogFilename As String
+    Private pWaypointLogFilename As String = Nothing
 
     ' File name of track log currently being written
     Private pTrackLogFilename As String
@@ -1854,7 +1858,7 @@ Public Class ctlMap
 
         updateDataHandler = New EventHandler(AddressOf UpdateData)
 
-        pTileCacheFolder = GetAppSetting("TileCacheFolder", "\My Documents\tiles\")
+        pTileCacheFolder = GetAppSetting("TileCacheFolder", g_PathChar & "My Documents" & g_PathChar & "tiles" & g_PathChar)
 
         If pTileCacheFolder.Length > 0 AndAlso Not pTileCacheFolder.EndsWith(g_PathChar) Then
             pTileCacheFolder &= g_PathChar
@@ -1866,12 +1870,7 @@ Public Class ctlMap
             IO.Directory.CreateDirectory(pTileCacheFolder & "WriteTest")
             IO.Directory.Delete(pTileCacheFolder & "WriteTest")
         Catch e As Exception
-            pTileCacheFolder = IO.Path.GetTempPath
-            'TODO: open frmDownloadMobile or let user choose this folder somehow rather than just error message
-            'MsgBox("Could not use cache folder" & vbLf _
-            '     & pTileCacheFolder & vbLf _
-            '     & "Edit registry in CurrentUser\Software\" & g_AppName & "\TileCacheFolder to change", _
-            '       MsgBoxStyle.OkOnly, "TileCacheFolder Needed")
+            pTileCacheFolder = IO.Path.Combine(IO.Path.GetTempPath, "tiles")
         End Try
 
         SharedNew()
@@ -1915,7 +1914,7 @@ RestartRedraw:
                         DrawTiles(lGraphics)
                     End If
                     If pShowGPSdetails Then
-                        lGraphics.DrawString(GPSdetailsString, pFontTileLabel, lDetailsBrush, 5, 5)
+                        DrawStringSplitToFitWidth(lGraphics, GPSdetailsString, pFontGpsDetails, lDetailsBrush, 5, 5)
                     End If
                     ReleaseBitmapGraphics()
                     Refresh()
@@ -1928,6 +1927,21 @@ RestartRedraw:
             End If
             pRedrawing = False
         End If
+    End Sub
+
+    Private Sub DrawStringSplitToFitWidth(ByVal aGraphics As Graphics, _
+        ByVal aString As String, ByVal aFont As Font, ByVal aBrush As Brush, _
+        ByVal aLeft As Single, ByVal aTop As Single)
+        Dim lMaxWidth As Single = aGraphics.ClipBounds.Right - aLeft
+        Dim lLines() As String = aString.Split(vbLf)
+        For lIndex As Integer = 0 To lLines.GetUpperBound(0)
+            Dim lWidth As Single = aGraphics.MeasureString(lLines(lIndex), aFont).Width
+            If lWidth > lMaxWidth Then
+                'TODO: only replace minimum number of spaces
+                lLines(lIndex) = lLines(lIndex).Replace(" ", vbLf)
+            End If
+        Next
+        aGraphics.DrawString(String.Join(vbLf, lLines), aFont, aBrush, aLeft, aTop)
     End Sub
 
     Private Function EnsureCurrentTrack() As clsLayerGPX
@@ -1979,11 +1993,10 @@ RestartRedraw:
         ElseIf Not GPS_POSITION.LatitudeValid OrElse Not GPS_POSITION.LongitudeValid Then
             lDetails = "Position not valid"
         Else
-            lDetails = "(" & FormattedDegrees(GPS_POSITION.Latitude, g_DegreeFormat) & ", " _
-                           & FormattedDegrees(GPS_POSITION.Longitude, g_DegreeFormat) & ")"
-            If (GPS_POSITION.SeaLevelAltitudeValid) Then lDetails &= " " & CInt(GPS_POSITION.SeaLevelAltitude) & "m"
-            If (GPS_POSITION.SpeedValid AndAlso GPS_POSITION.Speed > 0) Then lDetails &= " " & CInt(GPS_POSITION.Speed * 1.15077945) & "mph"
-
+            lDetails = FormattedDegrees(GPS_POSITION.Latitude, g_DegreeFormat) & ", " _
+                     & FormattedDegrees(GPS_POSITION.Longitude, g_DegreeFormat)
+            If (GPS_POSITION.SeaLevelAltitudeValid) Then lDetails &= " " & Format(GPS_POSITION.SeaLevelAltitude * g_FeetPerMeter, "#,##0") & "ft"
+            If (GPS_POSITION.SpeedValid AndAlso GPS_POSITION.Speed > 0) Then lDetails &= " " & CInt(GPS_POSITION.Speed * g_MilesPerKnot) & "mph"
             If GPS_POSITION.TimeValid Then
                 lDetails &= vbLf & GPS_POSITION.Time.ToString("yyyy-MM-dd HH:mm:ss") & "Z"
                 Dim lAgeOfPosition As TimeSpan = DateTime.UtcNow - GPS_POSITION.Time
@@ -2489,29 +2502,6 @@ SetCenter:
         End Set
     End Property
 
-    'Public Property TakePicture_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuTakePicture.Click
-    '    Dim ccd As New Microsoft.WindowsMobile.Forms.CameraCaptureDialog
-    '    With ccd
-    '        .InitialDirectory = "\My Documents\My Pictures"
-    'Dim lBaseName As String = "\MapImage_"
-    'Dim lFilename As String
-    'Dim lIndex As Integer = 1
-    '        Do
-    '            lFilename = .InitialDirectory & lBaseName & Format(lIndex, "000") & ".jpg"
-    '            lIndex += 1
-    '        Loop While IO.File.Exists(lFilename)
-    '        .DefaultFileName = IO.Path.GetFileName(lFilename)
-    '        .StillQuality = Microsoft.WindowsMobile.Forms.CameraCaptureStillQuality.High
-    '        .Resolution = New Drawing.Size(2048, 1536)
-    '        .Mode = Microsoft.WindowsMobile.Forms.CameraCaptureMode.Still
-    '        .Owner = Me
-    '        .Title = .DefaultFileName
-    '        If ccd.ShowDialog() = Windows.Forms.DialogResult.OK Then
-    ''MsgBox(ccd.FileName)
-    '        End If
-    '    End With
-    'End Sub
-
     Public Sub SetTime()
         Dim lDetails As String = Nothing
         Try
@@ -2588,7 +2578,7 @@ SetCenter:
         End Select
         pBitmapMutex.WaitOne()
         pBitmap.Save(aFilename, lImageFormat)
-        'SaveTiles(IO.Path.GetDirectoryName(.FileName) & "\" & IO.Path.GetFileNameWithoutExtension(.FileName) & "\")
+        'SaveTiles(IO.Path.GetDirectoryName(.FileName) & g_PathChar & IO.Path.GetFileNameWithoutExtension(.FileName) & g_PathChar)
         pBitmapMutex.ReleaseMutex()
         'CreateGeoReferenceFile(LatitudeToMeters(pCenterLat - pLatHeight * 1.66), _
         CreateGeoReferenceFile(LatitudeToMeters(LatMax), _
