@@ -32,7 +32,6 @@ Partial Class frmMap
         Me.AddLayerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.LayersToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.RemoveAllLayersToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
-        Me.OpenOSMWebsiteToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.OpenJOSMToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.FollowOSMURLToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.GetOSMBugsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
@@ -48,6 +47,17 @@ Partial Class frmMap
         Me.CoordinatesToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.WaypointsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.TimestampToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.TransparencyToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.TransparencyNone = New System.Windows.Forms.ToolStripMenuItem
+        Me.Transparency10 = New System.Windows.Forms.ToolStripMenuItem
+        Me.Transparency20 = New System.Windows.Forms.ToolStripMenuItem
+        Me.Transparency30 = New System.Windows.Forms.ToolStripMenuItem
+        Me.Transparency40 = New System.Windows.Forms.ToolStripMenuItem
+        Me.Transparency50 = New System.Windows.Forms.ToolStripMenuItem
+        Me.Transparency60 = New System.Windows.Forms.ToolStripMenuItem
+        Me.Transparency70 = New System.Windows.Forms.ToolStripMenuItem
+        Me.Transparency80 = New System.Windows.Forms.ToolStripMenuItem
+        Me.Transparency90 = New System.Windows.Forms.ToolStripMenuItem
         Me.ZoomToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.ZoomAllLayersToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.TileServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
@@ -67,6 +77,7 @@ Partial Class frmMap
         Me.WheelLayerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.CellTowerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.OpenCellIDToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.WebsiteToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.HelpToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.VataviaMapProjectPageToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.RefreshFromServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
@@ -77,105 +88,99 @@ Partial Class frmMap
         '
         'MenuStripMain
         '
-        Me.MenuStripMain.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FileToolStripMenuItem, Me.ViewToolStripMenuItem, Me.ZoomToolStripMenuItem, Me.TileServerToolStripMenuItem, Me.OverlayServerToolStripMenuItem, Me.BuddiesToolStripMenuItem, Me.WheelToolStripMenuItem, Me.CellTowerToolStripMenuItem, Me.HelpToolStripMenuItem})
+        Me.MenuStripMain.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FileToolStripMenuItem, Me.ViewToolStripMenuItem, Me.ZoomToolStripMenuItem, Me.TileServerToolStripMenuItem, Me.OverlayServerToolStripMenuItem, Me.BuddiesToolStripMenuItem, Me.WheelToolStripMenuItem, Me.CellTowerToolStripMenuItem, Me.WebsiteToolStripMenuItem, Me.HelpToolStripMenuItem})
         Me.MenuStripMain.Location = New System.Drawing.Point(0, 0)
         Me.MenuStripMain.Name = "MenuStripMain"
-        Me.MenuStripMain.Size = New System.Drawing.Size(785, 24)
+        Me.MenuStripMain.Size = New System.Drawing.Size(785, 27)
         Me.MenuStripMain.TabIndex = 0
         Me.MenuStripMain.Text = "MenuStrip1"
         '
         'FileToolStripMenuItem
         '
-        Me.FileToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.SaveAsToolStripMenuItem, Me.CopyToClipboardToolStripMenuItem, Me.AddLayerToolStripMenuItem, Me.LayersToolStripMenuItem, Me.RemoveAllLayersToolStripMenuItem, Me.OpenOSMWebsiteToolStripMenuItem, Me.OpenJOSMToolStripMenuItem, Me.FollowOSMURLToolStripMenuItem, Me.GetOSMBugsToolStripMenuItem, Me.ExitToolStripSeparator, Me.ExitToolStripMenuItem, Me.TimeZoneToolStripMenuItem})
+        Me.FileToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.SaveAsToolStripMenuItem, Me.CopyToClipboardToolStripMenuItem, Me.AddLayerToolStripMenuItem, Me.LayersToolStripMenuItem, Me.RemoveAllLayersToolStripMenuItem, Me.OpenJOSMToolStripMenuItem, Me.FollowOSMURLToolStripMenuItem, Me.GetOSMBugsToolStripMenuItem, Me.ExitToolStripSeparator, Me.ExitToolStripMenuItem, Me.TimeZoneToolStripMenuItem})
         Me.FileToolStripMenuItem.Name = "FileToolStripMenuItem"
-        Me.FileToolStripMenuItem.Size = New System.Drawing.Size(35, 20)
+        Me.FileToolStripMenuItem.Size = New System.Drawing.Size(45, 23)
         Me.FileToolStripMenuItem.Text = "File"
         '
         'SaveAsToolStripMenuItem
         '
         Me.SaveAsToolStripMenuItem.Name = "SaveAsToolStripMenuItem"
-        Me.SaveAsToolStripMenuItem.Size = New System.Drawing.Size(223, 22)
+        Me.SaveAsToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
         Me.SaveAsToolStripMenuItem.Text = "Save As..."
         '
         'CopyToClipboardToolStripMenuItem
         '
         Me.CopyToClipboardToolStripMenuItem.Name = "CopyToClipboardToolStripMenuItem"
         Me.CopyToClipboardToolStripMenuItem.ShortcutKeys = CType((System.Windows.Forms.Keys.Control Or System.Windows.Forms.Keys.C), System.Windows.Forms.Keys)
-        Me.CopyToClipboardToolStripMenuItem.Size = New System.Drawing.Size(223, 22)
+        Me.CopyToClipboardToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
         Me.CopyToClipboardToolStripMenuItem.Text = "Copy to Clipboard"
         '
         'AddLayerToolStripMenuItem
         '
         Me.AddLayerToolStripMenuItem.Name = "AddLayerToolStripMenuItem"
-        Me.AddLayerToolStripMenuItem.Size = New System.Drawing.Size(223, 22)
+        Me.AddLayerToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
         Me.AddLayerToolStripMenuItem.Text = "Add Layer..."
         '
         'LayersToolStripMenuItem
         '
         Me.LayersToolStripMenuItem.Name = "LayersToolStripMenuItem"
-        Me.LayersToolStripMenuItem.Size = New System.Drawing.Size(223, 22)
+        Me.LayersToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
         Me.LayersToolStripMenuItem.Text = "Layers..."
         '
         'RemoveAllLayersToolStripMenuItem
         '
         Me.RemoveAllLayersToolStripMenuItem.Name = "RemoveAllLayersToolStripMenuItem"
         Me.RemoveAllLayersToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.Delete
-        Me.RemoveAllLayersToolStripMenuItem.Size = New System.Drawing.Size(223, 22)
+        Me.RemoveAllLayersToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
         Me.RemoveAllLayersToolStripMenuItem.Text = "Remove All Layers"
-        '
-        'OpenOSMWebsiteToolStripMenuItem
-        '
-        Me.OpenOSMWebsiteToolStripMenuItem.Name = "OpenOSMWebsiteToolStripMenuItem"
-        Me.OpenOSMWebsiteToolStripMenuItem.Size = New System.Drawing.Size(223, 22)
-        Me.OpenOSMWebsiteToolStripMenuItem.Text = "Open OSM Website"
         '
         'OpenJOSMToolStripMenuItem
         '
         Me.OpenJOSMToolStripMenuItem.Name = "OpenJOSMToolStripMenuItem"
-        Me.OpenJOSMToolStripMenuItem.Size = New System.Drawing.Size(223, 22)
+        Me.OpenJOSMToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
         Me.OpenJOSMToolStripMenuItem.Text = "Open JOSM"
         '
         'FollowOSMURLToolStripMenuItem
         '
         Me.FollowOSMURLToolStripMenuItem.Name = "FollowOSMURLToolStripMenuItem"
-        Me.FollowOSMURLToolStripMenuItem.Size = New System.Drawing.Size(223, 22)
+        Me.FollowOSMURLToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
         Me.FollowOSMURLToolStripMenuItem.Text = "Follow OSM URL on clipboard"
         '
         'GetOSMBugsToolStripMenuItem
         '
         Me.GetOSMBugsToolStripMenuItem.Name = "GetOSMBugsToolStripMenuItem"
-        Me.GetOSMBugsToolStripMenuItem.Size = New System.Drawing.Size(223, 22)
+        Me.GetOSMBugsToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
         Me.GetOSMBugsToolStripMenuItem.Text = "Get OSM Bugs"
         '
         'ExitToolStripSeparator
         '
         Me.ExitToolStripSeparator.Name = "ExitToolStripSeparator"
-        Me.ExitToolStripSeparator.Size = New System.Drawing.Size(220, 6)
+        Me.ExitToolStripSeparator.Size = New System.Drawing.Size(302, 6)
         '
         'ExitToolStripMenuItem
         '
         Me.ExitToolStripMenuItem.Name = "ExitToolStripMenuItem"
         Me.ExitToolStripMenuItem.ShortcutKeys = CType((System.Windows.Forms.Keys.Alt Or System.Windows.Forms.Keys.F4), System.Windows.Forms.Keys)
-        Me.ExitToolStripMenuItem.Size = New System.Drawing.Size(223, 22)
+        Me.ExitToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
         Me.ExitToolStripMenuItem.Text = "Exit"
         '
         'ViewToolStripMenuItem
         '
-        Me.ViewToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.TileOutlinesToolStripMenuItem, Me.TileNamesToolStripMenuItem, Me.TileImagesToolStripMenuItem, Me.PanToGPXToolStripMenuItem, Me.ZoomToGPXToolStripMenuItem, Me.UseMarkedTilesToolStripMenuItem, Me.CoordinatesToolStripMenuItem, Me.WaypointsToolStripMenuItem, Me.TimestampToolStripMenuItem})
+        Me.ViewToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.TileOutlinesToolStripMenuItem, Me.TileNamesToolStripMenuItem, Me.TileImagesToolStripMenuItem, Me.PanToGPXToolStripMenuItem, Me.ZoomToGPXToolStripMenuItem, Me.UseMarkedTilesToolStripMenuItem, Me.CoordinatesToolStripMenuItem, Me.WaypointsToolStripMenuItem, Me.TimestampToolStripMenuItem, Me.TransparencyToolStripMenuItem})
         Me.ViewToolStripMenuItem.Name = "ViewToolStripMenuItem"
-        Me.ViewToolStripMenuItem.Size = New System.Drawing.Size(41, 20)
+        Me.ViewToolStripMenuItem.Size = New System.Drawing.Size(55, 23)
         Me.ViewToolStripMenuItem.Text = "View"
         '
         'TileOutlinesToolStripMenuItem
         '
         Me.TileOutlinesToolStripMenuItem.Name = "TileOutlinesToolStripMenuItem"
-        Me.TileOutlinesToolStripMenuItem.Size = New System.Drawing.Size(165, 22)
+        Me.TileOutlinesToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
         Me.TileOutlinesToolStripMenuItem.Text = "Tile Outlines"
         '
         'TileNamesToolStripMenuItem
         '
         Me.TileNamesToolStripMenuItem.Name = "TileNamesToolStripMenuItem"
-        Me.TileNamesToolStripMenuItem.Size = New System.Drawing.Size(165, 22)
+        Me.TileNamesToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
         Me.TileNamesToolStripMenuItem.Text = "Tile Names"
         '
         'TileImagesToolStripMenuItem
@@ -183,133 +188,200 @@ Partial Class frmMap
         Me.TileImagesToolStripMenuItem.Checked = True
         Me.TileImagesToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked
         Me.TileImagesToolStripMenuItem.Name = "TileImagesToolStripMenuItem"
-        Me.TileImagesToolStripMenuItem.Size = New System.Drawing.Size(165, 22)
+        Me.TileImagesToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
         Me.TileImagesToolStripMenuItem.Text = "Tile Images"
         '
         'PanToGPXToolStripMenuItem
         '
         Me.PanToGPXToolStripMenuItem.Name = "PanToGPXToolStripMenuItem"
-        Me.PanToGPXToolStripMenuItem.Size = New System.Drawing.Size(165, 22)
+        Me.PanToGPXToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
         Me.PanToGPXToolStripMenuItem.Text = "Pan to GPX"
         '
         'ZoomToGPXToolStripMenuItem
         '
         Me.ZoomToGPXToolStripMenuItem.Name = "ZoomToGPXToolStripMenuItem"
-        Me.ZoomToGPXToolStripMenuItem.Size = New System.Drawing.Size(165, 22)
+        Me.ZoomToGPXToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
         Me.ZoomToGPXToolStripMenuItem.Text = "Zoom to GPX"
         '
         'UseMarkedTilesToolStripMenuItem
         '
         Me.UseMarkedTilesToolStripMenuItem.Name = "UseMarkedTilesToolStripMenuItem"
-        Me.UseMarkedTilesToolStripMenuItem.Size = New System.Drawing.Size(165, 22)
+        Me.UseMarkedTilesToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
         Me.UseMarkedTilesToolStripMenuItem.Text = "Use Marked Tiles"
         '
         'CoordinatesToolStripMenuItem
         '
         Me.CoordinatesToolStripMenuItem.Name = "CoordinatesToolStripMenuItem"
-        Me.CoordinatesToolStripMenuItem.Size = New System.Drawing.Size(165, 22)
+        Me.CoordinatesToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
         Me.CoordinatesToolStripMenuItem.Text = "Coordinates"
         '
         'WaypointsToolStripMenuItem
         '
         Me.WaypointsToolStripMenuItem.Name = "WaypointsToolStripMenuItem"
-        Me.WaypointsToolStripMenuItem.Size = New System.Drawing.Size(165, 22)
+        Me.WaypointsToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
         Me.WaypointsToolStripMenuItem.Text = "Waypoints..."
         '
         'TimestampToolStripMenuItem
         '
         Me.TimestampToolStripMenuItem.Name = "TimestampToolStripMenuItem"
-        Me.TimestampToolStripMenuItem.Size = New System.Drawing.Size(165, 22)
+        Me.TimestampToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
         Me.TimestampToolStripMenuItem.Text = "Timestamp"
+        '
+        'TransparencyToolStripMenuItem
+        '
+        Me.TransparencyToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.TransparencyNone, Me.Transparency10, Me.Transparency20, Me.Transparency30, Me.Transparency40, Me.Transparency50, Me.Transparency60, Me.Transparency70, Me.Transparency80, Me.Transparency90})
+        Me.TransparencyToolStripMenuItem.Name = "TransparencyToolStripMenuItem"
+        Me.TransparencyToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
+        Me.TransparencyToolStripMenuItem.Text = "Transparency"
+        '
+        'TransparencyNone
+        '
+        Me.TransparencyNone.Name = "TransparencyNone"
+        Me.TransparencyNone.Size = New System.Drawing.Size(131, 24)
+        Me.TransparencyNone.Text = "None"
+        '
+        'Transparency10
+        '
+        Me.Transparency10.Name = "Transparency10"
+        Me.Transparency10.Size = New System.Drawing.Size(131, 24)
+        Me.Transparency10.Text = "10%"
+        '
+        'Transparency20
+        '
+        Me.Transparency20.Name = "Transparency20"
+        Me.Transparency20.Size = New System.Drawing.Size(131, 24)
+        Me.Transparency20.Text = "20%"
+        '
+        'Transparency30
+        '
+        Me.Transparency30.Name = "Transparency30"
+        Me.Transparency30.Size = New System.Drawing.Size(131, 24)
+        Me.Transparency30.Text = "30%"
+        '
+        'Transparency40
+        '
+        Me.Transparency40.Name = "Transparency40"
+        Me.Transparency40.Size = New System.Drawing.Size(131, 24)
+        Me.Transparency40.Text = "40%"
+        '
+        'Transparency50
+        '
+        Me.Transparency50.Name = "Transparency50"
+        Me.Transparency50.Size = New System.Drawing.Size(131, 24)
+        Me.Transparency50.Text = "50%"
+        '
+        'Transparency60
+        '
+        Me.Transparency60.Name = "Transparency60"
+        Me.Transparency60.Size = New System.Drawing.Size(131, 24)
+        Me.Transparency60.Text = "60%"
+        '
+        'Transparency70
+        '
+        Me.Transparency70.Name = "Transparency70"
+        Me.Transparency70.Size = New System.Drawing.Size(131, 24)
+        Me.Transparency70.Text = "70%"
+        '
+        'Transparency80
+        '
+        Me.Transparency80.Name = "Transparency80"
+        Me.Transparency80.Size = New System.Drawing.Size(131, 24)
+        Me.Transparency80.Text = "80%"
+        '
+        'Transparency90
+        '
+        Me.Transparency90.Name = "Transparency90"
+        Me.Transparency90.Size = New System.Drawing.Size(131, 24)
+        Me.Transparency90.Text = "90%"
         '
         'ZoomToolStripMenuItem
         '
         Me.ZoomToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.ZoomAllLayersToolStripMenuItem})
         Me.ZoomToolStripMenuItem.Name = "ZoomToolStripMenuItem"
-        Me.ZoomToolStripMenuItem.Size = New System.Drawing.Size(45, 20)
+        Me.ZoomToolStripMenuItem.Size = New System.Drawing.Size(62, 23)
         Me.ZoomToolStripMenuItem.Text = "Zoom"
         '
         'ZoomAllLayersToolStripMenuItem
         '
         Me.ZoomAllLayersToolStripMenuItem.Name = "ZoomAllLayersToolStripMenuItem"
-        Me.ZoomAllLayersToolStripMenuItem.Size = New System.Drawing.Size(131, 22)
+        Me.ZoomAllLayersToolStripMenuItem.Size = New System.Drawing.Size(163, 24)
         Me.ZoomAllLayersToolStripMenuItem.Text = "All Layers"
         '
         'TileServerToolStripMenuItem
         '
         Me.TileServerToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.AddTileServerMenuItem, Me.EditTileServerMenuItem, Me.DefaultsTileServerMenuItem})
         Me.TileServerToolStripMenuItem.Name = "TileServerToolStripMenuItem"
-        Me.TileServerToolStripMenuItem.Size = New System.Drawing.Size(70, 20)
+        Me.TileServerToolStripMenuItem.Size = New System.Drawing.Size(97, 23)
         Me.TileServerToolStripMenuItem.Text = "Tile Server"
         '
         'AddTileServerMenuItem
         '
         Me.AddTileServerMenuItem.Name = "AddTileServerMenuItem"
-        Me.AddTileServerMenuItem.Size = New System.Drawing.Size(169, 22)
+        Me.AddTileServerMenuItem.Size = New System.Drawing.Size(213, 24)
         Me.AddTileServerMenuItem.Text = "Add..."
         '
         'EditTileServerMenuItem
         '
         Me.EditTileServerMenuItem.Name = "EditTileServerMenuItem"
-        Me.EditTileServerMenuItem.Size = New System.Drawing.Size(169, 22)
+        Me.EditTileServerMenuItem.Size = New System.Drawing.Size(213, 24)
         Me.EditTileServerMenuItem.Text = "Edit"
         '
         'DefaultsTileServerMenuItem
         '
         Me.DefaultsTileServerMenuItem.Name = "DefaultsTileServerMenuItem"
-        Me.DefaultsTileServerMenuItem.Size = New System.Drawing.Size(169, 22)
+        Me.DefaultsTileServerMenuItem.Size = New System.Drawing.Size(213, 24)
         Me.DefaultsTileServerMenuItem.Text = "Reset to Defaults"
         '
         'OverlayServerToolStripMenuItem
         '
         Me.OverlayServerToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.OverlayMaplintToolStripMenuItem, Me.OverlayYahooLabelsToolStripMenuItem})
         Me.OverlayServerToolStripMenuItem.Name = "OverlayServerToolStripMenuItem"
-        Me.OverlayServerToolStripMenuItem.Size = New System.Drawing.Size(92, 20)
+        Me.OverlayServerToolStripMenuItem.Size = New System.Drawing.Size(125, 23)
         Me.OverlayServerToolStripMenuItem.Text = "Overlay Server"
         '
         'OverlayMaplintToolStripMenuItem
         '
         Me.OverlayMaplintToolStripMenuItem.Name = "OverlayMaplintToolStripMenuItem"
-        Me.OverlayMaplintToolStripMenuItem.Size = New System.Drawing.Size(145, 22)
+        Me.OverlayMaplintToolStripMenuItem.Size = New System.Drawing.Size(183, 24)
         Me.OverlayMaplintToolStripMenuItem.Text = "Maplint"
         '
         'OverlayYahooLabelsToolStripMenuItem
         '
         Me.OverlayYahooLabelsToolStripMenuItem.Name = "OverlayYahooLabelsToolStripMenuItem"
-        Me.OverlayYahooLabelsToolStripMenuItem.Size = New System.Drawing.Size(145, 22)
+        Me.OverlayYahooLabelsToolStripMenuItem.Size = New System.Drawing.Size(183, 24)
         Me.OverlayYahooLabelsToolStripMenuItem.Text = "YahooLabels"
         '
         'BuddiesToolStripMenuItem
         '
         Me.BuddiesToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FindBuddyToolStripMenuItem, Me.SetBuddyAlarmToolStripMenuItem, Me.ListBuddiesToolStripMenuItem})
         Me.BuddiesToolStripMenuItem.Name = "BuddiesToolStripMenuItem"
-        Me.BuddiesToolStripMenuItem.Size = New System.Drawing.Size(56, 20)
+        Me.BuddiesToolStripMenuItem.Size = New System.Drawing.Size(76, 23)
         Me.BuddiesToolStripMenuItem.Text = "Buddies"
         '
         'FindBuddyToolStripMenuItem
         '
         Me.FindBuddyToolStripMenuItem.Name = "FindBuddyToolStripMenuItem"
         Me.FindBuddyToolStripMenuItem.ShortcutKeys = CType((System.Windows.Forms.Keys.Control Or System.Windows.Forms.Keys.F), System.Windows.Forms.Keys)
-        Me.FindBuddyToolStripMenuItem.Size = New System.Drawing.Size(183, 22)
+        Me.FindBuddyToolStripMenuItem.Size = New System.Drawing.Size(238, 24)
         Me.FindBuddyToolStripMenuItem.Text = "Find Buddies"
         '
         'SetBuddyAlarmToolStripMenuItem
         '
         Me.SetBuddyAlarmToolStripMenuItem.Name = "SetBuddyAlarmToolStripMenuItem"
-        Me.SetBuddyAlarmToolStripMenuItem.Size = New System.Drawing.Size(183, 22)
+        Me.SetBuddyAlarmToolStripMenuItem.Size = New System.Drawing.Size(238, 24)
         Me.SetBuddyAlarmToolStripMenuItem.Text = "Set Buddy Alarm"
         '
         'ListBuddiesToolStripMenuItem
         '
         Me.ListBuddiesToolStripMenuItem.Name = "ListBuddiesToolStripMenuItem"
-        Me.ListBuddiesToolStripMenuItem.Size = New System.Drawing.Size(183, 22)
+        Me.ListBuddiesToolStripMenuItem.Size = New System.Drawing.Size(238, 24)
         Me.ListBuddiesToolStripMenuItem.Text = "List"
         '
         'WheelToolStripMenuItem
         '
         Me.WheelToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.WheelZoomToolStripMenuItem, Me.WheelTileServerToolStripMenuItem, Me.WheelLayerToolStripMenuItem})
         Me.WheelToolStripMenuItem.Name = "WheelToolStripMenuItem"
-        Me.WheelToolStripMenuItem.Size = New System.Drawing.Size(49, 20)
+        Me.WheelToolStripMenuItem.Size = New System.Drawing.Size(64, 23)
         Me.WheelToolStripMenuItem.Text = "Wheel"
         '
         'WheelZoomToolStripMenuItem
@@ -317,53 +389,64 @@ Partial Class frmMap
         Me.WheelZoomToolStripMenuItem.Checked = True
         Me.WheelZoomToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked
         Me.WheelZoomToolStripMenuItem.Name = "WheelZoomToolStripMenuItem"
-        Me.WheelZoomToolStripMenuItem.Size = New System.Drawing.Size(136, 22)
+        Me.WheelZoomToolStripMenuItem.Size = New System.Drawing.Size(170, 24)
         Me.WheelZoomToolStripMenuItem.Text = "Zoom"
         '
         'WheelTileServerToolStripMenuItem
         '
         Me.WheelTileServerToolStripMenuItem.Name = "WheelTileServerToolStripMenuItem"
-        Me.WheelTileServerToolStripMenuItem.Size = New System.Drawing.Size(136, 22)
+        Me.WheelTileServerToolStripMenuItem.Size = New System.Drawing.Size(170, 24)
         Me.WheelTileServerToolStripMenuItem.Text = "Tile Server"
         '
         'WheelLayerToolStripMenuItem
         '
         Me.WheelLayerToolStripMenuItem.Name = "WheelLayerToolStripMenuItem"
-        Me.WheelLayerToolStripMenuItem.Size = New System.Drawing.Size(136, 22)
+        Me.WheelLayerToolStripMenuItem.Size = New System.Drawing.Size(170, 24)
         Me.WheelLayerToolStripMenuItem.Text = "Layer"
         '
         'CellTowerToolStripMenuItem
         '
         Me.CellTowerToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.OpenCellIDToolStripMenuItem})
         Me.CellTowerToolStripMenuItem.Name = "CellTowerToolStripMenuItem"
-        Me.CellTowerToolStripMenuItem.Size = New System.Drawing.Size(69, 20)
+        Me.CellTowerToolStripMenuItem.Size = New System.Drawing.Size(97, 23)
         Me.CellTowerToolStripMenuItem.Text = "Cell Tower"
         '
         'OpenCellIDToolStripMenuItem
         '
         Me.OpenCellIDToolStripMenuItem.Name = "OpenCellIDToolStripMenuItem"
-        Me.OpenCellIDToolStripMenuItem.Size = New System.Drawing.Size(139, 22)
+        Me.OpenCellIDToolStripMenuItem.Size = New System.Drawing.Size(175, 24)
         Me.OpenCellIDToolStripMenuItem.Text = "OpenCellID"
+        '
+        'WebsiteToolStripMenuItem
+        '
+        Me.WebsiteToolStripMenuItem.Name = "WebsiteToolStripMenuItem"
+        Me.WebsiteToolStripMenuItem.Size = New System.Drawing.Size(76, 23)
+        Me.WebsiteToolStripMenuItem.Text = "Website"
         '
         'HelpToolStripMenuItem
         '
         Me.HelpToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.VataviaMapProjectPageToolStripMenuItem})
         Me.HelpToolStripMenuItem.Name = "HelpToolStripMenuItem"
-        Me.HelpToolStripMenuItem.Size = New System.Drawing.Size(40, 20)
+        Me.HelpToolStripMenuItem.Size = New System.Drawing.Size(53, 23)
         Me.HelpToolStripMenuItem.Text = "Help"
         '
         'VataviaMapProjectPageToolStripMenuItem
         '
         Me.VataviaMapProjectPageToolStripMenuItem.Name = "VataviaMapProjectPageToolStripMenuItem"
-        Me.VataviaMapProjectPageToolStripMenuItem.Size = New System.Drawing.Size(205, 22)
+        Me.VataviaMapProjectPageToolStripMenuItem.Size = New System.Drawing.Size(267, 24)
         Me.VataviaMapProjectPageToolStripMenuItem.Text = "VataviaMap Project Page"
+        '
+        'RefreshFromServerToolStripMenuItem
+        '
+        Me.RefreshFromServerToolStripMenuItem.Name = "RefreshFromServerToolStripMenuItem"
+        Me.RefreshFromServerToolStripMenuItem.Size = New System.Drawing.Size(32, 19)
         '
         'pMap
         '
         Me.pMap.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.pMap.Location = New System.Drawing.Point(0, 24)
+        Me.pMap.Location = New System.Drawing.Point(0, 27)
         Me.pMap.Name = "pMap"
-        Me.pMap.Size = New System.Drawing.Size(785, 374)
+        Me.pMap.Size = New System.Drawing.Size(785, 371)
         Me.pMap.TabIndex = 1
         Me.pMap.TileCacheFolder = ""
         Me.pMap.Zoom = 10
@@ -407,7 +490,6 @@ Partial Class frmMap
     Friend WithEvents PanToGPXToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents ZoomToGPXToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents ZoomToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents OpenOSMWebsiteToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents LayersToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents UseMarkedTilesToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents ExitToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
@@ -440,4 +522,16 @@ Partial Class frmMap
     Friend WithEvents TimestampToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents pMap As VataviaMap.ctlMap
     Friend WithEvents TimeZoneToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents TransparencyToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents TransparencyNone As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents Transparency10 As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents Transparency20 As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents Transparency30 As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents Transparency40 As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents Transparency50 As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents Transparency60 As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents Transparency70 As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents Transparency80 As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents Transparency90 As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents WebsiteToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
 End Class

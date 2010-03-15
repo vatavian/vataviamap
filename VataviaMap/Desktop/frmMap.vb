@@ -20,6 +20,14 @@ Public Class frmMap
             Me.ZoomToolStripMenuItem.DropDownItems.Add(New ToolStripMenuItem(CStr(lZoomLevel), Nothing, New EventHandler(AddressOf ZoomToolStripMenuItem_Click)))
         Next
 
+        Dim lEnumType As Type = (New UrlBuilder.SiteEnum).GetType
+        Dim lWebsiteEventHandler As New EventHandler(AddressOf Website_Click)
+        For Each lWebsiteIndex As Integer In System.Enum.GetValues(lEnumType)
+            Dim lItem As New ToolStripMenuItem(System.Enum.GetName(lEnumType, lWebsiteIndex).Replace("_", " "), Nothing, lWebsiteEventHandler)
+            lItem.Tag = lWebsiteIndex
+            Me.WebsiteToolStripMenuItem.DropDownItems.Add(lItem)
+        Next
+
         Dim lTileCacheFolder As String = GetAppSetting("TileCacheFolder", IO.Path.GetTempPath() & "tiles" & g_PathChar)
 
         If Not IO.Directory.Exists(lTileCacheFolder) Then
@@ -365,14 +373,6 @@ Public Class frmMap
         'pMap.Redraw()
     End Sub
 
-    Private Sub OpenOSMWebsiteToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles OpenOSMWebsiteToolStripMenuItem.Click
-        Try
-            Process.Start("http://www.openstreetmap.org/?lat=" & pMap.CenterLat.ToString("#.#######") & "&lon=" & pMap.CenterLon.ToString("#.#######") & "&zoom=" & pMap.Zoom)
-        Catch ex As System.ComponentModel.Win32Exception
-            'This happens when Firefox takes a moment to start due to updates, ignore it
-        End Try
-    End Sub
-
     Private Sub OpenJOSMToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles OpenJOSMToolStripMenuItem.Click
         Dim lJosmFilename As String = GetAppSetting("JOSM", IO.Path.Combine(IO.Path.GetTempPath, "josm-tested.jar"))
 
@@ -657,7 +657,7 @@ Public Class frmMap
         End If
     End Sub
 
-    Private Sub pMap_RegionChanged(ByVal sender As Object, ByVal e As System.EventArgs) Handles pMap.RegionChanged
+    Private Sub pMap_Panned() Handles pMap.Panned
         If pCoordinatesForm IsNot Nothing Then pCoordinatesForm.Show(pMap)
     End Sub
 
@@ -668,6 +668,7 @@ Public Class frmMap
                 lItem.Checked = (lItem.Text = pMap.Zoom)
             End If
         Next
+        If pCoordinatesForm IsNot Nothing Then pCoordinatesForm.Show(pMap)
     End Sub
 
     Private Sub TimeZoneToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles TimeZoneToolStripMenuItem.Click
@@ -686,5 +687,38 @@ Public Class frmMap
 
     Private Sub pTimeZoneForm_Changed(ByVal aUTCoffset As System.TimeSpan) Handles pTimeZoneForm.Changed
         pMap.ImportOffsetFromUTC = aUTCoffset
+    End Sub
+
+    Private Sub TransparencyNone_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles TransparencyNone.Click
+        ClearTransparencyCheck()
+        Dim lItem As ToolStripMenuItem = sender
+        lItem.Checked = True
+        Me.Opacity = 1
+    End Sub
+
+    Private Sub Transparency_Click(ByVal sender As Object, ByVal e As System.EventArgs) Handles Transparency10.Click, Transparency20.Click, Transparency30.Click, Transparency40.Click, Transparency50.Click, Transparency60.Click, Transparency70.Click, Transparency80.Click, Transparency90.Click
+        ClearTransparencyCheck()
+        Dim lItem As ToolStripMenuItem = sender
+        lItem.Checked = True
+        Dim lTransparency As Double = lItem.Name.Substring(12)
+        Me.Opacity = (100 - lTransparency) / 100
+    End Sub
+
+    Private Sub ClearTransparencyCheck()
+        For Each lItem As ToolStripMenuItem In TransparencyToolStripMenuItem.DropDownItems
+            lItem.Checked = False
+        Next
+    End Sub
+
+    Private Sub Website_Click(ByVal sender As System.Object, ByVal e As System.EventArgs)
+        Try
+            Dim lItem As ToolStripMenuItem = sender
+            Dim lURL As String = UrlBuilder.GetURL(lItem.Tag, pMap.CenterLat, pMap.CenterLon, pMap.Zoom, pMap.LatMax, pMap.LonMin, pMap.LatMin, pMap.LonMax)
+            If lURL IsNot Nothing AndAlso lURL.Length > 0 Then
+                Process.Start(lURL)
+            End If
+        Catch ex As System.ComponentModel.Win32Exception
+            'This happens when Firefox takes a moment to start due to updates, ignore it
+        End Try
     End Sub
 End Class

@@ -12,6 +12,7 @@ Public Class ctlMap
     Public Event OpenedLayer(ByVal aLayer As clsLayer)
     Public Event ClosedLayer()
     Public Event Zoomed()
+    Public Event Panned()
 
     Private pZoom As Integer = 10 'varies from g_ZoomMin to g_ZoomMax
 
@@ -1114,6 +1115,7 @@ Public Class ctlMap
         LatMax = CenterLat + LatHeight / 2
         LonMin = CenterLon - LonWidth / 2
         LonMax = CenterLon + LonWidth / 2
+        RaiseEvent Panned()
     End Sub
 
     Private Sub MouseDownLeft(ByVal e As System.Windows.Forms.MouseEventArgs)
