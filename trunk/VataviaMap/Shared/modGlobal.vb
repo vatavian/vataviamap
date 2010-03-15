@@ -581,6 +581,73 @@ EndFound:
         End If
     End Sub
 
+    Public Class UrlBuilder
+        Public Enum SiteEnum
+            OpenStreetMap
+            CloudMade
+            Potlatch
+            GoogleMaps
+            Bing
+            Microsoft_Research
+            WorldWind
+            Seamless
+        End Enum
+
+        Public Shared Function GetURL(ByVal aSite As SiteEnum, _
+                                      ByVal aCenterLatitude As Double, ByVal aCenterLongitude As Double, _
+                                      ByVal aZoom As Integer, _
+                                      ByRef aNorth As Double, ByRef aWest As Double, _
+                                      ByRef aSouth As Double, ByRef aEast As Double) As String
+            Select Case aSite
+                Case SiteEnum.OpenStreetMap
+                    Dim lLon As String = Format(aCenterLongitude, "#.#####")
+                    Dim lLat As String = Format(aCenterLatitude, "#.#####")
+                    Return "http://www.openstreetmap.org/?lat=" & lLat & "&lon=" & lLon & "&zoom=" & aZoom
+
+                Case SiteEnum.Potlatch
+                    Dim lLon As String = Format(aCenterLongitude, "#.#####")
+                    Dim lLat As String = Format(aCenterLatitude, "#.#####")
+                    Return "http://www.openstreetmap.org/edit?lat=" & lLat & "&lon=" & lLon & "&zoom=" & aZoom
+
+                Case SiteEnum.GoogleMaps
+                    Dim lFormat As String = "#.######"
+                    Return "http://maps.google.com/maps?ll=" _
+                                 & Format(aCenterLatitude, lFormat) & "," _
+                                 & Format(aCenterLongitude, lFormat) & "&spn=" _
+                                 & Format(aNorth - aSouth, lFormat) & "," _
+                                 & Format(aEast - aWest, lFormat)
+
+                Case SiteEnum.Bing
+                    Dim lFormat As String = "#.############"
+                    Return "http://www.bing.com/maps/?cp=" _
+                                 & Format(aCenterLatitude, lFormat) & "~" _
+                                 & Format(aCenterLongitude, lFormat) & "lvl=" & aZoom
+
+                Case SiteEnum.Microsoft_Research
+                    Dim lLon As String = Format(aCenterLongitude, "#.####")
+                    Dim lLat As String = Format(aCenterLatitude, "#.#####")
+                    Return "http://msrmaps.com/image.aspx?Lon=" & lLon & "&Lat=" & lLat & "&w=3&ref=G|" & lLon & "," & lLat
+
+                Case SiteEnum.WorldWind
+                    'TODO: compute altitude from width/height of view
+                    Return "worldwind://goto/world=Earth&latitude=" & aCenterLatitude & "&longitude=" & aCenterLongitude & "&dir=0&tilt=0"
+
+                Case SiteEnum.CloudMade
+                    Dim lLon As String = Format(aCenterLongitude, "#.#####")
+                    Dim lLat As String = Format(aCenterLatitude, "#.#####")
+                    Return "http://maps.cloudmade.com/?lat=" & lLat & "&lng=" & lLon & "&zoom=" & aZoom '&styleId=1&opened_tab=0
+
+                Case SiteEnum.Seamless
+                    Dim lLeft As String = Format(aWest, "#.#####")
+                    Dim lRight As String = Format(aEast, "#.#####")
+                    Dim lTop As String = Format(aNorth, "#.#####")
+                    Dim lBottom As String = Format(aSouth, "#.#####")
+                    Return "http://seamless.usgs.gov/website/seamless/viewer.htm?startbottom=" & lBottom & "&starttop=" & lTop & "&startleft=" & lLeft & "&startright=" & lRight & "&limitbottom=-85.0&limittop=85.0&limitleft=-179.5&limitright=179.5"
+            End Select
+            Return ""
+        End Function
+    End Class
+
 #Region "GMap code from http://www.codeplex.com/gmap4dotnet"
 
     Private openStreetMapCopyright As String = "© OpenStreetMap"
