@@ -50,6 +50,7 @@ Public Class frmMap
         pMap.SharedNew()
 
         BuildTileServerMenu()
+        BuildBookmarksMenu()
 
         PanToGPXToolStripMenuItem.Checked = pMap.GPXPanTo
         ZoomToGPXToolStripMenuItem.Checked = pMap.GPXZoomTo
@@ -721,4 +722,47 @@ Public Class frmMap
             'This happens when Firefox takes a moment to start due to updates, ignore it
         End Try
     End Sub
+
+#Region "Bookmarks"
+    Private Sub BuildBookmarksMenu()
+        For lBookmarkIndex As Integer = 0 To 50
+            Dim lBookmarkKey As String = "Bookmark" & BookmarksToolStripMenuItem.DropDownItems.Count
+            Dim lBookmarkSetting As String = GetAppSetting(lBookmarkKey, "")
+            If lBookmarkSetting.Length > 0 Then
+                Dim lCoordinates() As String = lBookmarkSetting.Split("|")
+                If lCoordinates.Length > 3 AndAlso IsNumeric(lCoordinates(0)) AndAlso IsNumeric(lCoordinates(1)) AndAlso IsNumeric(lCoordinates(2)) Then
+                    Dim lNewBookmark As New ToolStripMenuItem(lCoordinates(3), Nothing, New EventHandler(AddressOf BookmarkItem_Click))
+                    lNewBookmark.Tag = lCoordinates(0) & "|" & lCoordinates(1) & "|" & lCoordinates(2)
+                    lNewBookmark.ToolTipText = lCoordinates(0) & ", " & lCoordinates(1) & " Zoom " & lCoordinates(2)
+                    BookmarksToolStripMenuItem.DropDownItems.Add(lNewBookmark)
+                End If
+            End If
+        Next
+    End Sub
+
+    Private Sub BookmarksAddToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles BookmarksAddToolStripMenuItem.Click
+        Dim lBookmarkKey As String = "Bookmark" & BookmarksToolStripMenuItem.DropDownItems.Count
+        Dim lBookmarkText As String = InputBox("Name of bookmark", "New Bookmark", lBookmarkKey)
+        Dim lNewBookmark As New ToolStripMenuItem(lBookmarkText, Nothing, New EventHandler(AddressOf BookmarkItem_Click))
+        lNewBookmark.Tag = pMap.CenterLon.ToString("#.#######") & "|" & pMap.CenterLat.ToString("#.#######") & "|" & pMap.Zoom
+        lNewBookmark.ToolTipText = pMap.CenterLon.ToString("#.#######") & ", " & pMap.CenterLat.ToString("#.#######") & " Zoom " & pMap.Zoom
+        BookmarksToolStripMenuItem.DropDownItems.Add(lNewBookmark)
+        SaveAppSetting(lBookmarkKey, lNewBookmark.Tag & " " & lNewBookmark.Text)
+    End Sub
+
+    Private Sub BookmarkItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs)
+        Dim lBookmark As ToolStripMenuItem = sender
+        Dim lCoordinates() As String = lBookmark.Tag.Split("|")
+        If lCoordinates.Length > 1 AndAlso _
+           Double.TryParse(lCoordinates(0), pMap.CenterLon) AndAlso _
+           Double.TryParse(lCoordinates(1), pMap.CenterLat) Then
+            pMap.SanitizeCenterLatLon()
+            If lCoordinates.Length > 2 AndAlso lCoordinates(2) <> pMap.Zoom Then
+                pMap.Zoom = CInt(lCoordinates(2))
+            Else
+                pMap.NeedRedraw()
+            End If
+        End If
+    End Sub
+#End Region 'Bookmarks
 End Class

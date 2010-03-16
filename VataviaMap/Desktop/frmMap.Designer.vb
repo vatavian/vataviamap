@@ -83,15 +83,17 @@ Partial Class frmMap
         Me.RefreshFromServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.pMap = New VataviaMap.ctlMap
         Me.TimeZoneToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.BookmarksToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.BookmarksAddToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.MenuStripMain.SuspendLayout()
         Me.SuspendLayout()
         '
         'MenuStripMain
         '
-        Me.MenuStripMain.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FileToolStripMenuItem, Me.ViewToolStripMenuItem, Me.ZoomToolStripMenuItem, Me.TileServerToolStripMenuItem, Me.OverlayServerToolStripMenuItem, Me.BuddiesToolStripMenuItem, Me.WheelToolStripMenuItem, Me.CellTowerToolStripMenuItem, Me.WebsiteToolStripMenuItem, Me.HelpToolStripMenuItem})
+        Me.MenuStripMain.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FileToolStripMenuItem, Me.ViewToolStripMenuItem, Me.ZoomToolStripMenuItem, Me.BookmarksToolStripMenuItem, Me.TileServerToolStripMenuItem, Me.OverlayServerToolStripMenuItem, Me.BuddiesToolStripMenuItem, Me.WheelToolStripMenuItem, Me.CellTowerToolStripMenuItem, Me.WebsiteToolStripMenuItem, Me.HelpToolStripMenuItem})
         Me.MenuStripMain.Location = New System.Drawing.Point(0, 0)
         Me.MenuStripMain.Name = "MenuStripMain"
-        Me.MenuStripMain.Size = New System.Drawing.Size(785, 27)
+        Me.MenuStripMain.Size = New System.Drawing.Size(910, 27)
         Me.MenuStripMain.TabIndex = 0
         Me.MenuStripMain.Text = "MenuStrip1"
         '
@@ -446,7 +448,7 @@ Partial Class frmMap
         Me.pMap.Dock = System.Windows.Forms.DockStyle.Fill
         Me.pMap.Location = New System.Drawing.Point(0, 27)
         Me.pMap.Name = "pMap"
-        Me.pMap.Size = New System.Drawing.Size(785, 371)
+        Me.pMap.Size = New System.Drawing.Size(910, 451)
         Me.pMap.TabIndex = 1
         Me.pMap.TileCacheFolder = ""
         Me.pMap.Zoom = 10
@@ -457,12 +459,25 @@ Partial Class frmMap
         Me.TimeZoneToolStripMenuItem.Size = New System.Drawing.Size(223, 22)
         Me.TimeZoneToolStripMenuItem.Text = "Time Zone"
         '
+        'BookmarksToolStripMenuItem
+        '
+        Me.BookmarksToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.BookmarksAddToolStripMenuItem})
+        Me.BookmarksToolStripMenuItem.Name = "BookmarksToolStripMenuItem"
+        Me.BookmarksToolStripMenuItem.Size = New System.Drawing.Size(99, 23)
+        Me.BookmarksToolStripMenuItem.Text = "Bookmarks"
+        '
+        'BookmarksAddToolStripMenuItem
+        '
+        Me.BookmarksAddToolStripMenuItem.Name = "BookmarksAddToolStripMenuItem"
+        Me.BookmarksAddToolStripMenuItem.Size = New System.Drawing.Size(152, 24)
+        Me.BookmarksAddToolStripMenuItem.Text = "Add..."
+        '
         'frmMap
         '
         Me.AllowDrop = True
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(785, 398)
+        Me.ClientSize = New System.Drawing.Size(910, 478)
         Me.Controls.Add(Me.pMap)
         Me.Controls.Add(Me.MenuStripMain)
         Me.DoubleBuffered = True
@@ -534,4 +549,6 @@ Partial Class frmMap
     Friend WithEvents Transparency80 As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents Transparency90 As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents WebsiteToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents BookmarksToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents BookmarksAddToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
 End Class
