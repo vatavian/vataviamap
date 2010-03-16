@@ -1916,7 +1916,52 @@ RestartRedraw:
                         DrawTiles(lGraphics)
                     End If
                     If pShowGPSdetails Then
-                        DrawStringSplitToFitWidth(lGraphics, GPSdetailsString, pFontGpsDetails, lDetailsBrush, 5, 5)
+                        Dim lMaxWidth As Single = lGraphics.ClipBounds.Right - 10
+                        Dim lDetails As String = ""
+                        If GPS Is Nothing Then
+                            lDetails = "GPS not initialized"
+                        ElseIf Not GPS.Opened Then
+                            lDetails = "GPS not opened"
+                        ElseIf GPS_POSITION Is Nothing Then
+                            lDetails = "No position"
+                        ElseIf Not GPS_POSITION.LatitudeValid OrElse Not GPS_POSITION.LongitudeValid Then
+                            lDetails = "Position not valid"
+                        Else
+                            lDetails = FormattedDegrees(GPS_POSITION.Latitude, g_DegreeFormat) & ","
+                            AppendStringSplitToFitWidth(lGraphics, pFontGpsDetails, lMaxWidth, lDetails, FormattedDegrees(GPS_POSITION.Longitude, g_DegreeFormat))
+                            If (GPS_POSITION.SeaLevelAltitudeValid) Then AppendStringSplitToFitWidth(lGraphics, pFontGpsDetails, lMaxWidth, lDetails, Format(GPS_POSITION.SeaLevelAltitude * g_FeetPerMeter, "#,##0") & "ft")
+                            If (GPS_POSITION.SpeedValid AndAlso GPS_POSITION.Speed > 0) Then AppendStringSplitToFitWidth(lGraphics, pFontGpsDetails, lMaxWidth, lDetails, CInt(GPS_POSITION.Speed * g_MilesPerKnot) & "mph")
+                            If GPS_POSITION.TimeValid Then
+                                lDetails &= vbLf & GPS_POSITION.Time.ToString("yyyy-MM-dd")
+                                AppendStringSplitToFitWidth(lGraphics, pFontGpsDetails, lMaxWidth, lDetails, GPS_POSITION.Time.ToString("HH:mm:ss") & "Z")
+                                Dim lAgeOfPosition As TimeSpan = DateTime.UtcNow - GPS_POSITION.Time
+                                Dim lAgeString As String = ""
+                                If (Math.Abs(lAgeOfPosition.TotalSeconds) > 5) Then
+                                    If Math.Abs(lAgeOfPosition.Days) > 1 Then
+                                        lAgeString = Format(lAgeOfPosition.TotalDays, "0.#") & " days"
+                                    Else
+                                        If Math.Abs(lAgeOfPosition.Days) > 0 Then lAgeString = lAgeOfPosition.Days & "day"
+                                        If Math.Abs(lAgeOfPosition.Hours) > 0 Then lAgeString &= lAgeOfPosition.Hours & "h"
+                                        If Math.Abs(lAgeOfPosition.Minutes) > 0 Then lAgeString &= lAgeOfPosition.Minutes & "m"
+                                        If lAgeOfPosition.Hours = 0 Then lAgeString &= lAgeOfPosition.Seconds & "s"
+                                    End If
+                                    AppendStringSplitToFitWidth(lGraphics, pFontGpsDetails, lMaxWidth, lDetails, "(" & lAgeString & " ago)")
+                                End If
+                            End If
+                        End If
+                        If pRecordCellID Then
+                            Dim lCurrentCellInfo As New clsCell(GPS_API.RIL.GetCellTowerInfo)
+                            If lCurrentCellInfo.IsValid Then
+                                lDetails &= vbLf & lCurrentCellInfo.ToString
+                            Else
+                                lDetails &= vbLf & "no cell"
+                            End If
+                        End If
+                        'If pUsedCacheCount + pAddedCacheCount > 0 Then
+                        '    lDetails &= " Cache " & Format(pUsedCacheCount / (pUsedCacheCount + pAddedCacheCount), "0.0 %") & " " & pDownloader.TileRAMcacheLimit
+                        'End If
+                        If Not RecordTrack Then lDetails &= vbLf & "Logging Off"
+                        lGraphics.DrawString(lDetails, pFontGpsDetails, lDetailsBrush, 5, 5)
                     End If
                     ReleaseBitmapGraphics()
                     Refresh()
@@ -1931,19 +1976,17 @@ RestartRedraw:
         End If
     End Sub
 
-    Private Sub DrawStringSplitToFitWidth(ByVal aGraphics As Graphics, _
-        ByVal aString As String, ByVal aFont As Font, ByVal aBrush As Brush, _
-        ByVal aLeft As Single, ByVal aTop As Single)
-        Dim lMaxWidth As Single = aGraphics.ClipBounds.Right - aLeft
-        Dim lLines() As String = aString.Split(vbLf)
-        For lIndex As Integer = 0 To lLines.GetUpperBound(0)
-            Dim lWidth As Single = aGraphics.MeasureString(lLines(lIndex), aFont).Width
-            If lWidth > lMaxWidth Then
-                'TODO: only replace minimum number of spaces
-                lLines(lIndex) = lLines(lIndex).Replace(" ", vbLf)
-            End If
-        Next
-        aGraphics.DrawString(String.Join(vbLf, lLines), aFont, aBrush, aLeft, aTop)
+    Private Sub AppendStringSplitToFitWidth(ByVal aGraphics As Graphics, _
+        ByVal aFont As Font, ByVal lMaxWidth As Single, _
+        ByRef aString As String, ByVal aAppend As String)
+        Dim lLastNewline As Integer = aString.LastIndexOf(vbLf)
+        Dim lLastLine As String = aString.Substring(lLastNewline + 1)
+        Dim lWidth As Single = aGraphics.MeasureString(lLastLine & " " & aAppend, aFont).Width
+        If lWidth > lMaxWidth Then
+            aString &= vbLf & aAppend
+        Else
+            aString &= " " & aAppend
+        End If
     End Sub
 
     Private Function EnsureCurrentTrack() As clsLayerGPX
@@ -1983,53 +2026,6 @@ RestartRedraw:
         SanitizeCenterLatLon()
         NeedRedraw()
     End Sub
-
-    Private Function GPSdetailsString() As String
-        Dim lDetails As String = ""
-        If GPS Is Nothing Then
-            lDetails = "GPS not initialized"
-        ElseIf Not GPS.Opened Then
-            lDetails = "GPS not opened"
-        ElseIf GPS_POSITION Is Nothing Then
-            lDetails = "No position"
-        ElseIf Not GPS_POSITION.LatitudeValid OrElse Not GPS_POSITION.LongitudeValid Then
-            lDetails = "Position not valid"
-        Else
-            lDetails = FormattedDegrees(GPS_POSITION.Latitude, g_DegreeFormat) & ", " _
-                     & FormattedDegrees(GPS_POSITION.Longitude, g_DegreeFormat)
-            If (GPS_POSITION.SeaLevelAltitudeValid) Then lDetails &= " " & Format(GPS_POSITION.SeaLevelAltitude * g_FeetPerMeter, "#,##0") & "ft"
-            If (GPS_POSITION.SpeedValid AndAlso GPS_POSITION.Speed > 0) Then lDetails &= " " & CInt(GPS_POSITION.Speed * g_MilesPerKnot) & "mph"
-            If GPS_POSITION.TimeValid Then
-                lDetails &= vbLf & GPS_POSITION.Time.ToString("yyyy-MM-dd HH:mm:ss") & "Z"
-                Dim lAgeOfPosition As TimeSpan = DateTime.UtcNow - GPS_POSITION.Time
-                Dim lAgeString As String = ""
-                If (Math.Abs(lAgeOfPosition.TotalSeconds) > 5) Then
-                    If Math.Abs(lAgeOfPosition.Days) > 1 Then
-                        lAgeString = Format(lAgeOfPosition.TotalDays, "0.#") & " days"
-                    Else
-                        If Math.Abs(lAgeOfPosition.Days) > 0 Then lAgeString = lAgeOfPosition.Days & "day"
-                        If Math.Abs(lAgeOfPosition.Hours) > 0 Then lAgeString &= lAgeOfPosition.Hours & "h"
-                        If Math.Abs(lAgeOfPosition.Minutes) > 0 Then lAgeString &= lAgeOfPosition.Minutes & "m"
-                        If lAgeOfPosition.Hours = 0 Then lAgeString &= lAgeOfPosition.Seconds & "s"
-                    End If
-                    lDetails &= " (" & lAgeString & " ago)"
-                End If
-            End If
-        End If
-        If pRecordCellID Then
-            Dim lCurrentCellInfo As New clsCell(GPS_API.RIL.GetCellTowerInfo)
-            If lCurrentCellInfo.IsValid Then
-                lDetails &= vbLf & lCurrentCellInfo.ToString
-            Else
-                lDetails &= vbLf & "no cell"
-            End If
-        End If
-        'If pUsedCacheCount + pAddedCacheCount > 0 Then
-        '    lDetails &= " Cache " & Format(pUsedCacheCount / (pUsedCacheCount + pAddedCacheCount), "0.0 %") & " " & pDownloader.TileRAMcacheLimit
-        'End If
-        If Not RecordTrack Then lDetails &= vbLf & "Logging Off"
-        Return lDetails
-    End Function
 
     Private Sub Event_MouseDown(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles Me.MouseDown
         Select Case e.Button
