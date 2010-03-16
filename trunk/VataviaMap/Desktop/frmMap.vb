@@ -747,7 +747,7 @@ Public Class frmMap
         lNewBookmark.Tag = pMap.CenterLon.ToString("#.#######") & "|" & pMap.CenterLat.ToString("#.#######") & "|" & pMap.Zoom
         lNewBookmark.ToolTipText = pMap.CenterLon.ToString("#.#######") & ", " & pMap.CenterLat.ToString("#.#######") & " Zoom " & pMap.Zoom
         BookmarksToolStripMenuItem.DropDownItems.Add(lNewBookmark)
-        SaveAppSetting(lBookmarkKey, lNewBookmark.Tag & " " & lNewBookmark.Text)
+        SaveAppSetting(lBookmarkKey, lNewBookmark.Tag & "|" & lNewBookmark.Text)
     End Sub
 
     Private Sub BookmarkItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs)
