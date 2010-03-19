@@ -71,13 +71,14 @@ Public Class clsDownloader
                                          ByVal aReplaceExisting As Boolean) As Boolean
 
         Dim lBitmap As Bitmap = Nothing
+        Dim lCanDownload As Boolean = Not g_TileServerURL.Contains("cacheonly")
         If IO.File.Exists(aActualFilename) Then
             Try 'TODO: check for PNG magic numbers? 89 50 4e 47 (note: now also loading .jpg sometimes)
                 If New IO.FileInfo(aActualFilename).Length > 0 Then
                     lBitmap = New Bitmap(aActualFilename)
                     If lBitmap IsNot Nothing Then
                         'Checking (TileCacheOldest > Date.MinValue) saves file system calls if we are not expiring
-                        If aPriority > -1 AndAlso Enabled AndAlso _
+                        If aPriority > -1 AndAlso Enabled AndAlso lCanDownload AndAlso _
                           (aReplaceExisting OrElse _
                            (TileCacheOldest > Date.MinValue AndAlso TileLastCheckedDate(aActualFilename) < TileCacheOldest)) Then
                             Enqueue(aTilePoint, aZoom, aPriority + 1, True) 'Request stale tile replacement with lower priority
@@ -102,7 +103,7 @@ Public Class clsDownloader
 
         End If
 
-        If aPriority > -1 AndAlso Enabled Then
+        If aPriority > -1 AndAlso Enabled AndAlso lCanDownload Then
             Enqueue(aTilePoint, aZoom, aPriority, True) 'Request missing tile replacement with given priority
         End If
 
@@ -285,18 +286,23 @@ CheckCache:
     End Function
 
     ''' <summary>
-    ''' Download and OSM tile and all tiles in the same area with finer detail
+    ''' Download an OSM tile and all tiles in the same area with finer detail
     ''' </summary>
     ''' <param name="aTilePoint">OSM Tile X and Y</param>
-    ''' <param name="aZoom">OSM zoom level (0-17)</param>
+    ''' <param name="aZoom">OSM zoom level (0 to g_ZoomMax)</param>
+    ''' <param name="aZoomMax">Maximum zoom level to download (0 to g_ZoomMax)</param>
+    ''' <returns>True if all descendants were downloaded, False if any could not be downloaded</returns>
+    ''' <remarks>If any descendant cannot be downloaded, no further descendants are attempted</remarks>
     Public Function DownloadDescendants(ByVal aTilePoint As Point, _
-                                        ByVal aZoom As Integer) As Boolean
+                                        ByVal aZoom As Integer, _
+                                        ByVal aZoomMax As Integer, _
+                               Optional ByVal aReplaceExisting As Boolean = False) As Boolean
 
-        If DownloadTile(aTilePoint, aZoom, False).Length > 0 Then
-            For lZoom As Integer = aZoom + 1 To g_ZoomMax
+        If DownloadTile(aTilePoint, aZoom, aReplaceExisting).Length > 0 Then
+            For lZoom As Integer = aZoom + 1 To aZoomMax
                 For childX As Integer = aTilePoint.X * 2 To aTilePoint.X * 2 + 1
                     For childY As Integer = aTilePoint.Y * 2 To aTilePoint.Y * 2 + 1
-                        If Not DownloadDescendants(New Point(childX, childY), lZoom) Then Return False
+                        If Not DownloadDescendants(New Point(childX, childY), lZoom, aZoomMax, aReplaceExisting) Then Return False
                     Next
                 Next
             Next

@@ -27,7 +27,7 @@ Module modGlobal
     Private g_RangeY As Double = 2 * g_LimitY
 
     Public Const g_ZoomMin As Integer = 0
-    Public Const g_ZoomMax As Integer = 18
+    Public Const g_ZoomMax As Integer = 19
 
     Public g_TileServerType As MapType = MapType.OpenStreetMap
     Private g_TileServerLanguage As String = "en"
@@ -264,7 +264,7 @@ EndFound:
                 If aUseMarkedTiles Then lMarked = g_MarkedPrefix
                 Return g_TileCacheFolder & lMarked & aZoom _
                      & g_PathChar & .X _
-                     & g_PathChar & .Y
+                     & g_PathChar & .Y 'other convention = (1 << aZoom) - .Y
             Else
                 Return ""
             End If
@@ -586,13 +586,17 @@ EndFound:
             OpenStreetMap
             CloudMade
             Potlatch
+            Walking_Papers
             GoogleMaps
             Bing
             Microsoft_Research
+            Mapquest
             WorldWind
-            Seamless
+            Yahoo
+            USGS_Seamless
         End Enum
 
+        'TODO: get a list of sites from a web page, e.g. http://frvipofm.net/osm/mapjumper/
         Public Shared Function GetURL(ByVal aSite As SiteEnum, _
                                       ByVal aCenterLatitude As Double, ByVal aCenterLongitude As Double, _
                                       ByVal aZoom As Integer, _
@@ -609,6 +613,11 @@ EndFound:
                     Dim lLat As String = Format(aCenterLatitude, "#.#####")
                     Return "http://www.openstreetmap.org/edit?lat=" & lLat & "&lon=" & lLon & "&zoom=" & aZoom
 
+                Case SiteEnum.Walking_Papers
+                    Dim lLon As String = Format(aCenterLongitude, "#.#####")
+                    Dim lLat As String = Format(aCenterLatitude, "#.#####")
+                    Return "http://walking-papers.org/?lat=" & lLat & "&lon=" & lLon & "&zoom=" & aZoom
+
                 Case SiteEnum.GoogleMaps
                     Dim lFormat As String = "#.######"
                     Return "http://maps.google.com/maps?ll=" _
@@ -621,12 +630,17 @@ EndFound:
                     Dim lFormat As String = "#.############"
                     Return "http://www.bing.com/maps/?cp=" _
                                  & Format(aCenterLatitude, lFormat) & "~" _
-                                 & Format(aCenterLongitude, lFormat) & "lvl=" & aZoom
+                                 & Format(aCenterLongitude, lFormat) & "&lvl=" & aZoom
 
                 Case SiteEnum.Microsoft_Research
-                    Dim lLon As String = Format(aCenterLongitude, "#.####")
+                    Dim lLon As String = Format(aCenterLongitude, "#.#####")
                     Dim lLat As String = Format(aCenterLatitude, "#.#####")
                     Return "http://msrmaps.com/image.aspx?Lon=" & lLon & "&Lat=" & lLat & "&w=3&ref=G|" & lLon & "," & lLat
+
+                Case SiteEnum.Mapquest
+                    Dim lLon As String = Format(aCenterLongitude, "#.#####")
+                    Dim lLat As String = Format(aCenterLatitude, "#.#####")
+                    Return "http://www.mapquest.com/maps?latitude=" & lLat & "&longitude=" & lLon & "&geocode=LATLNG"
 
                 Case SiteEnum.WorldWind
                     'TODO: compute altitude from width/height of view
@@ -637,7 +651,12 @@ EndFound:
                     Dim lLat As String = Format(aCenterLatitude, "#.#####")
                     Return "http://maps.cloudmade.com/?lat=" & lLat & "&lng=" & lLon & "&zoom=" & aZoom '&styleId=1&opened_tab=0
 
-                Case SiteEnum.Seamless
+                Case SiteEnum.Yahoo
+                    Dim lLon As String = Format(aCenterLongitude, "#.#####")
+                    Dim lLat As String = Format(aCenterLatitude, "#.#####")
+                    Return "http://maps.yahoo.com/?lat=" & lLat & "&lon=" & lLon & "&zoom=" & aZoom
+
+                Case SiteEnum.USGS_Seamless
                     Dim lLeft As String = Format(aWest, "#.#####")
                     Dim lRight As String = Format(aEast, "#.#####")
                     Dim lTop As String = Format(aNorth, "#.#####")
@@ -646,6 +665,139 @@ EndFound:
             End Select
             Return ""
         End Function
+
+        Public Shared Function ParseURL(ByVal aURL As String, _
+                                        ByRef aSite As SiteEnum, _
+                                        ByRef aCenterLatitude As Double, ByRef aCenterLongitude As Double, _
+                                        ByRef aZoom As Integer, _
+                                        ByRef aNorth As Double, ByRef aWest As Double, _
+                                        ByRef aSouth As Double, ByRef aEast As Double) As Boolean
+            Try
+                Dim lURL As String = aURL.ToLower
+                Dim lArgs() As String = lURL.Split("&"c, "?"c)
+                If lArgs(0).Contains("openstreetmap.org") Then
+                    If lArgs(0).Contains("edit") Then
+                        aSite = SiteEnum.Potlatch
+                    Else
+                        aSite = SiteEnum.OpenStreetMap
+                    End If
+                    For Each lArg As String In lArgs
+                        Dim lArgPart() As String = lArg.Split("=")
+                        If lArgPart.Length = 2 Then
+                            Select Case lArgPart(0)
+                                Case "lat", "mlat" : aCenterLatitude = Double.Parse(lArgPart(1))
+                                Case "lon", "mlon" : aCenterLongitude = Double.Parse(lArgPart(1))
+                                Case "zoom" : aZoom = Integer.Parse(lArgPart(1))
+                            End Select
+                        End If
+                    Next
+
+                ElseIf lArgs(0).Contains("maps.google.com") Then
+                    aSite = SiteEnum.GoogleMaps
+                    For Each lArg As String In lArgs
+                        Dim lArgPart() As String = lArg.Split("=")
+                        If lArgPart.Length = 2 Then
+                            Select Case lArgPart(0)
+                                Case "ll"
+                                    Dim ll() As String = lArgPart(1).Split(",")
+                                    If ll.Length = 2 AndAlso IsNumeric(ll(0)) AndAlso IsNumeric(ll(1)) Then
+                                        aCenterLatitude = Double.Parse(ll(0))
+                                        aCenterLongitude = Double.Parse(ll(1))
+                                    End If
+                                Case "spn" 'TODO: parse height,width into zoom
+                            End Select
+                        End If
+                    Next
+
+                ElseIf lArgs(0).Contains("bing.com/maps") Then
+                    aSite = SiteEnum.Bing
+
+                    For Each lArg As String In lArgs
+                        Dim lArgPart() As String = lArg.Split("=")
+                        If lArgPart.Length = 2 Then
+                            Select Case lArgPart(0)
+                                Case "cp"
+                                    Dim ll() As String = lArgPart(1).Split("~")
+                                    If ll.Length = 2 AndAlso IsNumeric(ll(0)) AndAlso IsNumeric(ll(1)) Then
+                                        aCenterLatitude = Double.Parse(ll(0))
+                                        aCenterLongitude = Double.Parse(ll(1))
+                                    End If
+                                Case "lvl" : aZoom = lArgPart(1)
+                            End Select
+                        End If
+                    Next
+
+                ElseIf lArgs(0).Contains("msrmaps.com") Then
+                    aSite = SiteEnum.Microsoft_Research
+                    For Each lArg As String In lArgs
+                        Dim lArgPart() As String = lArg.Split("=")
+                        If lArgPart.Length = 2 Then
+                            Select Case lArgPart(0)
+                                Case "lat" : aCenterLatitude = Double.Parse(lArgPart(1))
+                                Case "lon" : aCenterLongitude = Double.Parse(lArgPart(1))
+                            End Select
+                        End If
+                    Next
+
+                ElseIf lArgs(0).StartsWith("worldwind:") Then
+                    aSite = SiteEnum.WorldWind
+                    For Each lArg As String In lArgs
+                        Dim lArgPart() As String = lArg.Split("=")
+                        If lArgPart.Length = 2 Then
+                            Select Case lArgPart(0)
+                                Case "latitude" : aCenterLatitude = Double.Parse(lArgPart(1))
+                                Case "longitude" : aCenterLongitude = Double.Parse(lArgPart(1))
+                                    'TODO: parse zoom
+                            End Select
+                        End If
+                    Next
+                ElseIf lArgs(0).Contains("cloudmade.com") Then
+                    aSite = SiteEnum.CloudMade
+                    For Each lArg As String In lArgs
+                        Dim lArgPart() As String = lArg.Split("=")
+                        If lArgPart.Length = 2 Then
+                            Select Case lArgPart(0)
+                                Case "lat", "mlat" : aCenterLatitude = Double.Parse(lArgPart(1))
+                                Case "lng", "lon", "mlon", "mlng" : aCenterLongitude = Double.Parse(lArgPart(1))
+                                Case "zoom" : aZoom = Integer.Parse(lArgPart(1))
+                            End Select
+                        End If
+                    Next
+                ElseIf lArgs(0).Contains("yahoo.com") Then
+                    aSite = SiteEnum.Yahoo
+                    For Each lArg As String In lArgs
+                        Dim lArgPart() As String = lArg.Split("=")
+                        If lArgPart.Length = 2 Then
+                            Select Case lArgPart(0)
+                                Case "lat" : aCenterLatitude = Double.Parse(lArgPart(1))
+                                Case "lon" : aCenterLongitude = Double.Parse(lArgPart(1))
+                                Case "zoom" : aZoom = Integer.Parse(lArgPart(1))
+                            End Select
+                        End If
+                    Next
+                ElseIf lArgs(0).Contains("seamless.usgs.gov") Then
+                    aSite = SiteEnum.USGS_Seamless
+                    For Each lArg As String In lArgs
+                        Dim lArgPart() As String = lArg.Split("=")
+                        If lArgPart.Length = 2 Then
+                            Select Case lArgPart(0)
+                                Case "starttop" : aNorth = Double.Parse(lArgPart(1))
+                                Case "startbottom" : aSouth = Double.Parse(lArgPart(1))
+                                Case "startleft" : aWest = Integer.Parse(lArgPart(1))
+                                Case "startright" : aEast = Integer.Parse(lArgPart(1))
+                            End Select
+                        End If
+                    Next
+                    aCenterLatitude = (aNorth + aSouth) / 2
+                    aCenterLongitude = (aWest + aEast) / 2
+                    'TODO: compute zoom from (aNorth - aSouth) and/or (aWest - aEast)
+                End If
+                Return aCenterLatitude <> 0 AndAlso aCenterLongitude <> 0 AndAlso aZoom >= g_ZoomMin AndAlso aZoom <= g_ZoomMax
+            Catch
+                Return False
+            End Try
+        End Function
+
     End Class
 
 #Region "GMap code from http://www.codeplex.com/gmap4dotnet"
