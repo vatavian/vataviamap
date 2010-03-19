@@ -33,7 +33,7 @@ Partial Class frmMap
         Me.LayersToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.RemoveAllLayersToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.OpenJOSMToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
-        Me.FollowOSMURLToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.FollowWebMapURLToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.GetOSMBugsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.ExitToolStripSeparator = New System.Windows.Forms.ToolStripSeparator
         Me.ExitToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
@@ -99,7 +99,7 @@ Partial Class frmMap
         '
         'FileToolStripMenuItem
         '
-        Me.FileToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.SaveAsToolStripMenuItem, Me.CopyToClipboardToolStripMenuItem, Me.AddLayerToolStripMenuItem, Me.LayersToolStripMenuItem, Me.RemoveAllLayersToolStripMenuItem, Me.OpenJOSMToolStripMenuItem, Me.FollowOSMURLToolStripMenuItem, Me.GetOSMBugsToolStripMenuItem, Me.ExitToolStripSeparator, Me.ExitToolStripMenuItem, Me.TimeZoneToolStripMenuItem})
+        Me.FileToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.SaveAsToolStripMenuItem, Me.CopyToClipboardToolStripMenuItem, Me.AddLayerToolStripMenuItem, Me.LayersToolStripMenuItem, Me.RemoveAllLayersToolStripMenuItem, Me.OpenJOSMToolStripMenuItem, Me.FollowWebMapURLToolStripMenuItem, Me.GetOSMBugsToolStripMenuItem, Me.ExitToolStripSeparator, Me.ExitToolStripMenuItem, Me.TimeZoneToolStripMenuItem})
         Me.FileToolStripMenuItem.Name = "FileToolStripMenuItem"
         Me.FileToolStripMenuItem.Size = New System.Drawing.Size(45, 23)
         Me.FileToolStripMenuItem.Text = "File"
@@ -144,9 +144,9 @@ Partial Class frmMap
         '
         'FollowOSMURLToolStripMenuItem
         '
-        Me.FollowOSMURLToolStripMenuItem.Name = "FollowOSMURLToolStripMenuItem"
-        Me.FollowOSMURLToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
-        Me.FollowOSMURLToolStripMenuItem.Text = "Follow OSM URL on clipboard"
+        Me.FollowWebMapURLToolStripMenuItem.Name = "FollowWebMapURLToolStripMenuItem"
+        Me.FollowWebMapURLToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
+        Me.FollowWebMapURLToolStripMenuItem.Text = "Follow Web Map URL on clipboard"
         '
         'GetOSMBugsToolStripMenuItem
         '
@@ -528,7 +528,7 @@ Partial Class frmMap
     Friend WithEvents HelpToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents VataviaMapProjectPageToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents GetOSMBugsToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents FollowOSMURLToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents FollowWebMapURLToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents CellTowerToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents OpenCellIDToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents CoordinatesToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem

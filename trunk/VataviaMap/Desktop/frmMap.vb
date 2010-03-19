@@ -562,42 +562,26 @@ Public Class frmMap
         If pMap.Downloader.DownloadFile(lBugsGPXurl, lBugsGPXfilename, False) Then pMap.OpenFile(lBugsGPXfilename) 'TODO: set .LabelField = "desc"
     End Sub
 
-    Private Sub FollowOSMURLToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles FollowOSMURLToolStripMenuItem.Click
-        'http://www.openstreetmap.org/?lat=33.794266&lon=-84.29019&zoom=18&layers=B000FTF
+    Private Sub FollowOSMURLToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles FollowWebMapURLToolStripMenuItem.Click
         If Clipboard.ContainsText Then
             Dim lLat As Double = 0
             Dim lLon As Double = 0
-            Dim lZoom As Integer = 14
-            For Each lArg As String In Clipboard.GetText.Split("&"c, "?"c)
-                Dim lArgPart() As String = lArg.Split("=")
-                If lArgPart.Length = 2 Then
-                    Select Case lArgPart(0)
-                        Case "lat"
-                            If IsNumeric(lArgPart(1)) Then
-                                lLat = Double.Parse(lArgPart(1))
-                            Else
-                                MsgBox("Non-numeric Latitude: " & lArgPart(1), MsgBoxStyle.OkOnly, "OpenStreetMap URL")
-                            End If
-                        Case "lon"
-                            If IsNumeric(lArgPart(1)) Then
-                                lLon = Double.Parse(lArgPart(1))
-                            Else
-                                MsgBox("Non-numeric Longitude: " & lArgPart(1), MsgBoxStyle.OkOnly, "OpenStreetMap URL")
-                            End If
-                        Case "zoom"
-                            If IsNumeric(lArgPart(1)) Then
-                                lZoom = Integer.Parse(lArgPart(1))
-                            Else
-                                MsgBox("Non-numeric Zoom: " & lArgPart(1), MsgBoxStyle.OkOnly, "OpenStreetMap URL")
-                            End If
-                    End Select
-                End If
-            Next
-            If lLat <> 0 AndAlso lLon <> 0 AndAlso lZoom >= g_ZoomMin AndAlso lZoom <= g_ZoomMax Then
+            Dim lZoom As Integer = pMap.Zoom
+            Dim lNorth As Double = 0
+            Dim lWest As Double = 0
+            Dim lSouth As Double = 0
+            Dim lEast As Double = 0
+
+            Dim lSite As UrlBuilder.SiteEnum
+            If UrlBuilder.ParseURL(Clipboard.GetText, lSite, lLat, lLon, lZoom, lNorth, lWest, lSouth, lEast) Then
                 pMap.CenterLat = lLat
                 pMap.CenterLon = lLon
                 pMap.SanitizeCenterLatLon()
-                pMap.Zoom = lZoom
+                If lZoom <> pMap.Zoom Then
+                    pMap.Zoom = lZoom
+                Else
+                    pMap.NeedRedraw()
+                End If
             End If
         Else
             MsgBox("Copy an OpenStreetMap Permalink to the clipboard before using this menu", MsgBoxStyle.OkOnly, "OpenStreetMap URL")
