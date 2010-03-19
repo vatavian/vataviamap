@@ -20,12 +20,15 @@ Public Class frmMap
             Me.ZoomToolStripMenuItem.DropDownItems.Add(New ToolStripMenuItem(CStr(lZoomLevel), Nothing, New EventHandler(AddressOf ZoomToolStripMenuItem_Click)))
         Next
 
-        Dim lEnumType As Type = (New UrlBuilder.SiteEnum).GetType
+        Dim lWebsiteIndex As UrlBuilder.SiteEnum
+        Dim lEnumType As Type = lWebsiteIndex.GetType
         Dim lWebsiteEventHandler As New EventHandler(AddressOf Website_Click)
-        For Each lWebsiteIndex As Integer In System.Enum.GetValues(lEnumType)
-            Dim lItem As New ToolStripMenuItem(System.Enum.GetName(lEnumType, lWebsiteIndex).Replace("_", " "), Nothing, lWebsiteEventHandler)
-            lItem.Tag = lWebsiteIndex
-            Me.WebsiteToolStripMenuItem.DropDownItems.Add(lItem)
+        For Each lWebsiteIndex In System.Enum.GetValues(lEnumType)
+            If lWebsiteIndex <> UrlBuilder.SiteEnum.Unknown Then
+                Dim lItem As New ToolStripMenuItem(System.Enum.GetName(lEnumType, lWebsiteIndex).Replace("_", " "), Nothing, lWebsiteEventHandler)
+                lItem.Tag = lWebsiteIndex
+                Me.WebsiteToolStripMenuItem.DropDownItems.Add(lItem)
+            End If
         Next
 
         Dim lTileCacheFolder As String = GetAppSetting("TileCacheFolder", IO.Path.GetTempPath() & "tiles" & g_PathChar)
@@ -562,8 +565,8 @@ Public Class frmMap
         If pMap.Downloader.DownloadFile(lBugsGPXurl, lBugsGPXfilename, False) Then pMap.OpenFile(lBugsGPXfilename) 'TODO: set .LabelField = "desc"
     End Sub
 
-    Private Sub FollowOSMURLToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles FollowWebMapURLToolStripMenuItem.Click
-        If Clipboard.ContainsText Then
+    Private Sub FollowWebMapURLToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles FollowWebMapURLToolStripMenuItem.Click
+        If Clipboard.ContainsText AndAlso Clipboard.GetText.Contains(":/") Then
             Dim lLat As Double = 0
             Dim lLon As Double = 0
             Dim lZoom As Integer = pMap.Zoom
@@ -584,7 +587,7 @@ Public Class frmMap
                 End If
             End If
         Else
-            MsgBox("Copy an OpenStreetMap Permalink to the clipboard before using this menu", MsgBoxStyle.OkOnly, "OpenStreetMap URL")
+            MsgBox("Copy a map website link to the clipboard before using this menu", MsgBoxStyle.OkOnly, "OpenStreetMap URL")
         End If
     End Sub
 

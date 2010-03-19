@@ -583,8 +583,10 @@ EndFound:
 
     Public Class UrlBuilder
         Public Enum SiteEnum
+            Unknown
             OpenStreetMap
             CloudMade
+            OpenStreetBugs
             Potlatch
             Walking_Papers
             GoogleMaps
@@ -602,44 +604,38 @@ EndFound:
                                       ByVal aZoom As Integer, _
                                       ByRef aNorth As Double, ByRef aWest As Double, _
                                       ByRef aSouth As Double, ByRef aEast As Double) As String
+            Dim lFormat As String = "#.#####"
+            Dim lLon As String = Format(aCenterLongitude, lFormat)
+            Dim lLat As String = Format(aCenterLatitude, lFormat)
+            Dim lHeight As String = Format(aNorth - aSouth, lFormat)
+            Dim lWidth As String = Format(aEast - aWest, lFormat)
+            Dim lLeft As String = Format(aWest, lFormat)
+            Dim lRight As String = Format(aEast, lFormat)
+            Dim lTop As String = Format(aNorth, lFormat)
+            Dim lBottom As String = Format(aSouth, lFormat)
             Select Case aSite
                 Case SiteEnum.OpenStreetMap
-                    Dim lLon As String = Format(aCenterLongitude, "#.#####")
-                    Dim lLat As String = Format(aCenterLatitude, "#.#####")
                     Return "http://www.openstreetmap.org/?lat=" & lLat & "&lon=" & lLon & "&zoom=" & aZoom
 
+                Case SiteEnum.OpenStreetBugs
+                    Return "http://openstreetbugs.appspot.com/?lat=" & lLat & "&lon=" & lLon & "&zoom=" & aZoom
+
                 Case SiteEnum.Potlatch
-                    Dim lLon As String = Format(aCenterLongitude, "#.#####")
-                    Dim lLat As String = Format(aCenterLatitude, "#.#####")
                     Return "http://www.openstreetmap.org/edit?lat=" & lLat & "&lon=" & lLon & "&zoom=" & aZoom
 
                 Case SiteEnum.Walking_Papers
-                    Dim lLon As String = Format(aCenterLongitude, "#.#####")
-                    Dim lLat As String = Format(aCenterLatitude, "#.#####")
                     Return "http://walking-papers.org/?lat=" & lLat & "&lon=" & lLon & "&zoom=" & aZoom
 
                 Case SiteEnum.GoogleMaps
-                    Dim lFormat As String = "#.######"
-                    Return "http://maps.google.com/maps?ll=" _
-                                 & Format(aCenterLatitude, lFormat) & "," _
-                                 & Format(aCenterLongitude, lFormat) & "&spn=" _
-                                 & Format(aNorth - aSouth, lFormat) & "," _
-                                 & Format(aEast - aWest, lFormat)
+                    Return "http://maps.google.com/maps?ll=" & lLat & "," & lLon & "&spn=" & lHeight & "," & lWidth
 
                 Case SiteEnum.Bing
-                    Dim lFormat As String = "#.############"
-                    Return "http://www.bing.com/maps/?cp=" _
-                                 & Format(aCenterLatitude, lFormat) & "~" _
-                                 & Format(aCenterLongitude, lFormat) & "&lvl=" & aZoom
+                    Return "http://www.bing.com/maps/?cp=" & lLat & "~" & lLon & "&lvl=" & aZoom
 
                 Case SiteEnum.Microsoft_Research
-                    Dim lLon As String = Format(aCenterLongitude, "#.#####")
-                    Dim lLat As String = Format(aCenterLatitude, "#.#####")
                     Return "http://msrmaps.com/image.aspx?Lon=" & lLon & "&Lat=" & lLat & "&w=3&ref=G|" & lLon & "," & lLat
 
                 Case SiteEnum.Mapquest
-                    Dim lLon As String = Format(aCenterLongitude, "#.#####")
-                    Dim lLat As String = Format(aCenterLatitude, "#.#####")
                     Return "http://www.mapquest.com/maps?latitude=" & lLat & "&longitude=" & lLon & "&geocode=LATLNG"
 
                 Case SiteEnum.WorldWind
@@ -647,20 +643,12 @@ EndFound:
                     Return "worldwind://goto/world=Earth&latitude=" & aCenterLatitude & "&longitude=" & aCenterLongitude & "&dir=0&tilt=0"
 
                 Case SiteEnum.CloudMade
-                    Dim lLon As String = Format(aCenterLongitude, "#.#####")
-                    Dim lLat As String = Format(aCenterLatitude, "#.#####")
                     Return "http://maps.cloudmade.com/?lat=" & lLat & "&lng=" & lLon & "&zoom=" & aZoom '&styleId=1&opened_tab=0
 
                 Case SiteEnum.Yahoo
-                    Dim lLon As String = Format(aCenterLongitude, "#.#####")
-                    Dim lLat As String = Format(aCenterLatitude, "#.#####")
                     Return "http://maps.yahoo.com/?lat=" & lLat & "&lon=" & lLon & "&zoom=" & aZoom
 
                 Case SiteEnum.USGS_Seamless
-                    Dim lLeft As String = Format(aWest, "#.#####")
-                    Dim lRight As String = Format(aEast, "#.#####")
-                    Dim lTop As String = Format(aNorth, "#.#####")
-                    Dim lBottom As String = Format(aSouth, "#.#####")
                     Return "http://seamless.usgs.gov/website/seamless/viewer.htm?startbottom=" & lBottom & "&starttop=" & lTop & "&startleft=" & lLeft & "&startright=" & lRight & "&limitbottom=-85.0&limittop=85.0&limitleft=-179.5&limitright=179.5"
             End Select
             Return ""
