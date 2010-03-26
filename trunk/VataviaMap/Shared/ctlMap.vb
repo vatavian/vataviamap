@@ -55,6 +55,7 @@ Public Class ctlMap
     Private pBrushCopyright As New SolidBrush(Color.Black)
     Private pShowCopyright As Boolean = True
     Private pShowDate As Boolean = False
+    Private pShowURL As String = ""
 
     Public MouseDragging As Boolean = False
     Public MouseDragStartLocation As Point
@@ -201,6 +202,18 @@ Public Class ctlMap
         Set(ByVal value As Boolean)
             If pShowDate <> value Then
                 pShowDate = value
+                NeedRedraw()
+            End If
+        End Set
+    End Property
+
+    Public Property ShowURL() As String
+        Get
+            Return pShowURL
+        End Get
+        Set(ByVal value As String)
+            If pShowURL <> value Then
+                pShowURL = value
                 NeedRedraw()
             End If
         End Set
@@ -812,7 +825,12 @@ Public Class ctlMap
 
         If pShowCopyright AndAlso pShowTileImages Then g.DrawString(g_TileCopyright, pFontCopyright, pBrushCopyright, 3, pBitmap.Height - 20)
 
-        If pShowDate Then g.DrawString(DateTime.Now.ToString("yyyy-MM-dd HH:mm"), pFontTileLabel, pBrushBlack, 3, 3)
+        If pShowDate OrElse pShowURL.Length > 0 Then
+            Dim lHeader As String = ""
+            If pShowDate Then lHeader &= DateTime.Now.ToString("yyyy-MM-dd HH:mm ")
+            If pShowURL.Length > 0 Then lHeader &= pShowURL 'CenterLon.ToString("#.#######") & ", " & CenterLat.ToString("#.#######")
+            g.DrawString(lHeader, pFontTileLabel, pBrushBlack, 3, 3)
+        End If
 
         If pRedrawPending Then Exit Sub
 
@@ -1082,12 +1100,12 @@ Public Class ctlMap
         If lTileFileName.Length = 0 Then
             Return Nothing
         Else
-            Dim lTileImage As Bitmap = Downloader.GetTile(lTileFileName, aTilePoint, aZoom, aPriority, False)
+            Dim lTileImage As Bitmap = Downloader.GetTileBitmap(lTileFileName, aTilePoint, aZoom, aPriority, False)
 
             'Fall back to using unmarked tile if we have it but not a marked version
             If pUseMarkedTiles AndAlso lTileImage Is Nothing Then
                 lTileFileName = TileFilename(aTilePoint, pZoom, False)
-                lTileImage = Downloader.GetTile(lTileFileName, aTilePoint, aZoom, aPriority, False)
+                lTileImage = Downloader.GetTileBitmap(lTileFileName, aTilePoint, aZoom, aPriority, False)
             End If
             Return lTileImage
         End If
@@ -2548,6 +2566,7 @@ SetCenter:
     Friend WithEvents RightClickMenu As System.Windows.Forms.ContextMenuStrip
     Friend WithEvents RefreshFromServerToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents ClosestGeocacheToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents TileCacheFolderToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
 
     Public Sub CopyToClipboard()
         pBitmapMutex.WaitOne()
@@ -2684,13 +2703,12 @@ SetCenter:
                 ClickedTileFilename = FindTileFilename(pBitmap.GetBounds(Drawing.GraphicsUnit.Pixel), e.X, e.Y)
                 If ClickedTileFilename.Length > 0 Then
                     If RightClickMenu Is Nothing Then
-                        RefreshFromServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
-                        RefreshFromServerToolStripMenuItem.Text = "Refresh From Server"
-                        ClosestGeocacheToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
-                        ClosestGeocacheToolStripMenuItem.Text = "Closest Geocache"
+                        RefreshFromServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem("Refresh From Server")
+                        ClosestGeocacheToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem("Closest Geocache")
+                        TileCacheFolderToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem("Open Cache Folder")
                         RightClickMenu = New System.Windows.Forms.ContextMenuStrip()
                         RightClickMenu.Items.AddRange(New System.Windows.Forms.ToolStripItem() _
-                            {RefreshFromServerToolStripMenuItem, ClosestGeocacheToolStripMenuItem}) ', GetAllDescendantsToolStripMenuItem})
+                            {RefreshFromServerToolStripMenuItem, ClosestGeocacheToolStripMenuItem, TileCacheFolderToolStripMenuItem}) ', GetAllDescendantsToolStripMenuItem})
                     End If
                     RightClickMenu.Show(Me, e.Location)
                 End If
@@ -2713,6 +2731,14 @@ SetCenter:
 
     Private Sub ClosestGeocacheToolStripMenuItem_Click(ByVal sender As Object, ByVal e As System.EventArgs) Handles ClosestGeocacheToolStripMenuItem.Click
         ClosestGeocache()
+    End Sub
+
+    Private Sub TileCacheFolderToolStripMenuItem_Click(ByVal sender As Object, ByVal e As System.EventArgs) Handles TileCacheFolderToolStripMenuItem.Click
+        If ClickedTileFilename.Length > 0 Then
+            modGlobal.OpenFileOrURL(IO.Path.GetDirectoryName(ClickedTileFilename), False)
+        Else
+            modGlobal.OpenFileOrURL(pTileCacheFolder, False)
+        End If
     End Sub
 
     Private Sub Event_MouseMove(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles Me.MouseMove
