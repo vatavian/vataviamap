@@ -28,7 +28,7 @@ Public Class frmOpenCellID
     End Sub
 
     Private Sub btnWebSite_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnWebSite.Click
-        OpenFile(clsCellLocationOpenCellID.WebsiteURL)
+        OpenFileOrURL(clsCellLocationOpenCellID.WebsiteURL, False)
     End Sub
 
     Private Sub btnDownloadRaw_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnDownloadRaw.Click
@@ -37,8 +37,9 @@ Public Class frmOpenCellID
             .Title = "Save cells.txt as..."
             .FileName = "cells.txt"
             If .ShowDialog = Windows.Forms.DialogResult.OK Then
-                If pDownloader.DownloadFile(clsCellLocationOpenCellID.RawDatabaseURL, .FileName & ".gz", False) Then
-                    gunzip(.FileName & ".gz", .FileName)
+                Dim lActualFilename As String = Nothing
+                If pDownloader.DownloadFile(clsCellLocationOpenCellID.RawDatabaseURL, .FileName & ".gz", lActualFilename, False) Then
+                    gunzip(lActualFilename, .FileName)
                     SaveAppSetting("OpenCellIDRaw", .FileName)
                     MsgBox("Downloaded to " & .FileName, , "OpenCellID")
                 Else

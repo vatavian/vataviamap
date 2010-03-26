@@ -396,24 +396,25 @@ Public Class frmMap
             End If
         End If
 
+        Dim lActualFilename As String = lJosmFilename
         If Not IO.File.Exists(lJosmFilename) AndAlso MsgBox("Download latest version of JOSM now?", MsgBoxStyle.YesNo, "Download JOSM") = MsgBoxResult.Yes Then
             Me.Cursor = Cursors.WaitCursor
             Dim lSaveTitle As String = Me.Text
             Me.Text = "Downloading http://josm.openstreetmap.de/josm-tested.jar ..."
             Application.DoEvents()
-            If Not pMap.Downloader.DownloadFile("http://josm.openstreetmap.de/josm-tested.jar", lJosmFilename, False) Then
+            If Not pMap.Downloader.DownloadFile("http://josm.openstreetmap.de/josm-tested.jar", lJosmFilename, lActualFilename, False) Then
                 MsgBox("Please manually download JOSM from" & vbCrLf & "http://josm.openstreetmap.de/" & vbCrLf & "and save as " & vbCrLf & lJosmFilename, MsgBoxStyle.OkOnly, "Unable to download JOSM")
             End If
             Me.Text = lSaveTitle
             Me.Cursor = Cursors.Default
         End If
 
-        If IO.File.Exists(lJosmFilename) Then
+        If IO.File.Exists(lActualFilename) Then
             Dim lArguments As String = ""
             For Each lLayer As clsLayer In pMap.Layers
                 lArguments &= """" & lLayer.Filename & """ "
             Next
-            Process.Start(lJosmFilename, lArguments)
+            Process.Start(lActualFilename, lArguments)
         End If
     End Sub
 
@@ -551,7 +552,7 @@ Public Class frmMap
     End Sub
 
     Private Sub VataviaMapProjectPageToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles VataviaMapProjectPageToolStripMenuItem.Click
-        OpenFile("http://code.google.com/p/vataviamap/")
+        OpenFileOrURL("http://code.google.com/p/vataviamap/", False)
     End Sub
 
     Private Sub GetOSMBugsToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles GetOSMBugsToolStripMenuItem.Click
@@ -562,11 +563,17 @@ Public Class frmMap
             & "&r=" & pMap.LonMax.ToString("#.#######") _
             & "&open=yes"
         Dim lBugsGPXfilename As String = IO.Path.Combine(My.Computer.FileSystem.SpecialDirectories.MyDocuments, "bugs.gpx")
-        If pMap.Downloader.DownloadFile(lBugsGPXurl, lBugsGPXfilename, False) Then pMap.OpenFile(lBugsGPXfilename) 'TODO: set .LabelField = "desc"
+        Dim lActualFilename As String = Nothing
+        If pMap.Downloader.DownloadFile(lBugsGPXurl, lBugsGPXfilename, lActualFilename, False) Then
+            pMap.OpenFile(lActualFilename)
+            'TODO: set .LabelField = "desc"
+        End If
     End Sub
 
     Private Sub FollowWebMapURLToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles FollowWebMapURLToolStripMenuItem.Click
-        If Clipboard.ContainsText AndAlso Clipboard.GetText.Contains(":/") Then
+        Dim lURL As String = Clipboard.GetText(Windows.Forms.TextDataFormat.Text)
+        pMap.ShowURL = lURL
+        If lURL.Contains(":") Then
             Dim lLat As Double = 0
             Dim lLon As Double = 0
             Dim lZoom As Integer = pMap.Zoom
@@ -575,8 +582,7 @@ Public Class frmMap
             Dim lSouth As Double = 0
             Dim lEast As Double = 0
 
-            Dim lSite As UrlBuilder.SiteEnum
-            If UrlBuilder.ParseURL(Clipboard.GetText, lSite, lLat, lLon, lZoom, lNorth, lWest, lSouth, lEast) Then
+            If UrlBuilder.ParseURL(lURL, lLat, lLon, lZoom, lNorth, lWest, lSouth, lEast) Then
                 pMap.CenterLat = lLat
                 pMap.CenterLon = lLon
                 pMap.SanitizeCenterLatLon()
@@ -585,9 +591,11 @@ Public Class frmMap
                 Else
                     pMap.NeedRedraw()
                 End If
+            Else
+                MsgBox("Did not recognize map website link:" & vbLf & lURL, MsgBoxStyle.OkOnly, "Web Map URL")
             End If
         Else
-            MsgBox("Copy a map website link to the clipboard before using this menu", MsgBoxStyle.OkOnly, "OpenStreetMap URL")
+            MsgBox("Copy a map website permanent link to the clipboard before using this menu", MsgBoxStyle.OkOnly, "Web Map URL")
         End If
     End Sub
 
@@ -703,7 +711,8 @@ Public Class frmMap
             Dim lItem As ToolStripMenuItem = sender
             Dim lURL As String = UrlBuilder.GetURL(lItem.Tag, pMap.CenterLat, pMap.CenterLon, pMap.Zoom, pMap.LatMax, pMap.LonMin, pMap.LatMin, pMap.LonMax)
             If lURL IsNot Nothing AndAlso lURL.Length > 0 Then
-                Process.Start(lURL)
+                OpenFileOrURL(lURL, False)
+                pMap.ShowURL = lURL
             End If
         Catch ex As System.ComponentModel.Win32Exception
             'This happens when Firefox takes a moment to start due to updates, ignore it
@@ -713,7 +722,7 @@ Public Class frmMap
 #Region "Bookmarks"
     Private Sub BuildBookmarksMenu()
         For lBookmarkIndex As Integer = 0 To 50
-            Dim lBookmarkKey As String = "Bookmark" & BookmarksToolStripMenuItem.DropDownItems.Count
+            Dim lBookmarkKey As String = "Bookmark" & PlacesToolStripMenuItem.DropDownItems.Count
             Dim lBookmarkSetting As String = GetAppSetting(lBookmarkKey, "")
             If lBookmarkSetting.Length > 0 Then
                 Dim lCoordinates() As String = lBookmarkSetting.Split("|")
@@ -721,19 +730,19 @@ Public Class frmMap
                     Dim lNewBookmark As New ToolStripMenuItem(lCoordinates(3), Nothing, New EventHandler(AddressOf BookmarkItem_Click))
                     lNewBookmark.Tag = lCoordinates(0) & "|" & lCoordinates(1) & "|" & lCoordinates(2)
                     lNewBookmark.ToolTipText = lCoordinates(0) & ", " & lCoordinates(1) & " Zoom " & lCoordinates(2)
-                    BookmarksToolStripMenuItem.DropDownItems.Add(lNewBookmark)
+                    PlacesToolStripMenuItem.DropDownItems.Add(lNewBookmark)
                 End If
             End If
         Next
     End Sub
 
-    Private Sub BookmarksAddToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles BookmarksAddToolStripMenuItem.Click
-        Dim lBookmarkKey As String = "Bookmark" & BookmarksToolStripMenuItem.DropDownItems.Count
+    Private Sub BookmarksAddToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles PlacesAddToolStripMenuItem.Click
+        Dim lBookmarkKey As String = "Bookmark" & PlacesToolStripMenuItem.DropDownItems.Count
         Dim lBookmarkText As String = InputBox("Name of bookmark", "New Bookmark", lBookmarkKey)
         Dim lNewBookmark As New ToolStripMenuItem(lBookmarkText, Nothing, New EventHandler(AddressOf BookmarkItem_Click))
         lNewBookmark.Tag = pMap.CenterLon.ToString("#.#######") & "|" & pMap.CenterLat.ToString("#.#######") & "|" & pMap.Zoom
         lNewBookmark.ToolTipText = pMap.CenterLon.ToString("#.#######") & ", " & pMap.CenterLat.ToString("#.#######") & " Zoom " & pMap.Zoom
-        BookmarksToolStripMenuItem.DropDownItems.Add(lNewBookmark)
+        PlacesToolStripMenuItem.DropDownItems.Add(lNewBookmark)
         SaveAppSetting(lBookmarkKey, lNewBookmark.Tag & "|" & lNewBookmark.Text)
     End Sub
 
@@ -752,4 +761,16 @@ Public Class frmMap
         End If
     End Sub
 #End Region 'Bookmarks
+
+    Private Sub LetterPortraitToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles LetterPortraitToolStripMenuItem.Click
+        Dim lCurAspectRatio As Single = pMap.Width / pMap.Height
+        Dim lDesiredMapWidth As Integer = (7.5 / 10) * pMap.Height
+        Me.Width += lDesiredMapWidth - pMap.Width
+    End Sub
+
+    Private Sub LetterLandscapeToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles LetterLandscapeToolStripMenuItem.Click
+        Dim lCurAspectRatio As Single = pMap.Width / pMap.Height
+        Dim lDesiredMapWidth As Integer = (10 / 7.5) * pMap.Height
+        Me.Width += lDesiredMapWidth - pMap.Width
+    End Sub
 End Class

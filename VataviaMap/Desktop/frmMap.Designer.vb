@@ -60,6 +60,8 @@ Partial Class frmMap
         Me.Transparency90 = New System.Windows.Forms.ToolStripMenuItem
         Me.ZoomToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.ZoomAllLayersToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.PlacesToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.PlacesAddToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.TileServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.AddTileServerMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.EditTileServerMenuItem = New System.Windows.Forms.ToolStripMenuItem
@@ -83,14 +85,15 @@ Partial Class frmMap
         Me.RefreshFromServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.pMap = New VataviaMap.ctlMap
         Me.TimeZoneToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
-        Me.BookmarksToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
-        Me.BookmarksAddToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.PrintToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.LetterPortraitToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.LetterLandscapeToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.MenuStripMain.SuspendLayout()
         Me.SuspendLayout()
         '
         'MenuStripMain
         '
-        Me.MenuStripMain.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FileToolStripMenuItem, Me.ViewToolStripMenuItem, Me.ZoomToolStripMenuItem, Me.BookmarksToolStripMenuItem, Me.TileServerToolStripMenuItem, Me.OverlayServerToolStripMenuItem, Me.BuddiesToolStripMenuItem, Me.WheelToolStripMenuItem, Me.CellTowerToolStripMenuItem, Me.WebsiteToolStripMenuItem, Me.HelpToolStripMenuItem})
+        Me.MenuStripMain.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FileToolStripMenuItem, Me.ViewToolStripMenuItem, Me.ZoomToolStripMenuItem, Me.PlacesToolStripMenuItem, Me.TileServerToolStripMenuItem, Me.OverlayServerToolStripMenuItem, Me.BuddiesToolStripMenuItem, Me.WheelToolStripMenuItem, Me.CellTowerToolStripMenuItem, Me.WebsiteToolStripMenuItem, Me.HelpToolStripMenuItem})
         Me.MenuStripMain.Location = New System.Drawing.Point(0, 0)
         Me.MenuStripMain.Name = "MenuStripMain"
         Me.MenuStripMain.Size = New System.Drawing.Size(910, 27)
@@ -99,7 +102,7 @@ Partial Class frmMap
         '
         'FileToolStripMenuItem
         '
-        Me.FileToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.SaveAsToolStripMenuItem, Me.CopyToClipboardToolStripMenuItem, Me.AddLayerToolStripMenuItem, Me.LayersToolStripMenuItem, Me.RemoveAllLayersToolStripMenuItem, Me.OpenJOSMToolStripMenuItem, Me.FollowWebMapURLToolStripMenuItem, Me.GetOSMBugsToolStripMenuItem, Me.ExitToolStripSeparator, Me.ExitToolStripMenuItem, Me.TimeZoneToolStripMenuItem})
+        Me.FileToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.SaveAsToolStripMenuItem, Me.CopyToClipboardToolStripMenuItem, Me.AddLayerToolStripMenuItem, Me.LayersToolStripMenuItem, Me.RemoveAllLayersToolStripMenuItem, Me.OpenJOSMToolStripMenuItem, Me.FollowWebMapURLToolStripMenuItem, Me.GetOSMBugsToolStripMenuItem, Me.PrintToolStripMenuItem, Me.ExitToolStripSeparator, Me.ExitToolStripMenuItem, Me.TimeZoneToolStripMenuItem})
         Me.FileToolStripMenuItem.Name = "FileToolStripMenuItem"
         Me.FileToolStripMenuItem.Size = New System.Drawing.Size(45, 23)
         Me.FileToolStripMenuItem.Text = "File"
@@ -107,63 +110,63 @@ Partial Class frmMap
         'SaveAsToolStripMenuItem
         '
         Me.SaveAsToolStripMenuItem.Name = "SaveAsToolStripMenuItem"
-        Me.SaveAsToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
+        Me.SaveAsToolStripMenuItem.Size = New System.Drawing.Size(337, 24)
         Me.SaveAsToolStripMenuItem.Text = "Save As..."
         '
         'CopyToClipboardToolStripMenuItem
         '
         Me.CopyToClipboardToolStripMenuItem.Name = "CopyToClipboardToolStripMenuItem"
         Me.CopyToClipboardToolStripMenuItem.ShortcutKeys = CType((System.Windows.Forms.Keys.Control Or System.Windows.Forms.Keys.C), System.Windows.Forms.Keys)
-        Me.CopyToClipboardToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
+        Me.CopyToClipboardToolStripMenuItem.Size = New System.Drawing.Size(337, 24)
         Me.CopyToClipboardToolStripMenuItem.Text = "Copy to Clipboard"
         '
         'AddLayerToolStripMenuItem
         '
         Me.AddLayerToolStripMenuItem.Name = "AddLayerToolStripMenuItem"
-        Me.AddLayerToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
+        Me.AddLayerToolStripMenuItem.Size = New System.Drawing.Size(337, 24)
         Me.AddLayerToolStripMenuItem.Text = "Add Layer..."
         '
         'LayersToolStripMenuItem
         '
         Me.LayersToolStripMenuItem.Name = "LayersToolStripMenuItem"
-        Me.LayersToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
+        Me.LayersToolStripMenuItem.Size = New System.Drawing.Size(337, 24)
         Me.LayersToolStripMenuItem.Text = "Layers..."
         '
         'RemoveAllLayersToolStripMenuItem
         '
         Me.RemoveAllLayersToolStripMenuItem.Name = "RemoveAllLayersToolStripMenuItem"
         Me.RemoveAllLayersToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.Delete
-        Me.RemoveAllLayersToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
+        Me.RemoveAllLayersToolStripMenuItem.Size = New System.Drawing.Size(337, 24)
         Me.RemoveAllLayersToolStripMenuItem.Text = "Remove All Layers"
         '
         'OpenJOSMToolStripMenuItem
         '
         Me.OpenJOSMToolStripMenuItem.Name = "OpenJOSMToolStripMenuItem"
-        Me.OpenJOSMToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
+        Me.OpenJOSMToolStripMenuItem.Size = New System.Drawing.Size(337, 24)
         Me.OpenJOSMToolStripMenuItem.Text = "Open JOSM"
         '
-        'FollowOSMURLToolStripMenuItem
+        'FollowWebMapURLToolStripMenuItem
         '
         Me.FollowWebMapURLToolStripMenuItem.Name = "FollowWebMapURLToolStripMenuItem"
-        Me.FollowWebMapURLToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
+        Me.FollowWebMapURLToolStripMenuItem.Size = New System.Drawing.Size(337, 24)
         Me.FollowWebMapURLToolStripMenuItem.Text = "Follow Web Map URL on clipboard"
         '
         'GetOSMBugsToolStripMenuItem
         '
         Me.GetOSMBugsToolStripMenuItem.Name = "GetOSMBugsToolStripMenuItem"
-        Me.GetOSMBugsToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
+        Me.GetOSMBugsToolStripMenuItem.Size = New System.Drawing.Size(337, 24)
         Me.GetOSMBugsToolStripMenuItem.Text = "Get OSM Bugs"
         '
         'ExitToolStripSeparator
         '
         Me.ExitToolStripSeparator.Name = "ExitToolStripSeparator"
-        Me.ExitToolStripSeparator.Size = New System.Drawing.Size(302, 6)
+        Me.ExitToolStripSeparator.Size = New System.Drawing.Size(334, 6)
         '
         'ExitToolStripMenuItem
         '
         Me.ExitToolStripMenuItem.Name = "ExitToolStripMenuItem"
         Me.ExitToolStripMenuItem.ShortcutKeys = CType((System.Windows.Forms.Keys.Alt Or System.Windows.Forms.Keys.F4), System.Windows.Forms.Keys)
-        Me.ExitToolStripMenuItem.Size = New System.Drawing.Size(305, 24)
+        Me.ExitToolStripMenuItem.Size = New System.Drawing.Size(337, 24)
         Me.ExitToolStripMenuItem.Text = "Exit"
         '
         'ViewToolStripMenuItem
@@ -308,6 +311,19 @@ Partial Class frmMap
         Me.ZoomAllLayersToolStripMenuItem.Name = "ZoomAllLayersToolStripMenuItem"
         Me.ZoomAllLayersToolStripMenuItem.Size = New System.Drawing.Size(163, 24)
         Me.ZoomAllLayersToolStripMenuItem.Text = "All Layers"
+        '
+        'PlacesToolStripMenuItem
+        '
+        Me.PlacesToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.PlacesAddToolStripMenuItem})
+        Me.PlacesToolStripMenuItem.Name = "PlacesToolStripMenuItem"
+        Me.PlacesToolStripMenuItem.Size = New System.Drawing.Size(64, 23)
+        Me.PlacesToolStripMenuItem.Text = "Places"
+        '
+        'PlacesAddToolStripMenuItem
+        '
+        Me.PlacesAddToolStripMenuItem.Name = "PlacesAddToolStripMenuItem"
+        Me.PlacesAddToolStripMenuItem.Size = New System.Drawing.Size(152, 24)
+        Me.PlacesAddToolStripMenuItem.Text = "Add..."
         '
         'TileServerToolStripMenuItem
         '
@@ -459,18 +475,24 @@ Partial Class frmMap
         Me.TimeZoneToolStripMenuItem.Size = New System.Drawing.Size(223, 22)
         Me.TimeZoneToolStripMenuItem.Text = "Time Zone"
         '
-        'BookmarksToolStripMenuItem
+        'PrintToolStripMenuItem
         '
-        Me.BookmarksToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.BookmarksAddToolStripMenuItem})
-        Me.BookmarksToolStripMenuItem.Name = "BookmarksToolStripMenuItem"
-        Me.BookmarksToolStripMenuItem.Size = New System.Drawing.Size(99, 23)
-        Me.BookmarksToolStripMenuItem.Text = "Bookmarks"
+        Me.PrintToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.LetterPortraitToolStripMenuItem, Me.LetterLandscapeToolStripMenuItem})
+        Me.PrintToolStripMenuItem.Name = "PrintToolStripMenuItem"
+        Me.PrintToolStripMenuItem.Size = New System.Drawing.Size(337, 24)
+        Me.PrintToolStripMenuItem.Text = "Print"
         '
-        'BookmarksAddToolStripMenuItem
+        'LetterPortraitToolStripMenuItem
         '
-        Me.BookmarksAddToolStripMenuItem.Name = "BookmarksAddToolStripMenuItem"
-        Me.BookmarksAddToolStripMenuItem.Size = New System.Drawing.Size(152, 24)
-        Me.BookmarksAddToolStripMenuItem.Text = "Add..."
+        Me.LetterPortraitToolStripMenuItem.Name = "LetterPortraitToolStripMenuItem"
+        Me.LetterPortraitToolStripMenuItem.Size = New System.Drawing.Size(212, 24)
+        Me.LetterPortraitToolStripMenuItem.Text = "Letter Portrait"
+        '
+        'LetterLandscapeToolStripMenuItem
+        '
+        Me.LetterLandscapeToolStripMenuItem.Name = "LetterLandscapeToolStripMenuItem"
+        Me.LetterLandscapeToolStripMenuItem.Size = New System.Drawing.Size(212, 24)
+        Me.LetterLandscapeToolStripMenuItem.Text = "Letter Landscape"
         '
         'frmMap
         '
@@ -549,6 +571,9 @@ Partial Class frmMap
     Friend WithEvents Transparency80 As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents Transparency90 As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents WebsiteToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents BookmarksToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents BookmarksAddToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents PlacesToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents PlacesAddToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents PrintToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents LetterPortraitToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents LetterLandscapeToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
 End Class

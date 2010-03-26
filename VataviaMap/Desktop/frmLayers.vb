@@ -330,7 +330,7 @@ Public Class frmLayers
         If pRightClickedIndex > -1 Then
             With pLayers(pRightClickedIndex)
                 If IO.Path.GetExtension(.Filename).ToLower = ".jpg" Then
-                    OpenFile(.Filename)
+                    OpenFileOrURL(.Filename, False)
                 End If
             End With
         End If

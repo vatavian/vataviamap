@@ -30,7 +30,7 @@ Public Class frmEditNameURL
     ''' Show file or web page with examples
     ''' </summary>
     Private Sub btnExamples_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnExamples.Click
-        OpenFile(btnExamples.Tag)
+        OpenFileOrURL(btnExamples.Tag, False)
     End Sub
 
     ''' <summary>
