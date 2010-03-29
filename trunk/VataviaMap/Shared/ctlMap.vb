@@ -147,7 +147,7 @@ Public Class ctlMap
     Public Uploader As New clsUploader
     Public Downloader As New clsDownloader
 
-    Public TileServers As Dictionary(Of String, String)
+    Public Servers As Generic.Dictionary(Of String, clsServer)
 
     Private pImportOffsetFromUTC As TimeSpan = DateTime.UtcNow.Subtract(DateTime.Now)
 
@@ -327,7 +327,7 @@ Public Class ctlMap
     End Sub
 
     Private Sub GetSettings()
-        TileServers = New Dictionary(Of String, String)
+        Servers = New Dictionary(Of String, clsServer)
         Dim lSoftwareKey As Microsoft.Win32.RegistryKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("Software")
         If lSoftwareKey IsNot Nothing Then
             Dim lAppKey As Microsoft.Win32.RegistryKey = lSoftwareKey.OpenSubKey(g_AppName)
@@ -337,9 +337,9 @@ Public Class ctlMap
 
                     Dim lKeyIndex As Integer = 1
                     Do
-                        Dim lServerNameUrl() As String = CStr(.GetValue("TileServer" & lKeyIndex, "")).Split("|")
-                        If lServerNameUrl.Length = 2 Then
-                            TileServers.Add(lServerNameUrl(0), lServerNameUrl(1))
+                        Dim lServerNameUrl() As String = CStr(.GetValue("Server" & lKeyIndex, "")).Split("|")
+                        If lServerNameUrl.Length > 1 Then
+                            Servers.Add(lServerNameUrl(0), clsServer.FromFields(lServerNameUrl))
                             lKeyIndex += 1
                         Else
                             Exit Do
@@ -360,7 +360,7 @@ Public Class ctlMap
                     Loop
 
                     'TileCacheFolder gets set earlier
-                    g_TileServerName = .GetValue("TileServer", g_TileServerName)
+                    g_LastTileServerName = .GetValue("TileServer", g_TileServer.Name)
                     g_UploadPointURL = .GetValue("UploadPointURL", g_UploadPointURL)
                     g_UploadTrackURL = .GetValue("UploadTrackURL", g_UploadTrackURL)
 
@@ -412,38 +412,46 @@ Public Class ctlMap
                 End With
             End If
         End If
-        If TileServers.Count = 0 Then
+        If Servers.Count = 0 Then
             SetDefaultTileServers()
         End If
-        TileServerName = g_TileServerName
+        TileServerName = g_LastTileServerName
     End Sub
 
     Public Sub SetDefaultTileServers()
-        Dim pDefaultTileServers() As String = {"Mapnik", "http://tile.openstreetmap.org/mapnik/", _
-                                               "Maplint", "http://tah.openstreetmap.org/Tiles/maplint/", _
-                                               "Osmarender", "http://tah.openstreetmap.org/Tiles/tile/", _
-                                               "Cycle Map", "http://andy.sandbox.cloudmade.com/tiles/cycle/", _
-                                               "No Name", "http://tile.cloudmade.com/fd093e52f0965d46bb1c6c6281022199/3/256/"}
-        TileServers = New Dictionary(Of String, String)
-        For lIndex As Integer = 0 To pDefaultTileServers.Length - 1 Step 2
-            TileServers.Add(pDefaultTileServers(lIndex), pDefaultTileServers(lIndex + 1))
-        Next
+        Dim lTileServersFilename As String = pTileCacheFolder & "servers.html"
+        If IO.File.Exists(lTileServersFilename) OrElse _
+           Downloader.DownloadFile("http://vatavia.net/mark/VataviaMap/servers.html", lTileServersFilename, lTileServersFilename, False) Then
+            Dim lServersHTML As String = ReadTextFile(lTileServersFilename)
+            Servers = clsServer.ReadServers(lServersHTML)
+        End If
+        If Servers.Count = 0 Then
+            Dim pDefaultTileServers() As String = {"OpenStreetMap", "http://tile.openstreetmap.org/mapnik/", _
+                                                   "Maplint", "http://tah.openstreetmap.org/Tiles/maplint/", _
+                                                   "Osmarender", "http://tah.openstreetmap.org/Tiles/tile/", _
+                                                   "Cycle Map", "http://andy.sandbox.cloudmade.com/tiles/cycle/", _
+                                                   "No Name", "http://tile.cloudmade.com/fd093e52f0965d46bb1c6c6281022199/3/256/"}
+            Servers = New Dictionary(Of String, clsServer)
+            For lIndex As Integer = 0 To pDefaultTileServers.Length - 1 Step 2
+                Servers.Add(pDefaultTileServers(lIndex), New clsServer(pDefaultTileServers(lIndex), , pDefaultTileServers(lIndex + 1)))
+            Next
 
-        '    Windows Mobile does not support Enum.GetValues or Enum.GetName, so we hard-code names to add below
-        '    For Each lMapType As MapType In System.Enum.GetValues(GetType(MapType))
-        '        Dim lMapTypeName As String = System.Enum.GetName(GetType(MapType), lMapType)
-        '        If lMapTypeName.IndexOf("OpenStreet") < 0 Then 'Only add non-OSM types
-        '            pTileServers.Add(lMapTypeName, MakeImageUrl(lMapType, New Point(1, 2), 3))
-        '        End If
-        '    Next
+            '    Windows Mobile does not support Enum.GetValues or Enum.GetName, so we hard-code names to add below
+            '    For Each lMapType As MapType In System.Enum.GetValues(GetType(MapType))
+            '        Dim lMapTypeName As String = System.Enum.GetName(GetType(MapType), lMapType)
+            '        If lMapTypeName.IndexOf("OpenStreet") < 0 Then 'Only add non-OSM types
+            '            pTileServers.Add(lMapTypeName, MakeImageUrl(lMapType, New Point(1, 2), 3))
+            '        End If
+            '    Next
 
-        TileServers.Add("YahooMap", MakeImageUrl(MapType.YahooMap, New Point(1, 2), 3))
-        TileServers.Add("YahooSatellite", MakeImageUrl(MapType.YahooSatellite, New Point(1, 2), 3))
-        TileServers.Add("YahooLabels", MakeImageUrl(MapType.YahooLabels, New Point(1, 2), 3))
+            'Servers.Add("YahooMap", New clsServer("YahooMap", , MakeImageUrl(MapType.YahooMap, New Point(1, 2), 3)))
+            'Servers.Add("YahooSatellite", New clsServer("YahooSatellite", , MakeImageUrl(MapType.YahooSatellite, New Point(1, 2), 3)))
+            'Servers.Add("YahooLabels", MakeImageUrl(MapType.YahooLabels, New Point(1, 2), 3))
 
-        TileServers.Add("VirtualEarthMap", MakeImageUrl(MapType.VirtualEarthMap, New Point(1, 2), 3))
-        TileServers.Add("VirtualEarthSatellite", MakeImageUrl(MapType.VirtualEarthSatellite, New Point(1, 2), 3))
-        TileServers.Add("VirtualEarthHybrid", MakeImageUrl(MapType.VirtualEarthHybrid, New Point(1, 2), 3))
+            'Servers.Add("VirtualEarthMap", MakeImageUrl(MapType.VirtualEarthMap, New Point(1, 2), 3))
+            'Servers.Add("VirtualEarthSatellite", MakeImageUrl(MapType.VirtualEarthSatellite, New Point(1, 2), 3))
+            'Servers.Add("VirtualEarthHybrid", MakeImageUrl(MapType.VirtualEarthHybrid, New Point(1, 2), 3))
+        End If
     End Sub
 
     Public Sub SaveSettings()
@@ -456,8 +464,8 @@ Public Class ctlMap
                     'TODO: .SetValue("TileCacheDays", lCacheDays)
 
                     Dim lKeyIndex As Integer = 1
-                    For Each lName As String In TileServers.Keys
-                        .SetValue("TileServer" & lKeyIndex, lName & "|" & TileServers.Item(lName))
+                    For Each lName As String In Servers.Keys
+                        .SetValue("Server" & lKeyIndex, Servers.Item(lName).ToString)
                         lKeyIndex += 1
                     Next
                     lKeyIndex = 1
@@ -469,7 +477,7 @@ Public Class ctlMap
                     If IO.Directory.Exists(pTileCacheFolder) Then
                         .SetValue("TileCacheFolder", pTileCacheFolder)
                     End If
-                    .SetValue("TileServer", g_TileServerName)
+                    .SetValue("TileServer", g_TileServer.Name)
                     .SetValue("Zoom", Zoom)
 
                     .SetValue("GPXShow", GPXShow)
@@ -512,54 +520,46 @@ Public Class ctlMap
 
     Public Property TileServerName() As String
         Get
-            Return g_TileServerName
+            Return g_TileServer.Name
         End Get
         Set(ByVal value As String)
-            If TileServers.ContainsKey(value) Then
-                g_TileServerName = value
-                TileServerUrl = TileServers(value)
-                g_TileServerType = MapType.OpenStreetMap
-                If Not TileServerUrl.IndexOf("openstreetmap") > 0 AndAlso _
-                   Not TileServerUrl.IndexOf("cloudmade") > 0 AndAlso _
-                   Not TileServerUrl.IndexOf("toposm.com") > 0 AndAlso _
-                   Not TileServerUrl.IndexOf("opentiles.appspot.com") > 0 Then
-                    Try
-                        g_TileServerType = System.Enum.Parse(GetType(MapType), g_TileServerName, False)
-                    Catch ex As Exception
-                    End Try
-                End If
-                g_TileCopyright = CopyrightFromMapType(g_TileServerType)
+            If Servers.ContainsKey(value) Then
+                g_TileServer = Servers(value)
                 pBrushCopyright = New SolidBrush(Color.Black)
-            End If
-        End Set
-    End Property
+                Downloader.ClearQueue(QueueItemType.TileItem, -1)
 
-    ''' <summary>
-    ''' Base URL of server to request tiles from, must end with trailing slash
-    ''' zoom/x/y.png will be appended when requesting tiles
-    ''' </summary>
-    ''' <remarks>Side effects of setting TileServer: Me.Title and g_TileCacheFolder are updated</remarks>
-    Private Property TileServerUrl() As String
-        Get
-            Return g_TileServerURL
-        End Get
-        Set(ByVal value As String)
-
-            Downloader.ClearQueue(QueueItemType.TileItem, -1)
-
-            If value.IndexOf(":/") < 0 Then 'Doesn't look like a URL, try setting by name instead
-                TileServerName = value
-            Else
-                g_TileServerURL = value
-
-                Me.Text = g_AppName & " " & g_TileServerName
+                Me.Text = g_AppName & " " & g_TileServer.Name
                 SetCacheFolderFromTileServer()
             End If
         End Set
     End Property
 
+    '''' <summary>
+    '''' Base URL of server to request tiles from, must end with trailing slash
+    '''' zoom/x/y.png will be appended when requesting tiles
+    '''' </summary>
+    '''' <remarks>Side effects of setting TileServer: Me.Title and g_TileCacheFolder are updated</remarks>
+    'Private Property TileServerUrl() As String
+    '    Get
+    '        Return g_TileServerURL
+    '    End Get
+    '    Set(ByVal value As String)
+
+    '        Downloader.ClearQueue(QueueItemType.TileItem, -1)
+
+    '        If value.IndexOf(":/") < 0 Then 'Doesn't look like a URL, try setting by name instead
+    '            TileServerName = value
+    '        Else
+    '            g_TileServerURL = value
+
+    '            Me.Text = g_AppName & " " & g_TileServer.Name
+    '            SetCacheFolderFromTileServer()
+    '        End If
+    '    End Set
+    'End Property
+
     Private Sub SetCacheFolderFromTileServer()
-        g_TileCacheFolder = pTileCacheFolder & SafeFilename(g_TileServerURL.Replace("http://", "")) & g_PathChar
+        g_TileCacheFolder = pTileCacheFolder & SafeFilename(g_TileServer.Name.Replace(" ", "")) & g_PathChar
     End Sub
 
     ''' <summary>
@@ -695,7 +695,7 @@ Public Class ctlMap
     ''' </summary>
     ''' <param name="g">Graphics object to be drawn into</param>
     Private Sub DrawTiles(ByVal g As Graphics)
-        If Not pShowTransparentTiles AndAlso g_TileServerURL.EndsWith("/maplint/") Then g.Clear(Color.White)
+        If Not pShowTransparentTiles AndAlso g_TileServer.TilePattern.IndexOf("/maplint/") >= 0 Then g.Clear(Color.White)
         Dim lOffsetToCenter As Point
         Dim lTopLeft As Point
         Dim lBotRight As Point
@@ -823,7 +823,9 @@ Public Class ctlMap
 
         If GPXShow Then DrawLayers(g, lTopLeft, lOffsetToCenter)
 
-        If pShowCopyright AndAlso pShowTileImages Then g.DrawString(g_TileCopyright, pFontCopyright, pBrushCopyright, 3, pBitmap.Height - 20)
+        If pShowCopyright AndAlso pShowTileImages AndAlso g_TileServer.Copyright IsNot Nothing Then
+            g.DrawString(g_TileServer.Copyright, pFontCopyright, pBrushCopyright, 3, pBitmap.Height - 20)
+        End If
 
         If pShowDate OrElse pShowURL.Length > 0 Then
             Dim lHeader As String = ""
@@ -882,7 +884,7 @@ Public Class ctlMap
     ''' <param name="aTileFilename"></param>
     ''' <remarks></remarks>
     Public Sub DownloadedTile(ByVal aTilePoint As Point, ByVal aZoom As Integer, ByVal aTileFilename As String, ByVal aTileServerURL As String) Implements IQueueListener.DownloadedTile
-        If aTileServerURL = g_TileServerURL AndAlso aZoom = pZoom Then
+        If aTileServerURL = g_TileServer.TilePattern AndAlso aZoom = pZoom Then
             NeedRedraw()
             'pRedrawWhenFinishedQueue = True
             'Just draw the tile downloaded, not the whole display
@@ -2671,15 +2673,16 @@ SetCenter:
             If lGraphics IsNot Nothing Then
                 DrawTiles(lGraphics)
 
-                If pShowTransparentTiles Then
-                    Dim lSaveURL As String = g_TileServerURL
-                    Dim lSaveCacheDir As String = g_TileCacheFolder
-                    g_TileServerURL = g_TileServerTransparentURL
-                    SetCacheFolderFromTileServer()
-                    DrawTiles(lGraphics)
-                    g_TileServerURL = lSaveURL
-                    g_TileCacheFolder = lSaveCacheDir
-                End If
+                'TODO: re-code transparent tile display
+                'If pShowTransparentTiles Then
+                '    Dim lSaveURL As String = g_TileServerURL
+                '    Dim lSaveCacheDir As String = g_TileCacheFolder
+                '    g_TileServerURL = g_TileServerTransparentURL
+                '    SetCacheFolderFromTileServer()
+                '    DrawTiles(lGraphics)
+                '    g_TileServerURL = lSaveURL
+                '    g_TileCacheFolder = lSaveCacheDir
+                'End If
 
                 ReleaseBitmapGraphics()
                 Refresh()

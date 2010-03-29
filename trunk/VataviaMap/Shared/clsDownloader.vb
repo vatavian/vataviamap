@@ -71,7 +71,7 @@ Public Class clsDownloader
                                          ByVal aReplaceExisting As Boolean) As Boolean
 
         Dim lBitmap As Bitmap = Nothing
-        Dim lCanDownload As Boolean = (g_TileServerURL.IndexOf("cacheonly") < 0)
+        Dim lCanDownload As Boolean = (g_TileServer.TilePattern IsNot Nothing AndAlso g_TileServer.TilePattern.Length > 0 AndAlso g_TileServer.TilePattern.IndexOf("cacheonly") < 0)
         If IO.File.Exists(aActualFilename) Then
             Try 'TODO: check for PNG magic numbers? 89 50 4e 47 (note: now also loading .jpg sometimes)
                 If New IO.FileInfo(aActualFilename).Length > 0 Then
@@ -283,7 +283,7 @@ CheckCache:
                                  ByVal aZoom As Integer, _
                                  ByVal aReplaceExisting As Boolean) As String
 
-        Dim lTileServerURL As String = g_TileServerURL
+        Dim lTileServerURL As String = g_TileServer.TilePattern
         Dim lFileName As String = TileFilename(aTilePoint, aZoom, False)
         If lFileName.Length > 0 Then
             If EnsureDirForFile(lFileName) Then
@@ -293,7 +293,7 @@ CheckCache:
                     OrElse (TileCacheOldest > Date.MinValue AndAlso TileLastCheckedDate(lActualFilename) < TileCacheOldest) Then
                     Dbg("Downloading Tile " & aZoom & "/" & aTilePoint.X & "/" & aTilePoint.Y)
                     Dim lSuffix As String = lActualFilename.Substring(lFileName.Length).Replace(".png", "")
-                    If DownloadFile(MakeImageUrl(g_TileServerType, aTilePoint, aZoom), lFileName, lActualFilename, True, lSuffix) Then
+                    If DownloadFile(g_TileServer.TileURL(aTilePoint, aZoom), lFileName, lActualFilename, True, lSuffix) Then
                         For Each lListener As IQueueListener In Listeners
                             lListener.DownloadedTile(aTilePoint, aZoom, lActualFilename, lTileServerURL)
                         Next

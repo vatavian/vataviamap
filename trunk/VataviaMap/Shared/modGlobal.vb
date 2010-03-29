@@ -29,13 +29,13 @@ Module modGlobal
     Public Const g_ZoomMin As Integer = 0
     Public Const g_ZoomMax As Integer = 19
 
-    Public g_TileServerType As MapType = MapType.OpenStreetMap
-    Private g_TileServerLanguage As String = "en"
-
-    Public g_TileServerName As String = "Mapnik"
-    Public g_TileServerURL As String = "http://tile.openstreetmap.org/mapnik/"
-    Public g_TileCopyright As String = openStreetMapCopyright
-    Public g_TileServerExampleLabel As String = "URL of server is the part before the zoom/X/Y"
+    Public g_LastTileServerName As String = ""
+    Public g_TileServer As New clsServer("OpenStreetMap", _
+                                         "http://openstreetmap.org/", _
+                                         "http://{abc}.tile.openstreetmap.org/{z}/{x}/{y}.png", _
+                                         "http://www.openstreetmap.org/?lat={Lat}&lon={Lon}&zoom={Zoom}", _
+                                         "© OpenStreetMap")
+    Public g_TileServerExampleLabel As String = "URL of server where {z}=zoom, {x}=tile X, {y}=tile Y"
     Public g_TileServerExampleFile As String = "http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Tiles"
 
     Public g_TileServerTransparentName As String = "Maplint"
@@ -760,50 +760,50 @@ EndFound:
 
 #Region "GMap code from http://www.codeplex.com/gmap4dotnet"
 
-    Private openStreetMapCopyright As String = "© OpenStreetMap"
-    Private googleCopyright As String = "© Google, Map data © Tele Atlas, Imagery © TerraMetrics"
-    Private yahooMapCopyright As String = "© Yahoo! Inc. Data © NAVTEQ"
-    Private virtualEarthCopyright As String = "© Microsoft Corporation © NAVTEQ"
-    Private unknownCopyright As String = "© Unknown"
+    'Private openStreetMapCopyright As String = "© OpenStreetMap"
+    'Private googleCopyright As String = "© Google, Map data © Tele Atlas, Imagery © TerraMetrics"
+    'Private yahooMapCopyright As String = "© Yahoo! Inc. Data © NAVTEQ"
+    'Private virtualEarthCopyright As String = "© Microsoft Corporation © NAVTEQ"
+    'Private unknownCopyright As String = "© Unknown"
 
-    Public Function CopyrightFromMapType(ByVal aMapType As MapType) As String
-        Select Case aMapType
-            'Case MapType.GoogleMap, MapType.GoogleSatellite, MapType.GoogleLabels, MapType.GoogleTerrain
-            '    Return googleCopyright
-            Case MapType.YahooMap, MapType.YahooSatellite, MapType.YahooLabels
-                Return yahooMapCopyright
-            Case MapType.OpenStreetMap
-                Return openStreetMapCopyright
-            Case MapType.VirtualEarthMap, MapType.VirtualEarthSatellite, MapType.VirtualEarthHybrid
-                Return virtualEarthCopyright
-            Case Else
-                Return unknownCopyright
-        End Select
-    End Function 'CopyrightFromMapType
+    'Public Function CopyrightFromMapType(ByVal aMapType As MapType) As String
+    '    Select Case aMapType
+    '        'Case MapType.GoogleMap, MapType.GoogleSatellite, MapType.GoogleLabels, MapType.GoogleTerrain
+    '        '    Return googleCopyright
+    '        Case MapType.YahooMap, MapType.YahooSatellite, MapType.YahooLabels
+    '            Return yahooMapCopyright
+    '        Case MapType.OpenStreetMap
+    '            Return openStreetMapCopyright
+    '        Case MapType.VirtualEarthMap, MapType.VirtualEarthSatellite, MapType.VirtualEarthHybrid
+    '            Return virtualEarthCopyright
+    '        Case Else
+    '            Return unknownCopyright
+    '    End Select
+    'End Function 'CopyrightFromMapType
 
-    ''' <summary>
-    ''' types of maps
-    ''' </summary>
-    ''' <remarks>Google keeps adding ways to thwart downloading their tiles, so just skip trying to use them</remarks>
-    Public Enum MapType
-        Unknown = 0
-        'GoogleMap
-        'GoogleSatellite
-        'GoogleLabels
-        'GoogleTerrain
-        'GoogleHybrid
+    '''' <summary>
+    '''' types of maps
+    '''' </summary>
+    '''' <remarks>Google keeps adding ways to thwart downloading their tiles, so just skip trying to use them</remarks>
+    'Public Enum MapType
+    '    Unknown = 0
+    '    'GoogleMap
+    '    'GoogleSatellite
+    '    'GoogleLabels
+    '    'GoogleTerrain
+    '    'GoogleHybrid
 
-        OpenStreetMap
+    '    OpenStreetMap
 
-        YahooMap
-        YahooSatellite
-        YahooLabels
-        'YahooHybrid
+    '    YahooMap
+    '    YahooSatellite
+    '    YahooLabels
+    '    'YahooHybrid
 
-        VirtualEarthMap
-        VirtualEarthSatellite
-        VirtualEarthHybrid
-    End Enum 'MapType
+    '    VirtualEarthMap
+    '    VirtualEarthSatellite
+    '    VirtualEarthHybrid
+    'End Enum 'MapType
 
     'Private VersionGoogleMap As String = "w2.92"
     'Private VersionGoogleSatellite As String = "38"
@@ -819,77 +819,77 @@ EndFound:
     ' Virtual Earth
     Private VersionVirtualEarth As String = "244"
 
-    ''' <summary> makes url for image </summary>
-    ''' <param name="aTilePoint"></param>
-    ''' <param name="aZoom"></param>
-    ''' <returns></returns>
-    Public Function MakeImageUrl(ByVal aMapType As MapType, ByVal aTilePoint As Point, ByVal aZoom As Integer) As String
-        Dim server As String = String.Empty
-        Dim request As String = String.Empty
-        Dim version As String = String.Empty
-        Dim servernum As Integer = (aTilePoint.X + 2 * aTilePoint.Y) Mod 4
-        Dim quadkey As String = Nothing
+    '''' <summary> makes url for image </summary>
+    '''' <param name="aTilePoint"></param>
+    '''' <param name="aZoom"></param>
+    '''' <returns></returns>
+    'Public Function MakeImageUrl(ByVal aMapType As MapType, ByVal aTilePoint As Point, ByVal aZoom As Integer) As String
+    '    Dim server As String = String.Empty
+    '    Dim request As String = String.Empty
+    '    Dim version As String = String.Empty
+    '    Dim servernum As Integer = (aTilePoint.X + 2 * aTilePoint.Y) Mod 4
+    '    Dim quadkey As String = Nothing
 
-        Select Case aMapType
-            'Case MapType.GoogleMap:       server = "mt":  request = "mt": version = VersionGoogleMap
-            'Case MapType.GoogleSatellite: server = "khm": request = "kh": version = VersionGoogleSatellite
-            'Case MapType.GoogleLabels:    server = "mt":  request = "mt": version = VersionGoogleLabels
-            'Case MapType.GoogleTerrain:   server = "mt":  request = "mt": version = VersionGoogleTerrain
+    '    Select Case aMapType
+    '        'Case MapType.GoogleMap:       server = "mt":  request = "mt": version = VersionGoogleMap
+    '        'Case MapType.GoogleSatellite: server = "khm": request = "kh": version = VersionGoogleSatellite
+    '        'Case MapType.GoogleLabels:    server = "mt":  request = "mt": version = VersionGoogleLabels
+    '        'Case MapType.GoogleTerrain:   server = "mt":  request = "mt": version = VersionGoogleTerrain
 
-            Case MapType.YahooMap
-                Return String.Format("http://us.maps2.yimg.com/us.png.maps.yimg.com/png?v={0}&x={1}&y={2}&z={3}&r=1", _
-                                      VersionYahooMap, _
-                                      aTilePoint.X, (((1 << aZoom) >> 1) - 1 - aTilePoint.Y), aZoom + 1)
+    '        Case MapType.YahooMap
+    '            Return String.Format("http://us.maps2.yimg.com/us.png.maps.yimg.com/png?v={0}&x={1}&y={2}&z={3}&r=1", _
+    '                                  VersionYahooMap, _
+    '                                  aTilePoint.X, (((1 << aZoom) >> 1) - 1 - aTilePoint.Y), aZoom + 1)
 
-            Case MapType.YahooSatellite
-                Return String.Format("http://us.maps3.yimg.com/aerial.maps.yimg.com/png?v={0}&t=a&s=256&x={1}&y={2}&z={3}&r=1", _
-                                      VersionYahooSatellite, _
-                                      aTilePoint.X, (((1 << aZoom) >> 1) - 1 - aTilePoint.Y), aZoom + 1)
+    '        Case MapType.YahooSatellite
+    '            Return String.Format("http://us.maps3.yimg.com/aerial.maps.yimg.com/png?v={0}&t=a&s=256&x={1}&y={2}&z={3}&r=1", _
+    '                                  VersionYahooSatellite, _
+    '                                  aTilePoint.X, (((1 << aZoom) >> 1) - 1 - aTilePoint.Y), aZoom + 1)
 
-            Case MapType.YahooLabels
-                Return String.Format("http://us.maps1.yimg.com/us.tile.maps.yimg.com/tl?v={0}&t=h&x={1}&y={2}&z={3}&r=1", _
-                                      VersionYahooLabels, _
-                                      aTilePoint.X, (((1 << aZoom) >> 1) - 1 - aTilePoint.Y), aZoom + 1)
+    '        Case MapType.YahooLabels
+    '            Return String.Format("http://us.maps1.yimg.com/us.tile.maps.yimg.com/tl?v={0}&t=h&x={1}&y={2}&z={3}&r=1", _
+    '                                  VersionYahooLabels, _
+    '                                  aTilePoint.X, (((1 << aZoom) >> 1) - 1 - aTilePoint.Y), aZoom + 1)
 
-            Case MapType.OpenStreetMap
-                Return g_TileServerURL & aZoom & "/" & aTilePoint.X & "/" & aTilePoint.Y & g_TileExtension
-                'Dim letter As Char = "abca"(servernum)
-                'Return String.Format("http://{0}.tile.openstreetmap.org/{1}/{2}/{3}.png", letter, zoom.ToString(), aPoint.X.ToString(), aPoint.Y.ToString())
+    '        Case MapType.OpenStreetMap
+    '            Return g_TileServerURL & aZoom & "/" & aTilePoint.X & "/" & aTilePoint.Y & g_TileExtension
+    '            'Dim letter As Char = "abca"(servernum)
+    '            'Return String.Format("http://{0}.tile.openstreetmap.org/{1}/{2}/{3}.png", letter, zoom.ToString(), aPoint.X.ToString(), aPoint.Y.ToString())
 
-                'Case MapType.OpenStreetOsm
-                '    Dim letter As Char = "abca"(servernum)
-                '    Return String.Format("http://{0}.tah.openstreetmap.org/Tiles/tile/{1}/{2}/{3}.png", letter, aZoom.ToString(), aTilePoint.X.ToString(), aTilePoint.Y.ToString())
+    '            'Case MapType.OpenStreetOsm
+    '            '    Dim letter As Char = "abca"(servernum)
+    '            '    Return String.Format("http://{0}.tah.openstreetmap.org/Tiles/tile/{1}/{2}/{3}.png", letter, aZoom.ToString(), aTilePoint.X.ToString(), aTilePoint.Y.ToString())
 
-            Case MapType.VirtualEarthMap
-                Return String.Format("http://r{0}.ortho.tiles.virtualearth.net/tiles/r{1}.png?g={2}&mkt={3}", _
-                                      servernum, _
-                                      TileXYToQuadKey(aTilePoint.X, aTilePoint.Y, aZoom), _
-                                      VersionVirtualEarth, g_TileServerLanguage)
+    '        Case MapType.VirtualEarthMap
+    '            Return String.Format("http://r{0}.ortho.tiles.virtualearth.net/tiles/r{1}.png?g={2}&mkt={3}", _
+    '                                  servernum, _
+    '                                  TileXYToQuadKey(aTilePoint.X, aTilePoint.Y, aZoom), _
+    '                                  VersionVirtualEarth, g_TileServerLanguage)
 
-            Case MapType.VirtualEarthSatellite
-                Return String.Format("http://a{0}.ortho.tiles.virtualearth.net/tiles/a{1}.jpeg?g={2}&mkt={3}", _
-                                      servernum, _
-                                      TileXYToQuadKey(aTilePoint.X, aTilePoint.Y, aZoom), _
-                                      VersionVirtualEarth, g_TileServerLanguage)
+    '        Case MapType.VirtualEarthSatellite
+    '            Return String.Format("http://a{0}.ortho.tiles.virtualearth.net/tiles/a{1}.jpeg?g={2}&mkt={3}", _
+    '                                  servernum, _
+    '                                  TileXYToQuadKey(aTilePoint.X, aTilePoint.Y, aZoom), _
+    '                                  VersionVirtualEarth, g_TileServerLanguage)
 
-            Case MapType.VirtualEarthHybrid
-                Return String.Format("http://h{0}.ortho.tiles.virtualearth.net/tiles/h{1}.jpeg?g={2}&mkt={3}", _
-                                      servernum, _
-                                      TileXYToQuadKey(aTilePoint.X, aTilePoint.Y, aZoom), _
-                                      VersionVirtualEarth, g_TileServerLanguage)
-        End Select
+    '        Case MapType.VirtualEarthHybrid
+    '            Return String.Format("http://h{0}.ortho.tiles.virtualearth.net/tiles/h{1}.jpeg?g={2}&mkt={3}", _
+    '                                  servernum, _
+    '                                  TileXYToQuadKey(aTilePoint.X, aTilePoint.Y, aZoom), _
+    '                                  VersionVirtualEarth, g_TileServerLanguage)
+    '    End Select
 
-        '    Dim sec1 As String = "" ' after &x=...
-        '    Dim sec2 As String = "" ' after &zoom=...
-        '    Dim seclen As Integer = (aTilePoint.X * 3 + aTilePoint.Y) Mod 8
-        '    sec2 = SecGoogleWord.Substring(0, seclen)
-        '    If aTilePoint.Y >= 10000 And aTilePoint.Y < 100000 Then
-        '        sec1 = "&s="
-        '    End If
+    '    '    Dim sec1 As String = "" ' after &x=...
+    '    '    Dim sec2 As String = "" ' after &zoom=...
+    '    '    Dim seclen As Integer = (aTilePoint.X * 3 + aTilePoint.Y) Mod 8
+    '    '    sec2 = SecGoogleWord.Substring(0, seclen)
+    '    '    If aTilePoint.Y >= 10000 And aTilePoint.Y < 100000 Then
+    '    '        sec1 = "&s="
+    '    '    End If
 
-        '    Return String.Format("http://{0}{1}.google.com/{2}?v={3}&hl={4}&x={5}{6}&y={7}&z={8}&s={9}", server, servernum.ToString(), request, version, language, aTilePoint.X.ToString(), sec1, aTilePoint.Y.ToString(), aZoom.ToString(), sec2)
-        Return ""
-    End Function 'MakeImageUrl
+    '    '    Return String.Format("http://{0}{1}.google.com/{2}?v={3}&hl={4}&x={5}{6}&y={7}&z={8}&s={9}", server, servernum.ToString(), request, version, language, aTilePoint.X.ToString(), sec1, aTilePoint.Y.ToString(), aZoom.ToString(), sec2)
+    '    Return ""
+    'End Function 'MakeImageUrl
 
     ''' <summary>
     ''' Converts tile XY coordinates into a QuadKey at a specified level of detail
