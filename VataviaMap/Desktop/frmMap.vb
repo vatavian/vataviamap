@@ -20,17 +20,6 @@ Public Class frmMap
             Me.ZoomToolStripMenuItem.DropDownItems.Add(New ToolStripMenuItem(CStr(lZoomLevel), Nothing, New EventHandler(AddressOf ZoomToolStripMenuItem_Click)))
         Next
 
-        Dim lWebsiteIndex As UrlBuilder.SiteEnum
-        Dim lEnumType As Type = lWebsiteIndex.GetType
-        Dim lWebsiteEventHandler As New EventHandler(AddressOf Website_Click)
-        For Each lWebsiteIndex In System.Enum.GetValues(lEnumType)
-            If lWebsiteIndex <> UrlBuilder.SiteEnum.Unknown Then
-                Dim lItem As New ToolStripMenuItem(System.Enum.GetName(lEnumType, lWebsiteIndex).Replace("_", " "), Nothing, lWebsiteEventHandler)
-                lItem.Tag = lWebsiteIndex
-                Me.WebsiteToolStripMenuItem.DropDownItems.Add(lItem)
-            End If
-        Next
-
         Dim lTileCacheFolder As String = GetAppSetting("TileCacheFolder", IO.Path.GetTempPath() & "tiles" & g_PathChar)
 
         If Not IO.Directory.Exists(lTileCacheFolder) Then
@@ -52,6 +41,7 @@ Public Class frmMap
         pMap.TileCacheFolder = lTileCacheFolder
         pMap.SharedNew()
 
+        BuildWebsiteMenu()
         BuildTileServerMenu()
         BuildBookmarksMenu()
 
@@ -263,34 +253,34 @@ Public Class frmMap
 
     Private Sub AddTileServerMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles AddTileServerMenuItem.Click
         NewTileServerForm()
-        pTileServerForm.AskUser("Add New Tile Server", g_TileServerName, g_TileServerURL, False, g_TileServerExampleLabel, g_TileServerExampleFile)
+        pTileServerForm.AskUser("Add New Tile Server", g_TileServer.Name, g_TileServer.TilePattern, False, g_TileServerExampleLabel, g_TileServerExampleFile)
         'http://opentiles.appspot.com/tile/get/ma/' 12/1242/1512.png
     End Sub
 
     Private Sub EditTileServerMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs)
         Dim lItemClicked As ToolStripMenuItem = sender
         NewTileServerForm()
-        pTileServerForm.AskUser("Edit Tile Server", lItemClicked.Text, pMap.TileServers.Item(lItemClicked.Text), True, g_TileServerExampleLabel, g_TileServerExampleFile)
+        pTileServerForm.AskUser("Edit Tile Server", lItemClicked.Text, pMap.Servers.Item(lItemClicked.Text).TilePattern, True, g_TileServerExampleLabel, g_TileServerExampleFile)
     End Sub
 
     Private Sub pTileServerForm_Add(ByVal aName As String, ByVal aURL As String) Handles pTileServerForm.Add
         If aURL.Length > 0 AndAlso Not aURL.EndsWith("/") Then aURL &= "/"
-        pMap.TileServers.Add(aName, aURL)
+        pMap.Servers.Add(aName, New clsServer(aName, , aURL))
         pMap.TileServerName = aName
         BuildTileServerMenu()
         pMap.NeedRedraw()
     End Sub
 
     Private Sub pTileServerForm_Change(ByVal aOriginalName As String, ByVal aName As String, ByVal aURL As String) Handles pTileServerForm.Change
-        pMap.TileServers.Remove(aOriginalName)
+        pMap.Servers.Remove(aOriginalName)
         pTileServerForm_Add(aName, aURL)
     End Sub
 
     Private Sub pTileServerForm_Remove(ByVal aOriginalName As String) Handles pTileServerForm.Remove
-        pMap.TileServers.Remove(aOriginalName)
-        If g_TileServerName = aOriginalName AndAlso pMap.TileServers.Count > 0 Then
+        pMap.Servers.Remove(aOriginalName)
+        If g_TileServer.Name = aOriginalName AndAlso pMap.Servers.Count > 0 Then
             'If we just removed the current tile server, set to the first one left
-            For Each lName As String In pMap.TileServers.Keys
+            For Each lName As String In pMap.Servers.Keys
                 pMap.TileServerName = lName
                 Exit For
             Next
@@ -302,10 +292,10 @@ Public Class frmMap
     Private Sub BuildTileServerMenu()
         TileServerToolStripMenuItem.DropDownItems.Clear()
         EditTileServerMenuItem.DropDownItems.Clear()
-        For Each lName As String In pMap.TileServers.Keys
+        For Each lName As String In pMap.Servers.Keys
             Dim lNewItem As New ToolStripMenuItem(lName)
             AddHandler lNewItem.Click, AddressOf TileServer_Click
-            If lName = g_TileServerName Then lNewItem.Checked = True
+            If lName = g_TileServer.Name Then lNewItem.Checked = True
             TileServerToolStripMenuItem.DropDownItems.Add(lNewItem)
 
             Dim lNewEditItem As New ToolStripMenuItem(lName)
@@ -315,6 +305,19 @@ Public Class frmMap
         TileServerToolStripMenuItem.DropDownItems.Add(AddTileServerMenuItem)
         TileServerToolStripMenuItem.DropDownItems.Add(EditTileServerMenuItem)
         TileServerToolStripMenuItem.DropDownItems.Add(DefaultsTileServerMenuItem)
+    End Sub
+
+    Private Sub BuildWebsiteMenu()
+        Dim lWebsiteIndex As UrlBuilder.SiteEnum
+        Dim lEnumType As Type = lWebsiteIndex.GetType
+        Dim lWebsiteEventHandler As New EventHandler(AddressOf Website_Click)
+        For Each lWebsiteIndex In System.Enum.GetValues(lEnumType)
+            If lWebsiteIndex <> UrlBuilder.SiteEnum.Unknown Then
+                Dim lItem As New ToolStripMenuItem(System.Enum.GetName(lEnumType, lWebsiteIndex).Replace("_", " "), Nothing, lWebsiteEventHandler)
+                lItem.Tag = lWebsiteIndex
+                Me.WebsiteToolStripMenuItem.DropDownItems.Add(lItem)
+            End If
+        Next
     End Sub
 
     Private Sub DefaultsTileServerMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles DefaultsTileServerMenuItem.Click
