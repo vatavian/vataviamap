@@ -293,7 +293,7 @@ CheckCache:
                     OrElse (TileCacheOldest > Date.MinValue AndAlso TileLastCheckedDate(lActualFilename) < TileCacheOldest) Then
                     Dbg("Downloading Tile " & aZoom & "/" & aTilePoint.X & "/" & aTilePoint.Y)
                     Dim lSuffix As String = lActualFilename.Substring(lFileName.Length).Replace(".png", "")
-                    If DownloadFile(g_TileServer.TileURL(aTilePoint, aZoom), lFileName, lActualFilename, True, lSuffix) Then
+                    If DownloadFile(g_TileServer.BuildTileURL(aTilePoint, aZoom), lFileName, lActualFilename, True, lSuffix) Then
                         For Each lListener As IQueueListener In Listeners
                             lListener.DownloadedTile(aTilePoint, aZoom, lActualFilename, lTileServerURL)
                         Next

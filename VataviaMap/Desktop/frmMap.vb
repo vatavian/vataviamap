@@ -292,15 +292,17 @@ Public Class frmMap
     Private Sub BuildTileServerMenu()
         TileServerToolStripMenuItem.DropDownItems.Clear()
         EditTileServerMenuItem.DropDownItems.Clear()
-        For Each lName As String In pMap.Servers.Keys
-            Dim lNewItem As New ToolStripMenuItem(lName)
-            AddHandler lNewItem.Click, AddressOf TileServer_Click
-            If lName = g_TileServer.Name Then lNewItem.Checked = True
-            TileServerToolStripMenuItem.DropDownItems.Add(lNewItem)
+        For Each lServer As clsServer In pMap.Servers.Values
+            If Not String.IsNullOrEmpty(lServer.TilePattern) Then
+                Dim lNewItem As New ToolStripMenuItem(lServer.Name)
+                AddHandler lNewItem.Click, AddressOf TileServer_Click
+                If lServer.Name = g_TileServer.Name Then lNewItem.Checked = True
+                TileServerToolStripMenuItem.DropDownItems.Add(lNewItem)
 
-            Dim lNewEditItem As New ToolStripMenuItem(lName)
-            AddHandler lNewEditItem.Click, AddressOf EditTileServerMenuItem_Click
-            EditTileServerMenuItem.DropDownItems.Add(lNewEditItem)
+                Dim lNewEditItem As New ToolStripMenuItem(lServer.Name)
+                AddHandler lNewEditItem.Click, AddressOf EditTileServerMenuItem_Click
+                EditTileServerMenuItem.DropDownItems.Add(lNewEditItem)
+            End If
         Next
         TileServerToolStripMenuItem.DropDownItems.Add(AddTileServerMenuItem)
         TileServerToolStripMenuItem.DropDownItems.Add(EditTileServerMenuItem)
@@ -308,13 +310,10 @@ Public Class frmMap
     End Sub
 
     Private Sub BuildWebsiteMenu()
-        Dim lWebsiteIndex As UrlBuilder.SiteEnum
-        Dim lEnumType As Type = lWebsiteIndex.GetType
         Dim lWebsiteEventHandler As New EventHandler(AddressOf Website_Click)
-        For Each lWebsiteIndex In System.Enum.GetValues(lEnumType)
-            If lWebsiteIndex <> UrlBuilder.SiteEnum.Unknown Then
-                Dim lItem As New ToolStripMenuItem(System.Enum.GetName(lEnumType, lWebsiteIndex).Replace("_", " "), Nothing, lWebsiteEventHandler)
-                lItem.Tag = lWebsiteIndex
+        For Each lServer As clsServer In pMap.Servers.Values
+            If Not String.IsNullOrEmpty(lServer.WebmapPattern) Then
+                Dim lItem As New ToolStripMenuItem(lServer.Name, Nothing, lWebsiteEventHandler)
                 Me.WebsiteToolStripMenuItem.DropDownItems.Add(lItem)
             End If
         Next
@@ -574,32 +573,7 @@ Public Class frmMap
     End Sub
 
     Private Sub FollowWebMapURLToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles FollowWebMapURLToolStripMenuItem.Click
-        Dim lURL As String = Clipboard.GetText(Windows.Forms.TextDataFormat.Text)
-        pMap.ShowURL = lURL
-        If lURL.Contains(":") Then
-            Dim lLat As Double = 0
-            Dim lLon As Double = 0
-            Dim lZoom As Integer = pMap.Zoom
-            Dim lNorth As Double = 0
-            Dim lWest As Double = 0
-            Dim lSouth As Double = 0
-            Dim lEast As Double = 0
-
-            If UrlBuilder.ParseURL(lURL, lLat, lLon, lZoom, lNorth, lWest, lSouth, lEast) Then
-                pMap.CenterLat = lLat
-                pMap.CenterLon = lLon
-                pMap.SanitizeCenterLatLon()
-                If lZoom <> pMap.Zoom Then
-                    pMap.Zoom = lZoom
-                Else
-                    pMap.NeedRedraw()
-                End If
-            Else
-                MsgBox("Did not recognize map website link:" & vbLf & lURL, MsgBoxStyle.OkOnly, "Web Map URL")
-            End If
-        Else
-            MsgBox("Copy a map website permanent link to the clipboard before using this menu", MsgBoxStyle.OkOnly, "Web Map URL")
-        End If
+        pMap.FollowWebsiteURL(Clipboard.GetText(Windows.Forms.TextDataFormat.Text))
     End Sub
 
     Private Sub OpenCellIDToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles OpenCellIDToolStripMenuItem.Click
@@ -712,7 +686,8 @@ Public Class frmMap
     Private Sub Website_Click(ByVal sender As System.Object, ByVal e As System.EventArgs)
         Try
             Dim lItem As ToolStripMenuItem = sender
-            Dim lURL As String = UrlBuilder.GetURL(lItem.Tag, pMap.CenterLat, pMap.CenterLon, pMap.Zoom, pMap.LatMax, pMap.LonMin, pMap.LatMin, pMap.LonMax)
+            Dim lServer As clsServer = pMap.Servers(lItem.Text)
+            Dim lURL As String = lServer.BuildWebmapURL(pMap.CenterLat, pMap.CenterLon, pMap.Zoom, pMap.LatMax, pMap.LonMin, pMap.LatMin, pMap.LonMax)
             If lURL IsNot Nothing AndAlso lURL.Length > 0 Then
                 OpenFileOrURL(lURL, False)
                 pMap.ShowURL = lURL
