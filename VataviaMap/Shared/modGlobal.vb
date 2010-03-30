@@ -1,10 +1,6 @@
 Module modGlobal
 
     Public Const g_AppName As String = "VataviaMap"
-    Public Const g_TileSize As Integer = 256 'tiles are this many pixels square
-    Public g_HalfTile As Integer = g_TileSize >> 1
-    Public g_TileSizeDrawn As Integer = 512 'tiles are drawn this many pixels square
-    Public g_TileSizeRect As New Rectangle(0, 0, g_TileSize, g_TileSize)
 
     'Assuming earth is a sphere
     Public Const g_RadiusOfEarth As Double = 6378137 'meters
@@ -19,15 +15,10 @@ Module modGlobal
     Public g_PathChar As String = IO.Path.DirectorySeparatorChar
     Public g_MarkedPrefix As String = "Marked" & g_PathChar
 
-    Public Const g_LatMin As Double = -85.0511
-    Public Const g_LatMax As Double = 85.0511
     Public g_IconMaxSize As Integer = 150
 
-    Private g_LimitY As Double = ProjectF(g_LatMax)
+    Private g_LimitY As Double = ProjectF(85.0511)
     Private g_RangeY As Double = 2 * g_LimitY
-
-    Public Const g_ZoomMin As Integer = 0
-    Public Const g_ZoomMax As Integer = 19
 
     Public g_LastTileServerName As String = ""
     Public g_TileServer As New clsServer("OpenStreetMap", _
@@ -148,7 +139,7 @@ Module modGlobal
     End Function
 
     Public Function MetersPerPixel(ByVal aZoom As Integer) As Double
-        Return g_CircumferenceOfEarth / ((1 << aZoom) * g_TileSize)
+        Return g_CircumferenceOfEarth / ((1 << aZoom) * g_TileServer.TileSize)
     End Function
 
     Public Function LatitudeToMeters(ByVal aLatitude As Double) As Double
@@ -236,15 +227,15 @@ Module modGlobal
                                ByVal aLongitude As Double, _
                                ByVal aZoom As Long, _
                                ByRef aOffset As Point) As Point
-        If aLatitude > g_LatMax Then aLatitude = g_LatMax
-        If aLatitude < g_LatMin Then aLatitude = g_LatMin
+        If aLatitude > g_TileServer.LatMax Then aLatitude = g_TileServer.LatMax
+        If aLatitude < g_TileServer.LatMin Then aLatitude = g_TileServer.LatMin
 
         Dim lNumTiles As Integer = 1 << aZoom
         Dim x As Double = (aLongitude + 180) / 360 * lNumTiles
         Dim y As Double = (1 - Math.Log(Math.Tan(aLatitude * Math.PI / 180) _
                                   + 1 / Math.Cos(aLatitude * Math.PI / 180)) / Math.PI) / 2 * lNumTiles
         Dim lPoint As New Point(Math.Floor(x), Math.Floor(y))
-        aOffset = New Point((x - lPoint.X) * g_TileSize, (y - lPoint.Y) * g_TileSize)
+        aOffset = New Point((x - lPoint.X) * g_TileServer.TileSize, (y - lPoint.Y) * g_TileServer.TileSize)
         Return lPoint
     End Function
 
@@ -296,7 +287,7 @@ EndFound:
     Public Function ValidTilePoint(ByVal aTilePoint As Point, _
                                    ByVal aZoom As Integer) As Boolean
         With aTilePoint
-            Return aZoom >= g_ZoomMin AndAlso aZoom <= g_ZoomMax _
+            Return aZoom >= g_TileServer.ZoomMin AndAlso aZoom <= g_TileServer.ZoomMax _
               AndAlso .X >= 0 AndAlso .Y >= 0 _
               AndAlso .X < (1 << aZoom) AndAlso .Y < (1 << aZoom)
         End With
@@ -567,6 +558,19 @@ EndFound:
         End Try
 #Else
         Return Double.TryParse(aString, aDouble)
+#End If
+    End Function
+
+    Public Function IntegerTryParse(ByVal aString As String, ByRef aInteger As Integer) As Boolean
+#If Smartphone Then
+        Try
+            aInteger = Integer.Parse(aString)
+            Return True
+        Catch ex As Exception
+            Return False
+        End Try
+#Else
+        Return Integer.TryParse(aString, aInteger)
 #End If
     End Function
 
