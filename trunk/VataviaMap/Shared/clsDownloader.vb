@@ -132,7 +132,9 @@ Public Class clsDownloader
 
         For Each lFilename As String In IO.Directory.GetFiles(IO.Path.GetDirectoryName(aTileFilename), IO.Path.GetFileName(aTileFilename) & ".*")
             Try
-                IO.File.Delete(lFilename)
+                If Not lFilename.EndsWith(pPartialDownloadExtension) Then
+                    IO.File.Delete(lFilename)
+                End If
             Catch ex As Exception
             End Try
         Next
@@ -312,8 +314,8 @@ CheckCache:
     ''' Download an OSM tile and all tiles in the same area with finer detail
     ''' </summary>
     ''' <param name="aTilePoint">OSM Tile X and Y</param>
-    ''' <param name="aZoom">OSM zoom level (0 to g_ZoomMax)</param>
-    ''' <param name="aZoomMax">Maximum zoom level to download (0 to g_ZoomMax)</param>
+    ''' <param name="aZoom">OSM zoom level (0 to g_TileServer.ZoomMax)</param>
+    ''' <param name="aZoomMax">Maximum zoom level to download (0 to g_TileServer.ZoomMax)</param>
     ''' <returns>True if all descendants were downloaded, False if any could not be downloaded</returns>
     ''' <remarks>If any descendant cannot be downloaded, no further descendants are attempted</remarks>
     Public Function DownloadDescendants(ByVal aTilePoint As Point, _

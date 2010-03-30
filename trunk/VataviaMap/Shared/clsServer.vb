@@ -5,6 +5,26 @@ Public Class clsServer
     Public WebmapPattern As String
     Public Copyright As String
 
+    ''' <summary>
+    ''' Minimum zoom level available from this server, default is 0=one tile for whole world
+    ''' </summary>
+    Public ZoomMin As Integer = 0
+
+    ''' <summary>
+    ''' Maximum zoom level available from this server, default is 17=one tile for whole world
+    ''' </summary>
+    Public ZoomMax As Integer = 17
+
+    'Bounding box of map data available from this server
+    Public LatMin As Double = -85.0511
+    Public LatMax As Double = 85.0511
+    Public LonMin As Double = -180
+    Public LonMax As Double = 180
+
+    Public TileSize As Integer = 256 'tiles are this many pixels square
+    Public HalfTileSize As Integer = TileSize >> 1
+    Public TileSizeRect As New Rectangle(0, 0, TileSize, TileSize)
+
     Public Sub New()
     End Sub
 
@@ -12,12 +32,16 @@ Public Class clsServer
           Optional ByVal aLink As String = Nothing, _
           Optional ByVal aTilePattern As String = Nothing, _
           Optional ByVal aWebmapPattern As String = Nothing, _
-          Optional ByVal aCopyright As String = Nothing)
+          Optional ByVal aCopyright As String = Nothing, _
+          Optional ByVal aZoomMin As Integer = 0, _
+          Optional ByVal aZoomMax As Integer = 17)
         Name = aName
         Link = aLink
         TilePattern = aTilePattern
         WebmapPattern = aWebmapPattern
         Copyright = aCopyright.Replace("(C)", "©")
+        ZoomMin = aZoomMin
+        ZoomMax = aZoomMax
 
         If Link Is Nothing AndAlso TilePattern Is Nothing AndAlso WebmapPattern Is Nothing Then
             Dim lFields() As String = Name.Split("|")
@@ -33,6 +57,12 @@ Public Class clsServer
         If aFields.Length > 2 Then TilePattern = aFields(2)
         If aFields.Length > 3 Then WebmapPattern = aFields(3)
         If aFields.Length > 4 Then Copyright = aFields(4).Replace("(C)", "©")
+        If aFields.Length > 5 Then IntegerTryParse(aFields(5), ZoomMin)
+        If aFields.Length > 6 Then IntegerTryParse(aFields(6), ZoomMax)
+        If aFields.Length > 7 Then DoubleTryParse(aFields(7), LatMin)
+        If aFields.Length > 8 Then DoubleTryParse(aFields(8), LatMax)
+        If aFields.Length > 9 Then DoubleTryParse(aFields(9), LonMin)
+        If aFields.Length > 10 Then DoubleTryParse(aFields(10), LonMax)
     End Sub
 
     Public Shared Function FromFields(ByVal aFields() As String) As clsServer
@@ -58,13 +88,26 @@ Public Class clsServer
         Return lBuilder.ToString
     End Function
 
+    ''' <summary>
+    ''' Parse a list of servers from a web page
+    ''' </summary>
+    ''' <param name="aHTML">contents of web page to parse</param>
+    ''' <returns>list of servers found on web page</returns>
+    ''' <remarks>
+    ''' Currently parses page at http://vatavia.net/mark/VataviaMap/servers.html
+    ''' TODO: add ability to parse http://frvipofm.net/osm/mapjumper/
+    ''' </remarks>
     Public Shared Function ReadServers(ByVal aHTML As String) As Generic.Dictionary(Of String, clsServer)
         Dim lServers As New Generic.Dictionary(Of String, clsServer)
         Dim lServer As clsServer
         For Each lServerRow As String In SplitByTag(aHTML, "tr")
             lServer = clsServer.FromFields(SplitByTag(lServerRow, "td").ToArray)
             If lServer IsNot Nothing Then
-                lServers.Add(lServer.Name, lServer)
+                If lServers.ContainsKey(lServer.Name) Then
+                    Dbg("Duplicate server name found, ignoring new version of '" & lServer.Name & "'")
+                Else
+                    lServers.Add(lServer.Name, lServer)
+                End If
             End If
         Next
         Return lServers
@@ -96,15 +139,16 @@ Public Class clsServer
                                         .Replace("{abc}", "a") 'TODO: spread load by returning different server letters
         If lURL.IndexOf("{YY}") > 0 Then lURL = lURL.Replace("{YY}", (((1 << aZoom) >> 1) - 1 - aTilePoint.Y))
         If lURL.IndexOf("{Zoom+1}") > 0 Then lURL = lURL.Replace("{Zoom+1}", aZoom + 1)
-        If lURL.IndexOf("{VersionYahooSatellite") > 0 Then lURL = lURL.Replace("{VersionYahooSatellite", "1.9")
+        If lURL.IndexOf("{VersionYahooSatellite}") > 0 Then lURL = lURL.Replace("{VersionYahooSatellite}", "1.9")
+        If lURL.IndexOf("{VersionYahooMap}") > 0 Then lURL = lURL.Replace("{VersionYahooMap}", "4.3")
+        If lURL.IndexOf("{VersionYahooLabels}") > 0 Then lURL = lURL.Replace("{VersionYahooLabels}", "4.3")
         Return lURL
     End Function
 
-    'TODO: get a list of sites from a web page, e.g. http://frvipofm.net/osm/mapjumper/
     Public Function BuildWebmapURL(ByVal aCenterLatitude As Double, ByVal aCenterLongitude As Double, _
-                               ByVal aZoom As Integer, _
-                               ByRef aNorth As Double, ByRef aWest As Double, _
-                               ByRef aSouth As Double, ByRef aEast As Double) As String
+                                   ByVal aZoom As Integer, _
+                                   ByRef aNorth As Double, ByRef aWest As Double, _
+                                   ByRef aSouth As Double, ByRef aEast As Double) As String
         Dim lFormat As String = "#.#####"
         Dim lLon As String = Format(aCenterLongitude, lFormat)
         Dim lLat As String = Format(aCenterLatitude, lFormat)
@@ -183,7 +227,7 @@ Public Class clsServer
                     aCenterLongitude = Double.Parse(ll(1))
                 End If
             End If
-            Return aCenterLatitude <> 0 AndAlso aCenterLongitude <> 0 AndAlso aZoom >= g_ZoomMin AndAlso aZoom <= g_ZoomMax
+            Return aCenterLatitude <> 0 AndAlso aCenterLongitude <> 0 AndAlso aZoom >= g_TileServer.ZoomMin AndAlso aZoom <= g_TileServer.ZoomMax
         Catch
             Return False
         End Try

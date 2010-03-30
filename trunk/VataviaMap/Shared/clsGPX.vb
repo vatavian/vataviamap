@@ -51,15 +51,16 @@ Public Class clsGPX
 
     Overridable Sub LoadFile(ByVal aFilename As String)
         Dim lTryAppend As Boolean = pTryAppend
-        Dim pXMLdoc As New XmlDocument
+        Dim lXMLdoc As New XmlDocument
 
         'TryAgain:
         Try
             Clear()
             Filename = aFilename
-            pXMLdoc.Load(aFilename)
+            'TODO: only read header at first (including bounding box) - delay reading the rest until needed
+            lXMLdoc.Load(aFilename)
 LoadedXML:
-            For Each lChild As XmlNode In pXMLdoc.ChildNodes(1).ChildNodes
+            For Each lChild As XmlNode In lXMLdoc.ChildNodes(1).ChildNodes
                 Select Case lChild.Name.ToLower
                     Case "extensions"
                         SetExtensions(lChild)
@@ -97,7 +98,7 @@ LoadedXML:
                 lTryAppend = False 'don't try again with the same file
                 Try
                     Dim lReader As IO.StreamReader = IO.File.OpenText(aFilename)
-                    pXMLdoc.LoadXml(lReader.ReadToEnd() & "</trkseg></trk></gpx>")
+                    lXMLdoc.LoadXml(lReader.ReadToEnd() & "</trkseg></trk></gpx>")
                     lReader.Close()
                     'Adding close tags seems to have made it load successfully
                     Try ' Append tags to file to make it correct

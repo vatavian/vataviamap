@@ -498,8 +498,8 @@ Public Class clsLayerGPX
                 Dim lTileXY As Point 'Which tile this point belongs in
                 Dim lTileOffset As Point 'Offset within lTileXY in pixels
                 lTileXY = CalcTileXY(.lat, .lon, Map.Zoom, lTileOffset)
-                Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileSize + aOffsetToCenter.X + lTileOffset.X
-                Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileSize + aOffsetToCenter.Y + lTileOffset.Y
+                Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileServer.TileSize + aOffsetToCenter.X + lTileOffset.X
+                Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileServer.TileSize + aOffsetToCenter.Y + lTileOffset.Y
                 Dim lBitmap As Drawing.Bitmap = Nothing
 
                 Select Case .sym
@@ -534,7 +534,7 @@ Public Class clsLayerGPX
                                     Else
                                         lNewWidth = lBitmap.Width * lNewHeight / lBitmap.Height
                                     End If
-                                    Dim lThumbnail as New Drawing.Bitmap(lBitmap, lNewWidth, lNewHeight)
+                                    Dim lThumbnail As New Drawing.Bitmap(lBitmap, lNewWidth, lNewHeight)
                                     lBitmap.Dispose()
                                     lBitmap = lThumbnail
 #End If
@@ -558,7 +558,7 @@ Public Class clsLayerGPX
                     Dim color As Color = lBitmap.GetPixel(0, 0)
                     lImageAttributes.SetColorKey(color, color)
                     g.DrawImage(lBitmap, lRectDest, 0, 0, lBitmap.Width, lBitmap.Height, GraphicsUnit.Pixel, lImageAttributes)
-                    If Map.Zoom = g_ZoomMax Then  'Show more exact point at max zoom
+                    If Map.Zoom = g_TileServer.ZoomMax Then  'Show more exact point at max zoom
                         g.DrawLine(PenGeocache, lX, lY - 8, lX, lY + 8)
                         g.DrawLine(PenGeocache, lX - 8, lY, lX + 8, lY)
                     End If
@@ -652,8 +652,8 @@ Public Class clsLayerGPX
                 Dim lTileXY As Point 'Which tile this point belongs in
                 Dim lTileOffset As Point 'Offset within lTileXY in pixels
                 lTileXY = CalcTileXY(.lat, .lon, Map.Zoom, lTileOffset)
-                Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileSize + aOffsetToCenter.X + lTileOffset.X
-                Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileSize + aOffsetToCenter.Y + lTileOffset.Y
+                Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileServer.TileSize + aOffsetToCenter.X + lTileOffset.X
+                Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileServer.TileSize + aOffsetToCenter.Y + lTileOffset.Y
 
                 If aFromX <> -1 OrElse aFromY <> -1 Then
                     g.DrawLine(PenTrack, aFromX, aFromY, lX, lY)
@@ -718,8 +718,8 @@ Public Class clsLayerGPX
                 Dim lTileXY As Point 'Which tile this point belongs in
                 Dim lTileOffset As Point 'Offset within lTileXY in pixels
                 lTileXY = CalcTileXY(.lat, .lon, Map.Zoom, lTileOffset)
-                Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileSize + aOffsetToCenter.X + lTileOffset.X
-                Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileSize + aOffsetToCenter.Y + lTileOffset.Y
+                Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileServer.TileSize + aOffsetToCenter.X + lTileOffset.X
+                Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileServer.TileSize + aOffsetToCenter.Y + lTileOffset.Y
 
                 If aFromX <> -1 OrElse aFromY <> -1 Then
                     aTrackPath.AddLine(aFromX, aFromY, lX, lY)

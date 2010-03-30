@@ -16,7 +16,7 @@ Public Class frmMap
         InitializeComponent()
 
         'Create zoom level menu items
-        For lZoomLevel As Integer = g_ZoomMin To g_ZoomMax
+        For lZoomLevel As Integer = g_TileServer.ZoomMin To g_TileServer.ZoomMax
             Me.ZoomToolStripMenuItem.DropDownItems.Add(New ToolStripMenuItem(CStr(lZoomLevel), Nothing, New EventHandler(AddressOf ZoomToolStripMenuItem_Click)))
         Next
 
