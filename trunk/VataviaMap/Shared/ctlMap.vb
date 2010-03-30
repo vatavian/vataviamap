@@ -336,15 +336,15 @@ Public Class ctlMap
                     On Error Resume Next 'Maybe a registry setting is not numeric but needs to be, skip bad settings
 
                     Dim lKeyIndex As Integer = 1
-                    Do
-                        Dim lServerNameUrl() As String = CStr(.GetValue("Server" & lKeyIndex, "")).Split("|")
-                        If lServerNameUrl.Length > 1 Then
-                            Servers.Add(lServerNameUrl(0), clsServer.FromFields(lServerNameUrl))
-                            lKeyIndex += 1
-                        Else
-                            Exit Do
-                        End If
-                    Loop
+                    'Do
+                    '    Dim lServerNameUrl() As String = CStr(.GetValue("Server" & lKeyIndex, "")).Split("|")
+                    '    If lServerNameUrl.Length > 1 Then
+                    '        Servers.Add(lServerNameUrl(0), clsServer.FromFields(lServerNameUrl))
+                    '        lKeyIndex += 1
+                    '    Else
+                    '        Exit Do
+                    '    End If
+                    'Loop
                     lKeyIndex = 1
                     Do
                         Dim lBuddyNameUrl() As String = CStr(.GetValue("Buddy" & lKeyIndex, "")).Split("|")
@@ -422,7 +422,7 @@ Public Class ctlMap
         Dim lTileServersFilename As String = pTileCacheFolder & "servers.html"
         If IO.File.Exists(lTileServersFilename) OrElse _
            Downloader.DownloadFile("http://vatavia.net/mark/VataviaMap/servers.html", lTileServersFilename, lTileServersFilename, False) Then
-            Dim lServersHTML As String = ReadTextFile(lTileServersFilename)
+            Dim lServersHTML As String = ReadTextFile(lTileServersFilename) 'TODO: embed default version of servers.html?
             Servers = clsServer.ReadServers(lServersHTML)
         End If
         If Servers.Count = 0 Then
@@ -561,6 +561,35 @@ Public Class ctlMap
     Private Sub SetCacheFolderFromTileServer()
         g_TileCacheFolder = pTileCacheFolder & SafeFilename(g_TileServer.Name.Replace(" ", "")) & g_PathChar
     End Sub
+
+    Public Function FollowWebsiteURL(ByVal aURL As String) As Boolean
+        ShowURL = aURL
+        If aURL.Contains(":") Then
+            Dim lLat As Double = 0
+            Dim lLon As Double = 0
+            Dim lZoom As Integer = Zoom 'Default to current zoom in case we don't get a zoom value from URL
+            Dim lNorth As Double = 0
+            Dim lWest As Double = 0
+            Dim lSouth As Double = 0
+            Dim lEast As Double = 0
+
+            If clsServer.ParseWebmapURL(aURL, lLat, lLon, lZoom, lNorth, lWest, lSouth, lEast) Then
+                CenterLat = lLat
+                CenterLon = lLon
+                SanitizeCenterLatLon()
+                If lZoom <> Zoom Then
+                    Zoom = lZoom
+                Else
+                    NeedRedraw()
+                End If
+                FollowWebsiteURL = True
+            Else
+                MsgBox("Did not recognize map website link:" & vbLf & aURL, MsgBoxStyle.OkOnly, "Web Map URL")
+            End If
+        Else
+            MsgBox("Copy a map website permanent link to the clipboard before using this menu", MsgBoxStyle.OkOnly, "Web Map URL")
+        End If
+    End Function
 
     ''' <summary>
     ''' OSM zoom level currently being displayed on the form
@@ -1445,6 +1474,17 @@ Public Class ctlMap
             Try
                 lNewLayer = New clsLayerGPX(aFilename, Me)
                 With lNewLayer
+
+                    'If lNewLayer.GPX.bounds IsNot Nothing Then
+                        'With lNewLayer.GPX.bounds 'Skip drawing this one if it is not in view
+                            'If .minlat > LatMax OrElse _
+                                '.maxlat < LatMin OrElse _
+                                '.minlon > LonMax OrElse _
+                                '.maxlon < LonMin Then                                
+                                'Return Nothing
+                            'End If
+                        'End With
+                    'End If
                     .LabelField = GPXLabelField
                 End With
                 If aInsertAt >= 0 Then

@@ -17,7 +17,7 @@ Public Class clsServer
         Link = aLink
         TilePattern = aTilePattern
         WebmapPattern = aWebmapPattern
-        Copyright = aCopyright
+        Copyright = aCopyright.Replace("(C)", "©")
 
         If Link Is Nothing AndAlso TilePattern Is Nothing AndAlso WebmapPattern Is Nothing Then
             Dim lFields() As String = Name.Split("|")
@@ -32,7 +32,7 @@ Public Class clsServer
         If aFields.Length > 1 Then Link = aFields(1)
         If aFields.Length > 2 Then TilePattern = aFields(2)
         If aFields.Length > 3 Then WebmapPattern = aFields(3)
-        If aFields.Length > 4 Then Copyright = aFields(4)
+        If aFields.Length > 4 Then Copyright = aFields(4).Replace("(C)", "©")
     End Sub
 
     Public Shared Function FromFields(ByVal aFields() As String) As clsServer
@@ -89,25 +89,104 @@ Public Class clsServer
         Return lList
     End Function
 
-    Public Function TileURL(ByVal aTilePoint As Drawing.Point, ByVal aZoom As Integer) As String
-        Dim lURL As String = TilePattern.Replace("{z}", aZoom) _
-                          .Replace("{x}", aTilePoint.X) _
-                          .Replace("{y}", aTilePoint.Y) _
-                          .Replace("{abc}", "a")
-        If lURL.IndexOf("{yy}") > 0 Then lURL = lURL.Replace("{yy}", (((1 << aZoom) >> 1) - 1 - aTilePoint.Y))
-        If lURL.IndexOf("{z+1}") > 0 Then lURL = lURL.Replace("{z+1}", aZoom + 1)
+    Public Function BuildTileURL(ByVal aTilePoint As Drawing.Point, ByVal aZoom As Integer) As String
+        Dim lURL As String = TilePattern.Replace("{Zoom}", aZoom) _
+                                        .Replace("{X}", aTilePoint.X) _
+                                        .Replace("{Y}", aTilePoint.Y) _
+                                        .Replace("{abc}", "a") 'TODO: spread load by returning different server letters
+        If lURL.IndexOf("{YY}") > 0 Then lURL = lURL.Replace("{YY}", (((1 << aZoom) >> 1) - 1 - aTilePoint.Y))
+        If lURL.IndexOf("{Zoom+1}") > 0 Then lURL = lURL.Replace("{Zoom+1}", aZoom + 1)
         If lURL.IndexOf("{VersionYahooSatellite") > 0 Then lURL = lURL.Replace("{VersionYahooSatellite", "1.9")
         Return lURL
     End Function
 
-    Private Sub BuildURL(ByRef aURL As String, ByVal aTag As String, ByVal aReplaceTrue As String, ByVal aReplaceFalse As String, ByVal aTest As Boolean)
-        Dim lReplacement As String
-        If aTest Then
-            lReplacement = aReplaceTrue
-        Else
-            lReplacement = aReplaceFalse
-        End If
-        aURL = aURL.Replace("{" & aTag & "}", lReplacement)
-    End Sub
+    'TODO: get a list of sites from a web page, e.g. http://frvipofm.net/osm/mapjumper/
+    Public Function BuildWebmapURL(ByVal aCenterLatitude As Double, ByVal aCenterLongitude As Double, _
+                               ByVal aZoom As Integer, _
+                               ByRef aNorth As Double, ByRef aWest As Double, _
+                               ByRef aSouth As Double, ByRef aEast As Double) As String
+        Dim lFormat As String = "#.#####"
+        Dim lLon As String = Format(aCenterLongitude, lFormat)
+        Dim lLat As String = Format(aCenterLatitude, lFormat)
+        Dim lHeight As String = Format(aNorth - aSouth, lFormat)
+        Dim lWidth As String = Format(aEast - aWest, lFormat)
+        Dim lLeft As String = Format(aWest, lFormat)
+        Dim lRight As String = Format(aEast, lFormat)
+        Dim lTop As String = Format(aNorth, lFormat)
+        Dim lBottom As String = Format(aSouth, lFormat)
+
+        Dim lURL As String = WebmapPattern.Replace("{Lat}", lLat) _
+                                          .Replace("{Lon}", lLon) _
+                                          .Replace("{Zoom}", aZoom)
+        If lURL.IndexOf("{Zoom+1}") > 0 Then lURL = lURL.Replace("{Zoom+1}", aZoom + 1)
+        If lURL.IndexOf("{Height}") > 0 Then lURL = lURL.Replace("{Height}", lHeight)
+        If lURL.IndexOf("{Width}") > 0 Then lURL = lURL.Replace("{Width}", lWidth)
+        If lURL.IndexOf("{Bottom}") > 0 Then lURL = lURL.Replace("{Bottom}", lBottom)
+        If lURL.IndexOf("{Top}") > 0 Then lURL = lURL.Replace("{Top}", lTop)
+        If lURL.IndexOf("{Left}") > 0 Then lURL = lURL.Replace("{Left}", lLeft)
+        If lURL.IndexOf("{Right}") > 0 Then lURL = lURL.Replace("{Right}", lRight)
+
+        Return lURL
+    End Function
+
+    Public Shared Function ParseWebmapURL(ByVal aURL As String, _
+                                          ByRef aCenterLatitude As Double, ByRef aCenterLongitude As Double, _
+                                          ByRef aZoom As Integer, _
+                                          ByRef aNorth As Double, ByRef aWest As Double, _
+                                          ByRef aSouth As Double, ByRef aEast As Double) As Boolean
+        Try
+            Dim lURL As String = aURL.ToLower
+            Dim lArgs() As String = lURL.Split("&"c, "?"c)
+            For Each lArg As String In lArgs
+                Dim lArgPart() As String = lArg.Split("=")
+                If lArgPart.Length = 2 Then
+                    Select Case lArgPart(0)
+                        Case "latitude", "lat", "mlat"
+                            aCenterLatitude = Double.Parse(lArgPart(1))
+                        Case "longitude", "lon", "mlon", "lng", "mlng"
+                            aCenterLongitude = Double.Parse(lArgPart(1))
+                        Case "zoom", "z"
+                            aZoom = Integer.Parse(lArgPart(1))
+                        Case "ll"
+                            Dim ll() As String = lArgPart(1).Split(",")
+                            If ll.Length = 2 AndAlso IsNumeric(ll(0)) AndAlso IsNumeric(ll(1)) Then
+                                'aSite = SiteEnum.GoogleMaps
+                                aCenterLatitude = Double.Parse(ll(0))
+                                aCenterLongitude = Double.Parse(ll(1))
+                            End If
+                        Case "spn"
+                            'TODO: parse Google's height,width into zoom
+                        Case "cp"
+                            'aSite = SiteEnum.Bing
+                            Dim ll() As String = lArgPart(1).Split("~")
+                            If ll.Length = 2 AndAlso IsNumeric(ll(0)) AndAlso IsNumeric(ll(1)) Then
+                                aCenterLatitude = Double.Parse(ll(0))
+                                aCenterLongitude = Double.Parse(ll(1))
+                            End If
+                        Case "lvl" : aZoom = lArgPart(1)
+                        Case "starttop" : aNorth = Double.Parse(lArgPart(1))
+                        Case "startbottom" : aSouth = Double.Parse(lArgPart(1))
+                        Case "startleft" : aWest = Integer.Parse(lArgPart(1))
+                        Case "startright" : aEast = Integer.Parse(lArgPart(1))
+
+                    End Select
+                End If
+            Next
+            If lArgs(0).IndexOf("seamless.usgs.gov") >= 0 Then
+                aCenterLatitude = (aNorth + aSouth) / 2
+                aCenterLongitude = (aWest + aEast) / 2
+                'TODO: compute zoom from (aNorth - aSouth) and/or (aWest - aEast)                    
+            ElseIf lArgs(0).StartsWith("geo:") Then
+                Dim ll() As String = lArgs(0).Substring(4).Split(",")
+                If ll.Length > 1 AndAlso IsNumeric(ll(0)) AndAlso IsNumeric(ll(1)) Then
+                    aCenterLatitude = Double.Parse(ll(0))
+                    aCenterLongitude = Double.Parse(ll(1))
+                End If
+            End If
+            Return aCenterLatitude <> 0 AndAlso aCenterLongitude <> 0 AndAlso aZoom >= g_ZoomMin AndAlso aZoom <= g_ZoomMax
+        Catch
+            Return False
+        End Try
+    End Function
 
 End Class
