@@ -67,7 +67,7 @@ Public Class frmMap
         With pDownloadForm
             On Error Resume Next
             .comboTileServer.Items.Clear()
-            For Each lTileServerName As String In pMap.TileServers.Keys
+            For Each lTileServerName As String In pMap.Servers.Keys
                 .comboTileServer.Items.Add(lTileServerName)
             Next
             .comboTileServer.Text = pMap.TileServerName

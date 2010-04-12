@@ -95,6 +95,7 @@
     <Compile Include="Shared\clsGPX.vb" />
     <Compile Include="Shared\clsLayer.vb" />
     <Compile Include="Shared\clsQueueManager.vb" />
+    <Compile Include="Shared\clsServer.vb" />
     <Compile Include="Shared\clsUploader.vb" />
     <Compile Include="Mobile\frmMapMobile.Designer.vb">
       <DependentUpon>frmMapMobile.vb</DependentUpon>

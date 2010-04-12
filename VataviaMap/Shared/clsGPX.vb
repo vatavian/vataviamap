@@ -60,24 +60,28 @@ Public Class clsGPX
             'TODO: only read header at first (including bounding box) - delay reading the rest until needed
             lXMLdoc.Load(aFilename)
 LoadedXML:
-            For Each lChild As XmlNode In lXMLdoc.ChildNodes(1).ChildNodes
-                Select Case lChild.Name.ToLower
-                    Case "extensions"
-                        SetExtensions(lChild)
-                    Case "link"
-                        AddLink(lChild)
-                    Case "rte"
-                        pRoutes.Add(New clsGPXroute(lChild))
-                    Case "trk"
-                        pTracks.Add(New clsGPXtrack(lChild))
-                    Case "wpt", "waypoint"
-                        pWaypoints.Add(New clsGPXwaypoint(lChild))
-                    Case "bounds"
-                        boundsField = New clsGPXbounds(lChild)
-                    Case Else
-                        SetSomething(Me, lChild.Name, lChild.InnerXml)
-                        'Logger.Dbg("Skipped unknown node type: " & lChild.Name)
-                End Select
+            For Each lTopChild As XmlNode In lXMLdoc.ChildNodes
+                If lTopChild.Name.ToLower = "gpx" Then
+                    For Each lChild As XmlNode In lTopChild.ChildNodes
+                        Select Case lChild.Name.ToLower
+                            Case "extensions"
+                                SetExtensions(lChild)
+                            Case "link"
+                                AddLink(lChild)
+                            Case "rte"
+                                pRoutes.Add(New clsGPXroute(lChild))
+                            Case "trk"
+                                pTracks.Add(New clsGPXtrack(lChild))
+                            Case "wpt", "waypoint"
+                                pWaypoints.Add(New clsGPXwaypoint(lChild))
+                            Case "bounds"
+                                boundsField = New clsGPXbounds(lChild)
+                            Case Else
+                                SetSomething(Me, lChild.Name, lChild.InnerXml)
+                                'Logger.Dbg("Skipped unknown node type: " & lChild.Name)
+                        End Select
+                    Next
+                End If
             Next
             If Me.boundsField Is Nothing Then
                 Me.boundsField = New clsGPXbounds

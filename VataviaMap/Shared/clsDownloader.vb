@@ -395,6 +395,11 @@ CheckCache:
                                 'If lNewLastModified Is Nothing Then
                                 '    lNewLastModified = Format(Date.UtcNow, "ddd, dd MMM yyyy HH:mm:ss") & " GMT"
                                 'End If
+                                Select Case response.Headers.Item("Content-Type")
+                                    Case Nothing, ""
+                                    Case "image/jpeg" : If lMoveTo.IndexOf(".jp") < 0 Then lMoveTo &= ".jpg"
+                                    Case "image/png" : If lMoveTo.IndexOf(".png") < 0 Then lMoveTo &= ".png"
+                                End Select
 
                                 Dim lNewETag As String = response.Headers.Item("ETag")
                                 If lNewETag IsNot Nothing Then
