@@ -550,7 +550,7 @@ Public Class ctlMap
 
     Public Function FollowWebsiteURL(ByVal aURL As String) As Boolean
         ShowURL = aURL
-        If aURL.Contains(":") Then
+        If aURL.IndexOf(":") >= 0 Then
             Dim lLat As Double = 0
             Dim lLon As Double = 0
             Dim lZoom As Integer = Zoom 'Default to current zoom in case we don't get a zoom value from URL
@@ -1291,15 +1291,19 @@ Public Class ctlMap
             GPXPanTo = False
             GPXZoomTo = False
         End If
-        Dim lSaveTitle As String = Me.Text
+        'Dim lSaveTitle As String = Me.Text
         Dim lNumFiles As Integer = aFilenames.Length
         Dim lCurFile As Integer = 1
         For Each lFilename As String In aFilenames
-            Me.Text = "Loading " & lCurFile & "/" & lNumFiles & " '" & IO.Path.GetFileNameWithoutExtension(lFilename) & "'"
-            OpenFile(lFilename)
-            lCurFile += 1
+            If IO.Directory.Exists(lFilename) Then
+                OpenFiles(IO.Directory.GetFileSystemEntries(lFilename))
+            Else
+                'Me.Text = "Loading " & lCurFile & "/" & lNumFiles & " '" & IO.Path.GetFileNameWithoutExtension(lFilename) & "'"
+                OpenFile(lFilename)
+                lCurFile += 1
+            End If
         Next
-        Me.Text = lSaveTitle
+        'Me.Text = lSaveTitle
         If aFilenames.Length > 1 Then
             GPXPanTo = lGPXPanTo
             GPXZoomTo = lGPXZoomTo
@@ -1471,9 +1475,10 @@ Public Class ctlMap
             Try
                 lNewLayer = New clsLayerGPX(aFilename, Me)
                 With lNewLayer
-
+                    .LabelField = GPXLabelField
+                    '.LabelField = ""
                     'If lNewLayer.GPX.bounds IsNot Nothing Then
-                    'With lNewLayer.GPX.bounds 'Skip drawing this one if it is not in view
+                    'With lNewLayer.GPX.bounds 'Skip loading this one if it is not in view
                     'If .minlat > LatMax OrElse _
                     '.maxlat < LatMin OrElse _
                     '.minlon > LonMax OrElse _
@@ -1482,7 +1487,6 @@ Public Class ctlMap
                     'End If
                     'End With
                     'End If
-                    .LabelField = GPXLabelField
                 End With
                 If aInsertAt >= 0 Then
                     Layers.Insert(aInsertAt, lNewLayer)
