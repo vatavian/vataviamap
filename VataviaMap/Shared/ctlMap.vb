@@ -523,9 +523,9 @@ Public Class ctlMap
             Return g_TileServer.Name
         End Get
         Set(ByVal value As String)
-            If Servers.ContainsKey(value) Then
+            If Servers IsNot Nothing AndAlso Servers.ContainsKey(value) Then
                 g_TileServer = Servers(value)
-                Downloader.ClearQueue(QueueItemType.TileItem, -1)
+                If Downloader IsNot Nothing Then Downloader.ClearQueue(QueueItemType.TileItem, -1)
                 Me.Text = g_AppName & " " & g_TileServer.Name
                 SetCacheFolderFromTileServer()
 
