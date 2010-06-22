@@ -72,7 +72,7 @@ Public Class frmBuddyList
 
     Private Sub BuddyAddOrEdit(ByVal aOriginalName As String, ByVal aName As String, ByVal aURL As String)
         Dim lBuddy As clsBuddy
-        If pBuddies.ContainsKey(aOriginalName) Then
+        If aOriginalName IsNot Nothing AndAlso pBuddies.ContainsKey(aOriginalName) Then
             lBuddy = pBuddies(aOriginalName)
             If aOriginalName <> aName Then
                 pBuddies.Remove(aOriginalName)
