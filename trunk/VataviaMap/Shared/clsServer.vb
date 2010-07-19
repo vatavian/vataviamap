@@ -191,7 +191,7 @@ Public Class clsServer
                             aCenterLongitude = Double.Parse(lArgPart(1))
                         Case "zoom", "z"
                             aZoom = Integer.Parse(lArgPart(1))
-                        Case "ll"
+                        Case "ll", "q"
                             Dim ll() As String = lArgPart(1).Split(",")
                             If ll.Length = 2 AndAlso IsNumeric(ll(0)) AndAlso IsNumeric(ll(1)) Then
                                 'aSite = SiteEnum.GoogleMaps
