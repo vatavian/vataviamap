@@ -13,6 +13,7 @@ Public Class ctlMap
     Public Event ClosedLayer()
     Public Event Zoomed()
     Public Event Panned()
+    Public Event CenterBehaviorChanged()
 
     Private pZoom As Integer = 10 'varies from g_TileServer.ZoomMin to g_TileServer.ZoomMax
 
@@ -91,8 +92,8 @@ Public Class ctlMap
     ' True to automatically start GPS when application starts
     Private pGPSAutoStart As Boolean = True
 
-    ' 0=don't follow, 1=re-center only when GPS moves off screen, 2=keep centered
-    Private pGPSFollow As Integer = 2
+    ' 0=don't follow, 1=re-center only when GPS moves off screen, 2=keep centered, 3=zoom out if needed but keep current area visible
+    Private pGPSCenterBehavior As Integer = 2
 
     ' Symbol at GPS position
     Public GPSSymbolSize As Integer = 10
@@ -396,7 +397,7 @@ Public Class ctlMap
                     SanitizeCenterLatLon()
 
                     pGPSAutoStart = .GetValue("GPSAutoStart", pGPSAutoStart)
-                    pGPSFollow = .GetValue("GPSFollow", pGPSFollow)
+                    pGPSCenterBehavior = .GetValue("GPSFollow", pGPSCenterBehavior)
                     GPSSymbolSize = .GetValue("GPSSymbolSize", GPSSymbolSize)
                     TrackSymbolSize = .GetValue("TrackSymbolSize", TrackSymbolSize)
 
@@ -499,7 +500,7 @@ Public Class ctlMap
                     .SetValue("CenterLon", CenterLon)
 
                     .SetValue("GPSAutoStart", pGPSAutoStart)
-                    .SetValue("GPSFollow", pGPSFollow)
+                    .SetValue("GPSFollow", pGPSCenterBehavior)
                     .SetValue("GPSSymbolSize", GPSSymbolSize)
                     .SetValue("TrackSymbolSize", TrackSymbolSize)
                     .SetValue("RecordTrack", RecordTrack)
@@ -971,6 +972,10 @@ Public Class ctlMap
                             If lBuddy.IconFilename.Length > 0 AndAlso Not IO.File.Exists(lBuddy.IconFilename) AndAlso lBuddy.IconURL.Length > 0 Then
                                 Downloader.Enqueue(lBuddy.IconURL, lBuddy.IconFilename, QueueItemType.IconItem, , False, lBuddy)
                             End If
+
+                            'Zoom out to include this buddy in the view
+                            SetCenterFromDevice(lBuddy.Waypoint.lat, lBuddy.Waypoint.lon, 3)
+
                             NeedRedraw()
                             If pBuddyAlarmEnabled AndAlso pBuddyAlarmMeters > 0 Then
                                 If MetersBetweenLatLon(pBuddyAlarmLat, pBuddyAlarmLon, lBuddy.Waypoint.lat, lBuddy.Waypoint.lon) < pBuddyAlarmMeters Then
@@ -1298,7 +1303,7 @@ Public Class ctlMap
             If IO.Directory.Exists(lFilename) Then
                 OpenFiles(IO.Directory.GetFileSystemEntries(lFilename))
             Else
-                'Me.Text = "Loading " & lCurFile & "/" & lNumFiles & " '" & IO.Path.GetFileNameWithoutExtension(lFilename) & "'"
+                'TODO: show progress to user, when this code was directly in the form we used: Me.Text = "Loading " & lCurFile & "/" & lNumFiles & " '" & IO.Path.GetFileNameWithoutExtension(lFilename) & "'"
                 OpenFile(lFilename)
                 lCurFile += 1
             End If
@@ -1476,7 +1481,6 @@ Public Class ctlMap
                 lNewLayer = New clsLayerGPX(aFilename, Me)
                 With lNewLayer
                     .LabelField = GPXLabelField
-                    '.LabelField = ""
                     'If lNewLayer.GPX.bounds IsNot Nothing Then
                     'With lNewLayer.GPX.bounds 'Skip loading this one if it is not in view
                     'If .minlat > LatMax OrElse _
@@ -1672,11 +1676,42 @@ Public Class ctlMap
         End If
     End Sub
 
-    Public Sub ClosestGeocache()
-        'Me.Visible = False
+    ''' <summary>
+    ''' Set the map to make sure given location is in view
+    ''' </summary>
+    ''' <param name="aLatitude">Device Latitude</param>
+    ''' <param name="aLongitude">Device Longitude</param>
+    ''' <param name="aCenterBehavior">Whether / how to change view to include the given location</param>
+    ''' <returns>True if map center was updated</returns>
+    ''' <remarks></remarks>
+    Private Function SetCenterFromDevice(ByVal aLatitude As Double, ByVal aLongitude As Double, ByVal aCenterBehavior As Integer) As Boolean
+        If CenterLat <> aLatitude OrElse CenterLon <> aLongitude Then
+            Select Case aCenterBehavior
+                Case 0 'Do nothing
+                Case 1 'Follow, only move center if it is off screen
+                    If Not LatLonInView(aLatitude, aLongitude) Then
+                        CenterLat = aLatitude
+                        CenterLon = aLongitude
+                        SanitizeCenterLatLon()
+                        Return True
+                    End If
+                Case 2 'Always center
+                    CenterLat = aLatitude
+                    CenterLon = aLongitude
+                    SanitizeCenterLatLon()
+                    Return True
+                Case 3 'Zoom out until location is in view
+                    While Zoom > 0 AndAlso Not LatLonInView(aLatitude, aLongitude)
+                        Zoom -= 1
+                    End While
+            End Select
+        End If
+        Return False
+    End Function
 
+    Public Function ClosestGeocache(ByVal aLatitude As Double, ByVal aLongitude As Double) As clsGPXwaypoint
+        Dim lMiddlemostCache As clsGPXwaypoint = Nothing
         If Layers IsNot Nothing AndAlso Layers.Count > 0 Then
-            Dim lMiddlemostCache As clsGPXwaypoint = Nothing
             Dim lClosestDistance As Double = Double.MaxValue
             Dim lThisDistance As Double
             For Each lLayer As clsLayer In Layers
@@ -1684,7 +1719,7 @@ Public Class ctlMap
                     Dim lGPXLayer As clsLayerGPX = lLayer
                     Dim lDrawThisOne As Boolean = True
                     If lGPXLayer.GPX.bounds IsNot Nothing Then
-                        With lGPXLayer.GPX.bounds 'Skip drawing this one if it is not in view
+                        With lGPXLayer.GPX.bounds 'Skip if it is not in view
                             If .minlat > CenterLat + LatHeight / 2 OrElse _
                                 .maxlat < CenterLat - LatHeight / 2 OrElse _
                                 .minlon > CenterLon + LonWidth / 2 OrElse _
@@ -1705,167 +1740,133 @@ Public Class ctlMap
                 Catch
                 End Try
             Next
-            If lMiddlemostCache IsNot Nothing Then
-                'Dim lGeocacheForm As New frmGeocacheMobile
-                'With lMiddlemostCache
-                '    lGeocacheForm.URL = .url
-                '    Dim lText As String = ""
-
-                '    lText &= .name & " " _
-                '          & FormattedDegrees(.lat, g_DegreeFormat) & ", " _
-                '          & FormattedDegrees(.lon, g_DegreeFormat) & vbLf
-
-                '    If .desc IsNot Nothing AndAlso .desc.Length > 0 Then
-                '        lText &= .desc & vbLf
-                '    ElseIf .urlname IsNot Nothing AndAlso .urlname.Length > 0 Then
-                '        lText &= .urlname
-                '        If .cache IsNot Nothing Then
-                '            lText &= " (" & Format(.cache.difficulty, "#.#") & "/" _
-                '                          & Format(.cache.terrain, "#.#") & ")"
-                '        End If
-                '        lText &= vbLf
-                '    End If
-
-                '    If .cmt IsNot Nothing AndAlso .cmt.Length > 0 Then lText &= "comment: " & .cmt & vbLf
-
-                '    If .cache IsNot Nothing AndAlso .cache.container IsNot Nothing AndAlso .cache.container.Length > 0 Then lText &= .cache.container & ", "
-                '    If .type IsNot Nothing AndAlso .type.Length > 0 Then
-                '        If .type.StartsWith("Geocache|") Then
-                '            lText &= "type: " & .type.Substring(9) & vbLf
-                '        Else
-                '            lText &= "type: " & .type & vbLf
-                '        End If
-                '    ElseIf .cache IsNot Nothing AndAlso .cache.cachetype IsNot Nothing AndAlso .cache.cachetype.Length > 0 Then
-                '        lText &= "type: " & .type & vbLf
-                '    End If
-
-                '    If .cache IsNot Nothing Then
-                '        If .cache.archived Then lText &= "ARCHIVED" & vbLf
-
-                '        If .cache.short_description IsNot Nothing AndAlso .cache.short_description.Length > 0 Then
-                '            lText &= .cache.short_description.Replace("<br>", vbLf) & vbLf
-                '        End If
-                '        If .cache.long_description IsNot Nothing AndAlso .cache.long_description.Length > 0 Then
-                '            lText &= .cache.long_description.Replace("<br>", vbLf) & vbLf
-                '        End If
-
-                '        If .cache.encoded_hints IsNot Nothing AndAlso .cache.encoded_hints.Length > 0 Then
-                '            lText &= "Hint: " & .cache.encoded_hints & vbLf
-                '        End If
-
-                '        If .cache.logs IsNot Nothing AndAlso .cache.logs.Length > 0 Then lText &= "Logs: " & .cache.logs & vbLf
-                '        If .cache.placed_by IsNot Nothing AndAlso .cache.placed_by.Length > 0 Then lText &= "Placed by: " & .cache.placed_by & vbLf
-                '        If .cache.owner IsNot Nothing AndAlso .cache.owner.Length > 0 Then lText &= "Owner: " & .cache.owner & vbLf
-                '        If .cache.travelbugs IsNot Nothing AndAlso .cache.travelbugs.Length > 0 Then lText &= "Travellers: " & .cache.travelbugs & vbLf
-
-                '    End If
-                '    If .extensions IsNot Nothing Then lText &= .extensions.OuterXml
-
-                '    lGeocacheForm.txtMain.Text = lText
-                'End With
-                'lGeocacheForm.Show()
-
-                With lMiddlemostCache
-                    Windows.Forms.Clipboard.SetDataObject(.name)
-                    Dim lText As String = "<html><head><title>" & .name & "</title></head><body>"
-
-                    lText &= "<b><a href=""" & .url & """>" & .name & "</a></b> " _
-                          & FormattedDegrees(.lat, g_DegreeFormat) & ", " _
-                          & FormattedDegrees(.lon, g_DegreeFormat) & "<br>"
-
-                    If .desc IsNot Nothing AndAlso .desc.Length > 0 Then
-                        lText &= .desc
-                    ElseIf .urlname IsNot Nothing AndAlso .urlname.Length > 0 Then
-                        lText &= .urlname
-                        If .cache IsNot Nothing Then
-                            lText &= " (" & Format(.cache.difficulty, "#.#") & "/" _
-                                          & Format(.cache.terrain, "#.#") & ")"
-                        End If
-                    End If
-
-                    Dim lType As String = Nothing
-                    If .type IsNot Nothing AndAlso .type.Length > 0 Then
-                        lType = .type
-                        If lType.StartsWith("Geocache|") Then lType = lType.Substring(9)
-                    End If
-                    If lType Is Nothing AndAlso .cache IsNot Nothing AndAlso .cache.cachetype IsNot Nothing AndAlso .cache.cachetype.Length > 0 Then
-                        lType = .cache.cachetype
-                    End If
-                    If lType IsNot Nothing AndAlso lText.IndexOf(lType) = -1 Then
-                        lText &= " <b>" & .type & "</b>"
-                    End If
-
-                    If .cache IsNot Nothing AndAlso .cache.container IsNot Nothing AndAlso .cache.container.Length > 0 Then lText &= " <b>" & .cache.container & "</b>"
-                    lText &= "<br>"
-
-                    If .cmt IsNot Nothing AndAlso .cmt.Length > 0 Then lText &= "<b>comment:</b> " & .cmt & "<br>"
-
-                    If .cache IsNot Nothing Then
-                        If .cache.archived Then lText &= "<h2>ARCHIVED</h2><br>"
-
-                        If .cache.short_description IsNot Nothing AndAlso .cache.short_description.Length > 0 Then
-                            lText &= .cache.short_description & "<br>"
-                        End If
-                        If .cache.long_description IsNot Nothing AndAlso .cache.long_description.Length > 0 Then
-                            lText &= .cache.long_description & "<br>"
-                        End If
-
-                        If .cache.encoded_hints IsNot Nothing AndAlso .cache.encoded_hints.Length > 0 Then
-                            lText &= "<b>Hint:</b> " & .cache.encoded_hints & "<br>"
-                        End If
-
-                        If .cache.logs IsNot Nothing AndAlso .cache.logs.Count > 0 Then
-                            'T19:00:00 is the time for all logs? remove it and format the entries a bit
-                            Dim lIconPath As String = pTileCacheFolder & "Icons" & g_PathChar & "Geocache" & g_PathChar
-                            Dim lIconFilename As String
-                            lText &= "<b>Logs:</b><br>"
-                            For Each lLog As clsGroundspeakLog In .cache.logs
-                                Select Case lLog.logtype
-                                    Case "Found it" : lIconFilename = lIconPath & "icon_smile.gif"
-                                    Case "Didn't find it" : lIconFilename = lIconPath & "icon_sad.gif"
-                                    Case "Write note" : lIconFilename = lIconPath & "icon_note.gif"
-                                    Case "Enable Listing" : lIconFilename = lIconPath & "icon_enabled.gif"
-                                    Case "Temporarily Disable Listing" : lIconFilename = lIconPath & "icon_disabled.gif"
-                                    Case "Needs Maintenance" : lIconFilename = lIconPath & "icon_needsmaint.gif"
-                                    Case "Owner Maintenance" : lIconFilename = lIconPath & "icon_maint.gif"
-                                    Case "Publish Listing" : lIconFilename = lIconPath & "icon_greenlight.gif"
-                                    Case "Update Coordinates" : lIconFilename = lIconPath & "coord_update.gif"
-                                    Case "Will Attend" : lIconFilename = lIconPath & "icon_rsvp.gif"
-                                    Case Else : lIconFilename = ""
-                                End Select
-                                If IO.File.Exists(lIconFilename) Then
-                                    lText &= "<img src=""" & lIconFilename & """>"
-                                Else
-                                    lText &= lLog.logtype
-                                End If
-                                lText &= "<b>" & lLog.logdate.Replace("T19:00:00", "") & "</b> " & lLog.logfinder & ": " & lLog.logtext & "<br>"
-                            Next
-                            'Dim lLastTimePos As Integer = 0
-                            'Dim lTimePos As Integer = .cache.logs.IndexOf()
-                            'While lTimePos > 0
-                            '    lText &= .cache.logs.Substring(lLastTimePos, lTimePos - lLastTimePos - 10) & "<br><b>" & .cache.logs.Substring(lTimePos - 10, 10) & "</b> "
-                            '    lLastTimePos = lTimePos + 9
-                            '    lTimePos = .cache.logs.IndexOf("T19:00:00", lTimePos + 10)
-                            'End While
-                            'lText &= .cache.logs.Substring(lLastTimePos + 9) & "<p>"
-                        End If
-                        If .cache.placed_by IsNot Nothing AndAlso .cache.placed_by.Length > 0 Then lText &= "<b>Placed by:</b> " & .cache.placed_by & "<br>"
-                        If .cache.owner IsNot Nothing AndAlso .cache.owner.Length > 0 Then lText &= "<b>Owner:</b> " & .cache.owner & "<br>"
-                        If .cache.travelbugs IsNot Nothing AndAlso .cache.travelbugs.Length > 0 Then lText &= "<b>Travellers:</b> " & .cache.travelbugs & "<br>"
-                    End If
-                    lText &= .extensionsString
-                    Dim lTempFilename As String = IO.Path.Combine(IO.Path.GetTempPath, "cache.html")
-                    Dim lStream As IO.StreamWriter = IO.File.CreateText(lTempFilename)
-                    lStream.Write(lText)
-                    lStream.Write("<br><a href=""http://wap.geocaching.com/"">Official WAP</a><br>")
-                    lStream.Close()
-                    OpenFile(lTempFilename)
-                End With
-            End If
         End If
-        'Me.Visible = True
-        'Redraw()
+        Return lMiddlemostCache
+    End Function
+
+    Public Sub ShowGeocacheHTML(ByVal aCache As clsGPXwaypoint)
+        If aCache IsNot Nothing Then
+            Dim lTempPath As String = IO.Path.GetTempPath
+            With aCache
+                Windows.Forms.Clipboard.SetDataObject(.name)
+                Dim lText As String = "<html><head><title>" & .name & "</title></head><body>"
+
+                lText &= "<b><a href=""" & .url & """>" & .name & "</a></b> " _
+                      & FormattedDegrees(.lat, g_DegreeFormat) & ", " _
+                      & FormattedDegrees(.lon, g_DegreeFormat) & "<br>"
+
+                If .desc IsNot Nothing AndAlso .desc.Length > 0 Then
+                    lText &= .desc
+                ElseIf .urlname IsNot Nothing AndAlso .urlname.Length > 0 Then
+                    lText &= .urlname
+                    If .cache IsNot Nothing Then
+                        lText &= " (" & Format(.cache.difficulty, "#.#") & "/" _
+                                      & Format(.cache.terrain, "#.#") & ")"
+                    End If
+                End If
+
+                Dim lType As String = Nothing
+                If .type IsNot Nothing AndAlso .type.Length > 0 Then
+                    lType = .type
+                    If lType.StartsWith("Geocache|") Then lType = lType.Substring(9)
+                End If
+                If lType Is Nothing AndAlso .cache IsNot Nothing AndAlso .cache.cachetype IsNot Nothing AndAlso .cache.cachetype.Length > 0 Then
+                    lType = .cache.cachetype
+                End If
+                If lType IsNot Nothing AndAlso lText.IndexOf(lType) = -1 Then
+                    lText &= " <b>" & .type & "</b>"
+                End If
+
+                If .cache IsNot Nothing AndAlso .cache.container IsNot Nothing AndAlso .cache.container.Length > 0 Then lText &= " <b>" & .cache.container & "</b>"
+                lText &= "<br>"
+
+                If .cmt IsNot Nothing AndAlso .cmt.Length > 0 Then lText &= "<b>comment:</b> " & .cmt & "<br>"
+
+                If .cache IsNot Nothing Then
+                    If .cache.archived Then lText &= "<h2>ARCHIVED</h2><br>"
+
+                    If .cache.short_description IsNot Nothing AndAlso .cache.short_description.Length > 0 Then
+                        lText &= .cache.short_description & "<br>"
+                    End If
+                    If .cache.long_description IsNot Nothing AndAlso .cache.long_description.Length > 0 Then
+                        lText &= .cache.long_description & "<br>"
+                    End If
+
+                    If .cache.encoded_hints IsNot Nothing AndAlso .cache.encoded_hints.Length > 0 Then
+                        lText &= "<b>Hint:</b> " & .cache.encoded_hints & "<br>"
+                    End If
+
+                    If .cache.logs IsNot Nothing AndAlso .cache.logs.Count > 0 Then
+                        'T19:00:00 is the time for all logs? remove it and format the entries a bit
+                        Dim lIconPath As String = pTileCacheFolder & "Icons" & g_PathChar & "Geocache" & g_PathChar
+                        Dim lIconFilename As String
+                        lText &= "<b>Logs:</b><br>"
+                        For Each lLog As clsGroundspeakLog In .cache.logs
+                            Select Case lLog.logtype
+                                Case "Found it" : lIconFilename = "icon_smile.gif"
+                                Case "Didn't find it" : lIconFilename = "icon_sad.gif"
+                                Case "Write note" : lIconFilename = "icon_note.gif"
+                                Case "Enable Listing" : lIconFilename = "icon_enabled.gif"
+                                Case "Temporarily Disable Listing" : lIconFilename = "icon_disabled.gif"
+                                Case "Needs Maintenance" : lIconFilename = "icon_needsmaint.gif"
+                                Case "Owner Maintenance" : lIconFilename = "icon_maint.gif"
+                                Case "Publish Listing" : lIconFilename = "icon_greenlight.gif"
+                                Case "Update Coordinates" : lIconFilename = "coord_update.gif"
+                                Case "Will Attend" : lIconFilename = "icon_rsvp.gif"
+                                Case Else : lIconFilename = ""
+                            End Select
+                            If IO.File.Exists(lIconPath & lIconFilename) Then
+                                Dim lTempIcon As String = IO.Path.Combine(lTempPath, lIconFilename)
+                                If Not IO.File.Exists(lTempIcon) Then
+                                    IO.File.Copy(lIconPath & lIconFilename, lTempIcon)
+                                End If
+                                lText &= "<img src=""" & lIconFilename & """>"
+                            Else
+                                lText &= lLog.logtype
+                            End If
+                            lText &= "<b>" & lLog.logdate.Replace("T19:00:00", "") & "</b> " & lLog.logfinder & ": " & lLog.logtext & "<br>"
+                        Next
+                        'Dim lLastTimePos As Integer = 0
+                        'Dim lTimePos As Integer = .cache.logs.IndexOf()
+                        'While lTimePos > 0
+                        '    lText &= .cache.logs.Substring(lLastTimePos, lTimePos - lLastTimePos - 10) & "<br><b>" & .cache.logs.Substring(lTimePos - 10, 10) & "</b> "
+                        '    lLastTimePos = lTimePos + 9
+                        '    lTimePos = .cache.logs.IndexOf("T19:00:00", lTimePos + 10)
+                        'End While
+                        'lText &= .cache.logs.Substring(lLastTimePos + 9) & "<p>"
+                    End If
+                    If .cache.placed_by IsNot Nothing AndAlso .cache.placed_by.Length > 0 Then lText &= "<b>Placed by:</b> " & .cache.placed_by & "<br>"
+                    If .cache.owner IsNot Nothing AndAlso .cache.owner.Length > 0 Then lText &= "<b>Owner:</b> " & .cache.owner & "<br>"
+                    If .cache.travelbugs IsNot Nothing AndAlso .cache.travelbugs.Length > 0 Then lText &= "<b>Travellers:</b> " & .cache.travelbugs & "<br>"
+                End If
+                lText &= .extensionsString
+                Dim lTempFilename As String = IO.Path.Combine(lTempPath, "cache.html")
+                Dim lStream As IO.StreamWriter = IO.File.CreateText(lTempFilename)
+                lStream.Write(lText)
+                lStream.Write("<br><a href=""http://wap.geocaching.com/"">Official WAP</a><br>")
+                lStream.Close()
+                OpenFileOrURL(lTempFilename, False)
+            End With
+        End If
     End Sub
+
+    Private Sub ManuallyNavigated()
+        GPSCenterBehavior = 0 'Manual navigation overrides automatic following of GPS
+        SanitizeCenterLatLon()
+        NeedRedraw()
+    End Sub
+
+    Public Property GPSCenterBehavior() As Integer
+        Get
+            Return pGPSCenterBehavior
+        End Get
+        Set(ByVal value As Integer)
+            'If pGPSCenterBehavior <> value Then
+            pGPSCenterBehavior = value
+            RaiseEvent CenterBehaviorChanged()
+            'End If
+        End Set
+    End Property
 
 #If Smartphone Then
 
@@ -1944,8 +1945,6 @@ Public Class ctlMap
         pCursorLayer = New clsLayerGPX("cursor", Me)
         pCursorLayer.SymbolPen = New Pen(Color.Red)
         pCursorLayer.SymbolSize = GPSSymbolSize
-
-        If pGPSAutoStart Then StartGPS()
     End Sub
 
     Public Property Active() As Boolean
@@ -2080,14 +2079,6 @@ RestartRedraw:
         End If
     End Sub
 
-    Private Sub ManuallyNavigated()
-        pGPSFollow = 0 'Manual navigation overrides automatic following of GPS
-        'TODO: mnuFollow.Checked = False
-        'TODO: mnuCenter.Checked = False
-        SanitizeCenterLatLon()
-        NeedRedraw()
-    End Sub
-
     Private Sub Event_MouseDown(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles Me.MouseDown
         Select Case e.Button
             Case Windows.Forms.MouseButtons.Left
@@ -2123,10 +2114,8 @@ RestartRedraw:
 
     Public Sub StartGPS()
         Application.DoEvents()
-        If pGPSFollow = 0 Then
-            pGPSFollow = 2
-            'TODO: mnuFollow.Checked = False
-            'TODO: mnuCenter.Checked = True
+        If pGPSCenterBehavior = 0 Then
+            GPSCenterBehavior = 2 'Center at GPS location when starting GPS
         End If
         If GPS Is Nothing Then GPS = New GPS_API.GPS
         If Not GPS.Opened Then
@@ -2216,7 +2205,7 @@ RestartRedraw:
                 Catch
                 End Try
                 If (GPS_POSITION IsNot Nothing AndAlso GPS_POSITION.LatitudeValid AndAlso GPS_POSITION.LongitudeValid) Then
-                    Dim lNeedRedraw As Boolean = SetCenterFromDevice(GPS_POSITION.Latitude, GPS_POSITION.Longitude)
+                    Dim lNeedRedraw As Boolean = SetCenterFromDevice(GPS_POSITION.Latitude, GPS_POSITION.Longitude, pGPSCenterBehavior)
 
                     If GPS_Listen AndAlso (RecordTrack OrElse pDisplayTrack) AndAlso DateTime.UtcNow.Subtract(pTrackMinInterval) >= pTrackLastTime Then
                         TrackAddPoint()
@@ -2246,7 +2235,7 @@ RestartRedraw:
             pLastCellTower = lCurrentCellInfo
             With lCurrentCellInfo
                 If GetCellLocation(pTileCacheFolder & "cells", lCurrentCellInfo) Then
-                    If SetCenterFromDevice(lCurrentCellInfo.Latitude, lCurrentCellInfo.Longitude) Then
+                    If SetCenterFromDevice(lCurrentCellInfo.Latitude, lCurrentCellInfo.Longitude, pGPSCenterBehavior) Then
                         Me.Invoke(pRedrawCallback)
                         Return True
                     End If
@@ -2271,31 +2260,6 @@ RestartRedraw:
                 Return True
             End If
         Next
-        Return False
-    End Function
-
-    ''' <summary>
-    ''' Set the map to make sure given location is in view, depending on value of pGPSFollow
-    ''' </summary>
-    ''' <param name="aLatitude"></param>
-    ''' <param name="aLongitude"></param>
-    ''' <returns>True if map center was updated</returns>
-    ''' <remarks></remarks>
-    Private Function SetCenterFromDevice(ByVal aLatitude As Double, ByVal aLongitude As Double) As Boolean
-        Select Case pGPSFollow
-            Case 1
-                If Not LatLonInView(aLatitude, aLongitude) Then
-                    GoTo SetCenter
-                End If
-            Case 2
-SetCenter:
-                If CenterLat <> aLatitude OrElse CenterLon <> aLongitude Then
-                    CenterLat = aLatitude
-                    CenterLon = aLongitude
-                    SanitizeCenterLatLon()
-                    Return True
-                End If
-        End Select
         Return False
     End Function
 
@@ -2468,24 +2432,22 @@ SetCenter:
         End Get
         Set(ByVal value As Boolean)
             pClickRefreshTile = value
-            If pClickRefreshTile Then
-                pShowTileOutlines = True
-                'TODO: mnuViewTileOutlines.Checked = True
-                NeedRedraw()
-            End If
         End Set
     End Property
 
     ''' <summary>
     ''' Start timer that keeps system idle from turning off device
     ''' </summary>
-    ''' <remarks></remarks>
     Private Sub StartKeepAwake()
         SystemIdleTimerReset()
         If pKeepAwakeTimer Is Nothing Then
             pKeepAwakeTimer = New System.Threading.Timer(New Threading.TimerCallback(AddressOf IdleTimeout), Nothing, 0, 50000)
         End If
     End Sub
+
+    ''' <summary>
+    ''' Stop timer that keeps system idle from turning off device
+    ''' </summary>
     Private Sub StopKeepAwake()
         If pKeepAwakeTimer IsNot Nothing Then
             pKeepAwakeTimer.Dispose()
@@ -2493,10 +2455,17 @@ SetCenter:
         End If
     End Sub
 
+    ''' <summary>
+    ''' Keep the device awake, also move map to a cell tower location if desired 
+    ''' </summary>
+    ''' <remarks>Periodically called by pKeepAwakeTimer</remarks>
     Private Sub IdleTimeout(ByVal o As Object)
         SystemIdleTimerReset()
 
-        If pGPSFollow > 0 _
+        'If the user requested some centering from GPS
+        'and the GPS has not given us a good location within the last minute
+        'then try to center on a cell tower location
+        If pGPSCenterBehavior > 0 _
             AndAlso (Not GPS_Listen _
                      OrElse GPS_POSITION Is Nothing _
                      OrElse Not GPS_POSITION.TimeValid _
@@ -2504,32 +2473,6 @@ SetCenter:
             SetCenterFromCellLocation()
         End If
     End Sub
-
-    Public Property GPSFollow() As Boolean
-        Get
-            Return (pGPSFollow = 1)
-        End Get
-        Set(ByVal value As Boolean)
-            If value Then
-                pGPSFollow = 1
-            Else
-                pGPSFollow = 0
-            End If
-        End Set
-    End Property
-
-    Public Property GPSCenter() As Boolean
-        Get
-            Return (pGPSFollow = 2)
-        End Get
-        Set(ByVal value As Boolean)
-            If value Then
-                pGPSFollow = 2
-            Else
-                pGPSFollow = 0
-            End If
-        End Set
-    End Property
 
     Public Property AutoStart() As Boolean
         Get
@@ -2693,12 +2636,6 @@ SetCenter:
         '    End If
     End Sub
 
-    Private Sub ManuallyNavigated()
-        pGPSFollow = 0 'Manual navigation overrides automatic following of GPS
-        SanitizeCenterLatLon()
-        NeedRedraw()
-    End Sub
-
     Private Function MapRectangle() As Rectangle
         'Dim lMenuHeight As Integer = 27
         'If Me.MainMenuStrip IsNot Nothing Then lMenuHeight = MainMenuStrip.Height
@@ -2774,7 +2711,8 @@ SetCenter:
     End Sub
 
     Private Sub ClosestGeocacheToolStripMenuItem_Click(ByVal sender As Object, ByVal e As System.EventArgs) Handles ClosestGeocacheToolStripMenuItem.Click
-        ClosestGeocache()
+        'TODO: use clicked location not center
+        ShowGeocacheHTML(ClosestGeocache(CenterLat, CenterLon))
     End Sub
 
     Private Sub TileCacheFolderToolStripMenuItem_Click(ByVal sender As Object, ByVal e As System.EventArgs) Handles TileCacheFolderToolStripMenuItem.Click

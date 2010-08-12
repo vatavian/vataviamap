@@ -53,6 +53,12 @@
     <Compile Include="Desktop\frmBuddyList.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Desktop\frmCache.Designer.vb">
+      <DependentUpon>frmCache.vb</DependentUpon>
+    </Compile>
+    <Compile Include="Desktop\frmCache.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Desktop\frmCoordinates.Designer.vb">
       <DependentUpon>frmCoordinates.vb</DependentUpon>
     </Compile>
@@ -63,6 +69,12 @@
       <DependentUpon>frmOpenCellID.vb</DependentUpon>
     </Compile>
     <Compile Include="Desktop\frmOpenCellID.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Desktop\frmTimeSpan.Designer.vb">
+      <DependentUpon>frmTimeSpan.vb</DependentUpon>
+    </Compile>
+    <Compile Include="Desktop\frmTimeSpan.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Desktop\frmTimeZone.Designer.vb">
@@ -77,6 +89,7 @@
     <Compile Include="Desktop\frmWaypoints.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Shared\clsCache.vb" />
     <Compile Include="Shared\clsCell.vb" />
     <Compile Include="Shared\clsCellLayer.vb" />
     <Compile Include="Shared\clsCellLocationOpenCellID.vb" />
@@ -86,6 +99,7 @@
     <Compile Include="Shared\clsLayer.vb" />
     <Compile Include="Shared\clsQueueManager.vb" />
     <Compile Include="Shared\clsServer.vb" />
+    <Compile Include="Shared\clsTrip.vb" />
     <Compile Include="Shared\clsUploader.vb" />
     <Compile Include="Desktop\frmBuddyAlarm.Designer.vb">
       <DependentUpon>frmBuddyAlarm.vb</DependentUpon>
@@ -144,6 +158,10 @@
       <SubType>Designer</SubType>
       <DependentUpon>frmBuddyAlarm.vb</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Desktop\frmCache.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>frmCache.vb</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Desktop\frmCoordinates.resx">
       <SubType>Designer</SubType>
       <DependentUpon>frmCoordinates.vb</DependentUpon>
@@ -163,6 +181,10 @@
     <EmbeddedResource Include="Desktop\frmOpenCellID.resx">
       <SubType>Designer</SubType>
       <DependentUpon>frmOpenCellID.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Desktop\frmTimeSpan.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>frmTimeSpan.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Desktop\frmTimeZone.resx">
       <SubType>Designer</SubType>

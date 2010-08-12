@@ -6,6 +6,7 @@ Public Class frmMap
     WithEvents pWaypointsListForm As frmWaypoints
     WithEvents pCoordinatesForm As frmCoordinates
     WithEvents pTileServerForm As frmEditNameURL
+    WithEvents pTimeSpanForm As frmTimeSpan
     WithEvents pOpenCellIDForm As frmOpenCellID
     WithEvents pTimeZoneForm As frmTimeZone
 
@@ -750,5 +751,22 @@ Public Class frmMap
         Dim lCurAspectRatio As Single = pMap.Width / pMap.Height
         Dim lDesiredMapWidth As Integer = (10 / 7.5) * pMap.Height
         Me.Width += lDesiredMapWidth - pMap.Width
+    End Sub
+
+    Private Sub TimeSpanToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles TimeSpanToolStripMenuItem.Click
+        If pTimeSpanForm IsNot Nothing Then
+            Try
+                pTimeSpanForm.Close()
+            Catch
+            End Try
+        End If
+        pTimeSpanForm = New frmTimeSpan
+        pTimeSpanForm.Icon = Me.Icon
+        pTimeSpanForm.PopulateList(pMap.Layers)
+        pTimeSpanForm.Show()
+    End Sub
+
+    Private Sub pTimeSpanForm_Changed(ByVal aUTCoffset As System.TimeSpan) Handles pTimeSpanForm.Changed
+
     End Sub
 End Class
