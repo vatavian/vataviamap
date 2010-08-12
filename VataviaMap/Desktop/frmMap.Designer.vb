@@ -85,6 +85,7 @@ Partial Class frmMap
         Me.RefreshFromServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.pMap = New VataviaMap.ctlMap
         Me.TimeZoneToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.TimeSpanToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.PrintToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.LetterPortraitToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.LetterLandscapeToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
@@ -169,9 +170,15 @@ Partial Class frmMap
         Me.ExitToolStripMenuItem.Size = New System.Drawing.Size(337, 24)
         Me.ExitToolStripMenuItem.Text = "Exit"
         '
+        'TimeZoneToolStripMenuItem
+        '
+        Me.TimeZoneToolStripMenuItem.Name = "TimeZoneToolStripMenuItem"
+        Me.TimeZoneToolStripMenuItem.Size = New System.Drawing.Size(337, 24)
+        Me.TimeZoneToolStripMenuItem.Text = "Time Zone"
+        '
         'ViewToolStripMenuItem
         '
-        Me.ViewToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.TileOutlinesToolStripMenuItem, Me.TileNamesToolStripMenuItem, Me.TileImagesToolStripMenuItem, Me.PanToGPXToolStripMenuItem, Me.ZoomToGPXToolStripMenuItem, Me.UseMarkedTilesToolStripMenuItem, Me.CoordinatesToolStripMenuItem, Me.WaypointsToolStripMenuItem, Me.TimestampToolStripMenuItem, Me.TransparencyToolStripMenuItem})
+        Me.ViewToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.TileOutlinesToolStripMenuItem, Me.TileNamesToolStripMenuItem, Me.TileImagesToolStripMenuItem, Me.PanToGPXToolStripMenuItem, Me.ZoomToGPXToolStripMenuItem, Me.UseMarkedTilesToolStripMenuItem, Me.CoordinatesToolStripMenuItem, Me.WaypointsToolStripMenuItem, Me.TimeSpanToolStripMenuItem, Me.TimestampToolStripMenuItem, Me.TransparencyToolStripMenuItem})
         Me.ViewToolStripMenuItem.Name = "ViewToolStripMenuItem"
         Me.ViewToolStripMenuItem.Size = New System.Drawing.Size(55, 23)
         Me.ViewToolStripMenuItem.Text = "View"
@@ -322,7 +329,7 @@ Partial Class frmMap
         'PlacesAddToolStripMenuItem
         '
         Me.PlacesAddToolStripMenuItem.Name = "PlacesAddToolStripMenuItem"
-        Me.PlacesAddToolStripMenuItem.Size = New System.Drawing.Size(152, 24)
+        Me.PlacesAddToolStripMenuItem.Size = New System.Drawing.Size(138, 24)
         Me.PlacesAddToolStripMenuItem.Text = "Add..."
         '
         'TileServerToolStripMenuItem
@@ -475,6 +482,12 @@ Partial Class frmMap
         Me.TimeZoneToolStripMenuItem.Size = New System.Drawing.Size(223, 22)
         Me.TimeZoneToolStripMenuItem.Text = "Time Zone"
         '
+        'TimeSpanToolStripMenuItem
+        '
+        Me.TimeSpanToolStripMenuItem.Name = "TimeSpanToolStripMenuItem"
+        Me.TimeSpanToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
+        Me.TimeSpanToolStripMenuItem.Text = "Time Span..."
+        '
         'PrintToolStripMenuItem
         '
         Me.PrintToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.LetterPortraitToolStripMenuItem, Me.LetterLandscapeToolStripMenuItem})
@@ -576,4 +589,5 @@ Partial Class frmMap
     Friend WithEvents PrintToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents LetterPortraitToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents LetterLandscapeToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents TimeSpanToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
 End Class

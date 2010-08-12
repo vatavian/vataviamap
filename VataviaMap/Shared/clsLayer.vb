@@ -342,6 +342,10 @@ Public Class clsLayerGPX
     Private pLastLabelY As Integer = -100
     Private pLastLabelWidth As Integer = 0
 
+    'Filters for what to render
+    Public OmitBefore As Date = Date.MinValue
+    Public OmitAfter As Date = Date.MaxValue
+
     Private pFields() As String = {"name", _
                                    "urlname", _
                                    "desc", _
@@ -441,25 +445,26 @@ Public Class clsLayerGPX
                     Dim lSymbolPath As New Drawing2D.GraphicsPath()
                     Dim lTrackPath As New Drawing2D.GraphicsPath()
 #End If
-
                     lStartTime = Date.Now
                     For Each lTrack As clsGPXtrack In GPX.trk
                         For Each lTrackSegment As clsGPXtracksegment In lTrack.trkseg
                             Dim lLastX As Integer = -1
                             Dim lLastY As Integer = -1
                             For Each lTrackPoint As clsGPXwaypoint In lTrackSegment.trkpt
-
+                                If Not lTrackPoint.timeSpecified OrElse _
+                                   (lTrackPoint.time >= OmitBefore AndAlso lTrackPoint.time <= OmitAfter) Then
 #If Not Smartphone Then
-                                If Not DrawTrackpoint(g, lTrackPoint, aTopLeftTile, aOffsetToCenter, lSymbolPath, lTrackPath, lLastX, lLastY) Then
-                                    If lTrackPath.PointCount > 0 Then
-                                        g.DrawPath(PenTrack, lTrackPath)
-                                        lTrackPath.Reset()
-                                    End If
+                                    If Not DrawTrackpoint(g, lTrackPoint, aTopLeftTile, aOffsetToCenter, lSymbolPath, lTrackPath, lLastX, lLastY) Then
+                                        If lTrackPath.PointCount > 0 Then 'Draw the path we already had accumulated for this track
+                                            g.DrawPath(PenTrack, lTrackPath)
+                                            lTrackPath.Reset()
+                                        End If
 #Else
-                                If Not DrawTrackpoint(g, lTrackPoint, aTopLeftTile, aOffsetToCenter, lLastX, lLastY) Then
+                                    If Not DrawTrackpoint(g, lTrackPoint, aTopLeftTile, aOffsetToCenter, lLastX, lLastY) Then
 #End If
-                                    lLastX = -1
-                                    lLastY = -1
+                                        lLastX = -1
+                                        lLastY = -1
+                                    End If
                                 End If
                             Next
 #If Not Smartphone Then

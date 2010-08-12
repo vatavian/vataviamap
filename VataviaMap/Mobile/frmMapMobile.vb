@@ -21,15 +21,18 @@ Public Class frmMap
         mnuViewTrack.Checked = pMap.DisplayTrack
         mnuViewControls.Checked = pMap.ControlsShow
         mnuRefreshOnClick.Checked = pMap.ClickRefreshTile
-        Select Case pMap.GPSFollow
+        Select Case pMap.GPSCenterBehavior
             Case 1 : mnuFollow.Checked = True
             Case 2 : mnuCenter.Checked = True
         End Select
 
-        mnuAutoStart.Checked = pMap.AutoStart
-        If pMap.AutoStart Then pMap.StartGPS()
-
         pMap.Active = True
+
+        If pMap.AutoStart Then
+            mnuAutoStart.Checked = True
+            mnuStartStopGPS.Text = "Starting GPS..." : Application.DoEvents()
+            pMap.StartGPS()
+        End If
     End Sub
 
     Private Sub frmMap_Closing(ByVal sender As Object, ByVal e As System.ComponentModel.CancelEventArgs) Handles MyBase.Closing
@@ -47,8 +50,9 @@ Public Class frmMap
             mnuStartStopGPS.Text = "Start GPS" : Application.DoEvents()
         End If
     End Sub
+
     Private Sub mnuGeocache_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuGeocache.Click
-        pMap.ClosestGeocache()
+        pMap.ShowGeocacheHTML(pMap.ClosestGeocache(pMap.CenterLat, pMap.CenterLon))
     End Sub
 
     Private Sub mnuRecordTrack_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuRecordTrack.Click
@@ -220,8 +224,10 @@ Public Class frmMap
     End Sub
 
     Private Sub mnuRefreshOnClick_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuRefreshOnClick.Click
-        mnuRefreshOnClick.Checked = Not mnuRefreshOnClick.Checked
+        mnuRefreshOnClick.Checked = Not pMap.ClickRefreshTile
+        mnuViewTileOutlines.Checked = mnuRefreshOnClick.Checked
         pMap.ClickRefreshTile = mnuRefreshOnClick.Checked
+        pMap.ShowTileOutlines = mnuRefreshOnClick.Checked
     End Sub
 
     Private Sub mnuViewDark_Click(ByVal sender As Object, ByVal e As System.EventArgs) Handles mnuViewDark.Click
@@ -230,13 +236,21 @@ Public Class frmMap
     End Sub
 
     Private Sub mnuFollow_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuFollow.Click
-        mnuFollow.Checked = Not mnuFollow.Checked
-        pMap.GPSFollow = mnuFollow.Checked
+        mnuFollow.Checked = (pMap.GPSCenterBehavior <> 1)
+        If mnuFollow.Checked Then
+            pMap.GPSCenterBehavior = 1
+        Else
+            pMap.GPSCenterBehavior = 0
+        End If
     End Sub
 
     Private Sub mnuCenter_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuCenter.Click
-        mnuCenter.Checked = Not mnuCenter.Checked
-        pMap.GPSCenter = mnuCenter.Checked
+        mnuCenter.Checked = (pMap.GPSCenterBehavior <> 2)
+        If mnuCenter.Checked Then
+            pMap.GPSCenterBehavior = 2
+        Else
+            pMap.GPSCenterBehavior = 0
+        End If
     End Sub
 
     Private Sub mnuAutoStart_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuAutoStart.Click
@@ -291,6 +305,14 @@ Public Class frmMap
     Private Sub mnuWaypoint_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuWaypoint.Click
         mnuWaypoint.Checked = Not mnuWaypoint.Checked
         pMap.ClickMakeWaypoint = mnuWaypoint.Checked
+    End Sub
+
+    Private Sub pMap_CenterBehaviorChanged() Handles pMap.CenterBehaviorChanged
+        Select Case pMap.GPSCenterBehavior
+            Case 1 : mnuCenter.Checked = False : mnuFollow.Checked = True
+            Case 2 : mnuCenter.Checked = True : mnuFollow.Checked = False
+            Case Else : mnuCenter.Checked = False : mnuFollow.Checked = False
+        End Select
     End Sub
 
     Private Sub pMap_LocationChanged(ByVal aPosition As GPS_API.GpsPosition) Handles pMap.LocationChanged

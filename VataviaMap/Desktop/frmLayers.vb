@@ -29,7 +29,7 @@ Public Class frmLayers
         Select Case e.Button
             Case Windows.Forms.MouseButtons.Right
                 pRightClickedIndex = -1
-                For lIndex As Integer = 0 To lstLayers.Items.Count
+                For lIndex As Integer = 0 To lstLayers.Items.Count - 1
                     If e.Y < lstLayers.Items(lIndex).Bounds.Bottom Then
                         pRightClickedIndex = lIndex
                         Exit For
