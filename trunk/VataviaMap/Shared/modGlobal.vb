@@ -20,7 +20,6 @@ Module modGlobal
     Private g_LimitY As Double = ProjectF(85.0511)
     Private g_RangeY As Double = 2 * g_LimitY
 
-    Public g_LastTileServerName As String = ""
     Public g_TileServer As New clsServer("OpenStreetMap", _
                                          "http://openstreetmap.org/", _
                                          "http://{abc}.tile.openstreetmap.org/{Zoom}/{X}/{Y}.png", _
@@ -34,6 +33,7 @@ Module modGlobal
 
     'Top-level folder containing cached tiles, must end with trailing IO.Path.DirectorySeparatorChar
     Public g_TileCacheFolder As String = ""
+    Public g_BadTileSize As Integer = 0
 
     ' URL of server to upload points to
     Public g_UploadPointURL As String = "http://vatavia.net/cgi-bin/gps?u=unknown&y=#Lat#&x=#Lon#&e=#Alt#&s=#Speed#&h=#Heading#&t=#Time#&l=#Label#&c=#CellID#"
@@ -282,6 +282,26 @@ EndFound:
                 Return ""
             End If
         End With
+    End Function
+
+    Public Function FileSize(ByVal aFilename As String) As Integer
+        Try
+            If IO.File.Exists(aFilename) Then Return (New IO.FileInfo(aFilename)).Length 'FileLen(aFilename) 
+        Catch
+        End Try
+        Return -1
+    End Function
+
+    Public Function IsBadTile(ByVal aFilename As String) As Boolean
+        Dim lFileSize As Integer = FileSize(aFilename)
+        If lFileSize <= 0 Then
+            Return True
+        ElseIf lFileSize = g_BadTileSize Then
+            'TODO: binary compare with bad tile
+            Return True
+        Else
+            Return False
+        End If
     End Function
 
     Public Function ValidTilePoint(ByVal aTilePoint As Point, _

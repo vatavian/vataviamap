@@ -328,6 +328,7 @@ Public Class ctlMap
     End Sub
 
     Private Sub GetSettings()
+        Dim lTileServerName As String = ""
         Servers = New Dictionary(Of String, clsServer)
         Dim lSoftwareKey As Microsoft.Win32.RegistryKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("Software")
         If lSoftwareKey IsNot Nothing Then
@@ -361,7 +362,7 @@ Public Class ctlMap
                     Loop
 
                     'TileCacheFolder gets set earlier
-                    g_LastTileServerName = .GetValue("TileServer", g_TileServer.Name)
+                    lTileServerName = .GetValue("TileServer", g_TileServer.Name)
                     g_UploadPointURL = .GetValue("UploadPointURL", g_UploadPointURL)
                     g_UploadTrackURL = .GetValue("UploadTrackURL", g_UploadTrackURL)
 
@@ -416,7 +417,7 @@ Public Class ctlMap
         If Servers.Count = 0 Then
             SetDefaultTileServers()
         End If
-        TileServerName = g_LastTileServerName
+        TileServerName = lTileServerName
     End Sub
 
     Public Sub SetDefaultTileServers()
@@ -465,11 +466,11 @@ Public Class ctlMap
                     'TODO: .SetValue("TileCacheDays", lCacheDays)
 
                     Dim lKeyIndex As Integer = 1
-                    For Each lName As String In Servers.Keys
-                        .SetValue("Server" & lKeyIndex, Servers.Item(lName).ToString)
-                        lKeyIndex += 1
-                    Next
-                    lKeyIndex = 1
+                    'For Each lName As String In Servers.Keys
+                    '    .SetValue("Server" & lKeyIndex, Servers.Item(lName).ToString)
+                    '    lKeyIndex += 1
+                    'Next
+                    'lKeyIndex = 1
                     For Each lName As String In Buddies.Keys
                         .SetValue("Buddy" & lKeyIndex, lName & "|" & Buddies.Item(lName).LocationURL)
                         lKeyIndex += 1
@@ -547,6 +548,7 @@ Public Class ctlMap
 
     Private Sub SetCacheFolderFromTileServer()
         g_TileCacheFolder = pTileCacheFolder & SafeFilename(g_TileServer.Name.Replace(" ", "")) & g_PathChar
+        g_BadTileSize = FileSize(g_TileCacheFolder & "unavailable")
     End Sub
 
     Public Function FollowWebsiteURL(ByVal aURL As String) As Boolean

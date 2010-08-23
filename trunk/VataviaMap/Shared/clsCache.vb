@@ -68,7 +68,7 @@ Public Class clsFileInfo
         If Exists Then
             If IO.File.Exists(aFilename) Then
                 CreationDate = IO.File.GetCreationTime(aFilename)
-                NumBytes = FileLen(aFilename)
+                NumBytes = FileSize(aFilename)
             ElseIf IO.Directory.Exists(aFilename) Then
                 CreationDate = IO.File.GetCreationTime(aFilename)
                 If aRecursive Then
@@ -97,7 +97,7 @@ Public Class clsSummary
 
     Public Sub AddFile(ByVal aFilename As String)
         NumFiles += 1
-        NumBytes += FileLen(aFilename)
+        NumBytes += FileSize(aFilename)
     End Sub
 
     Public Sub AddFile(ByVal aFile As clsFileInfo)

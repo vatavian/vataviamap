@@ -301,7 +301,7 @@ Public Class clsCellLayer
             Throw New ApplicationException("Unknown file type '" & aBinaryFilename & "'")
         Else
             'Subtract 4 bytes for BinaryMagic
-            'Dim lLastCell As Integer = (FileLen(aBinaryFilename) - 4) / clsCell.NumBytes - 1
+            'Dim lLastCell As Integer = (FileSize(aBinaryFilename) - 4) / clsCell.NumBytes - 1
             Try
                 Dim lCell As clsCell
                 Do
