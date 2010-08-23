@@ -74,7 +74,7 @@ Public Class clsDownloader
         Dim lCanDownload As Boolean = (g_TileServer.TilePattern IsNot Nothing AndAlso g_TileServer.TilePattern.Length > 0 AndAlso g_TileServer.TilePattern.IndexOf("cacheonly") < 0)
         If IO.File.Exists(aActualFilename) Then
             Try 'TODO: check for PNG magic numbers? 89 50 4e 47 (note: now also loading .jpg sometimes)
-                If New IO.FileInfo(aActualFilename).Length > 0 Then
+                If FileSize(aActualFilename) > 0 Then
                     If pTileRAMcacheLimit = 0 Then Return True 'If we are not caching bitmaps, report success without opening the file
                     lBitmap = New Bitmap(aActualFilename)
                     If lBitmap IsNot Nothing Then
@@ -390,6 +390,8 @@ CheckCache:
                             Dim lContentLength As String = response.Headers.Item("Content-Length")
                             If lContentLength = "0" Then ' Nothing can be ok, but zero means there is no tile
                                 lError = True
+                            ElseIf lContentLength = g_BadTileSize Then ' Same size as "unavailable" tile, perhaps should check further but pretty sure this is a bad tile
+                                lError = True
                             Else
                                 'lNewLastModified = response.Headers.Item("Last-Modified")
                                 'If lNewLastModified Is Nothing Then
@@ -404,11 +406,11 @@ CheckCache:
                                 Dim lNewETag As String = response.Headers.Item("ETag")
                                 If lNewETag IsNot Nothing Then
                                     lNewETag = SafeFilename(lNewETag.Replace("""", ""))
-                                    lMoveTo &= pETagExt & lNewETag
+                                    lMoveTo = IO.Path.ChangeExtension(lMoveTo, pETagExt & lNewETag & IO.Path.GetExtension(lMoveTo))
                                     lDownloadAs = lMoveTo & pPartialDownloadExtension
                                     If lNewETag.Length > 1 AndAlso _
                                         (lNewETag = lCachedETag OrElse _
-                                            (IO.File.Exists(lMoveTo) AndAlso New IO.FileInfo(lMoveTo).Length > 0)) Then
+                                            (FileSize(lMoveTo) > 0)) Then
                                         ' Cached ETag matches response ETag or other existing file, no need to download.
                                         ' Should not reach here, should have caused 304 exception at GetResponse above.
                                         lSuccess = True
@@ -496,10 +498,17 @@ AfterDownload:
                     End While
                     Try
                         If aIsTile Then
-                            IO.File.Move(lDownloadAs, lMoveTo)
                             WriteTextFile(lMoveTo & pLastCheckedExtension, Format(Date.UtcNow, "yyyy-MM-dd HH:mm:ss"))
-                            TileRAMcacheAddTile(aFileName, lMoveTo, Nothing, -1, -1, False)
-                            aActualFilename = lMoveTo
+                            If IsBadTile(lDownloadAs) Then
+                                IO.File.Delete(lDownloadAs)
+                                IO.File.Create(lMoveTo).Close()
+                                TileRAMcacheAddTile(aFileName, aFileName, Nothing, -1, -1, False)
+                                Return False
+                            Else
+                                IO.File.Move(lDownloadAs, lMoveTo)
+                                TileRAMcacheAddTile(aFileName, lMoveTo, Nothing, -1, -1, False)
+                                aActualFilename = lMoveTo
+                            End If
                         Else
                             IO.File.Move(lDownloadAs, aFileName)
                             aActualFilename = aFileName
