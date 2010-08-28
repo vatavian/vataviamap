@@ -249,16 +249,88 @@ Module modGlobal
                         Optional ByVal aReplaceWith As String = "") As String
         Dim lRetval As String = "" 'return string
         Dim lChr As String 'individual character in filename
-        For i As Integer = 1 To aOriginalFilename.Length
-            lChr = Mid(aOriginalFilename, i, 1)
+        For lIndex As Integer = 1 To aOriginalFilename.Length
+            lChr = Mid(aOriginalFilename, lIndex, 1)
             Select Case Asc(lChr)
                 Case 0 : GoTo EndFound
-                Case Is < 32, 34, 42, 47, 58, 60, 62, 63, 92, 124, Is > 126 : lRetval &= aReplaceWith
+                Case Is < 32, 34, 42, 47, 58, 60, 62, 63, 92, 124, Is > 125 : lRetval &= aReplaceWith
                 Case Else : lRetval &= lChr
             End Select
         Next
 EndFound:
         Return lRetval.Trim
+    End Function
+
+    ''' <summary>
+    ''' Encode dangerous characters in filename into %XX hex digits
+    ''' </summary>
+    ''' <param name="aEncodeMe">Filename to be converted</param>
+    ''' <returns>aEncodeMe with non-printable and non-allowed file name characters replaced with %XX hex digits</returns>
+    Public Function FilenameEncode(ByVal aEncodeMe As String) As String
+        Dim lRetval As New System.Text.StringBuilder
+        For Each lChr As Char In aEncodeMe.ToCharArray
+            Dim lAsc As Integer = Asc(lChr)
+            Select Case lAsc
+                Case 0
+                    GoTo EndFound
+                Case Is < 32, 34, 37, 39, 42, 46, 47, 58, 60, 62, 63, 92, 96, 124, Is > 125
+                    Dim lHex As String = Hex(lAsc)
+                    lRetval.Append("%")
+                    Select Case lHex.Length
+                        Case 0 : lRetval.Append("2D") 'dash, Should never happen, lHex.Length should always be at least 1
+                        Case 1 : lRetval.Append("0" & lHex) 'Left-pad single hex character with a zero
+                        Case 2 : lRetval.Append(lHex)
+                        Case Else : lRetval.Append(lHex.Substring(lHex.Length - 2, 2)) 'Only keep last two hex characters
+                    End Select
+                Case Else
+                    lRetval.Append(lChr)
+            End Select
+        Next
+EndFound:
+        Return lRetval.ToString
+    End Function
+
+    ''' <summary>
+    ''' Decode filename encoded by FilenameEncode so all dangerous characters appear in their original form
+    ''' </summary>
+    ''' <param name="aEncoded">Filename to be converted</param>
+    ''' <returns>aEncoded with non-printable and non-allowed file name characters converted from %XX hex digits back to original form</returns>
+    Public Function FilenameDecode(ByVal aEncoded As String) As String
+        Dim lRetval As New System.Text.StringBuilder
+        Dim lIndex As Integer = 0
+        While lIndex < aEncoded.Length
+            If aEncoded(lIndex) = "%" Then
+                lRetval.Append(Chr(Convert.ToInt32(aEncoded.Substring(lIndex + 1, 2), 16)))
+                lIndex += 3
+            Else
+                lRetval.Append(aEncoded(lIndex))
+                lIndex += 1
+            End If
+        End While
+        Return lRetval.ToString
+    End Function
+
+    ''' <summary>
+    ''' Find information in a filename extension
+    ''' </summary>
+    ''' <param name="aFilename">filename to search</param>
+    ''' <param name="aExtension">extension to search for</param>
+    ''' <returns>decoded information following the specified extension</returns>
+    ''' <remarks>
+    ''' Example: FilenameDecodeExt("3277.Expires.Sat, 22 Aug 2020 13%3A35%3A40 GMT.png", "Expires") 
+    '''                                       = "Sat, 22 Aug 2020 13:35:40 GMT"
+    ''' </remarks>
+    Public Function FilenameDecodeExt(ByVal aFilename As String, ByVal aExtension As String) As String
+        If aFilename IsNot Nothing Then
+            Dim lExtensionStart As Integer = aFilename.IndexOf(aExtension)
+            If lExtensionStart > -1 Then
+                lExtensionStart += aExtension.Length
+                Dim lExtensionEnd As Integer = aFilename.IndexOf(".", lExtensionStart)
+                If lExtensionEnd < 1 Then lExtensionEnd = aFilename.Length
+                Return FilenameDecode(aFilename.Substring(lExtensionStart, lExtensionEnd - lExtensionStart))
+            End If
+        End If
+        Return ""
     End Function
 
     ''' <summary>
@@ -272,7 +344,7 @@ EndFound:
                                  ByVal aZoom As Integer, _
                                  ByVal aUseMarkedTiles As Boolean) As String
         With aTilePoint
-            If ValidTilePoint(aTilePoint, aZoom) Then
+            If g_TileCacheFolder.Length > 0 AndAlso ValidTilePoint(aTilePoint, aZoom) Then
                 Dim lMarked As String = ""
                 If aUseMarkedTiles Then lMarked = g_MarkedPrefix
                 Return g_TileCacheFolder & lMarked & aZoom _
@@ -282,6 +354,18 @@ EndFound:
                 Return ""
             End If
         End With
+    End Function
+
+    Public Function DateTryParse(ByVal aDateString As String, ByRef aDate As Date) As Boolean
+        If aDateString IsNot Nothing AndAlso aDateString.Length > 5 AndAlso aDateString <> "Fri, 01 Jan 1990 00:00:00 GMT" Then
+            Try
+                aDate = Date.Parse(aDateString)
+                Return True
+            Catch
+                Debug.WriteLine("CannotParseDate: " & aDateString)
+            End Try
+        End If
+        Return False
     End Function
 
     Public Function FileSize(ByVal aFilename As String) As Integer

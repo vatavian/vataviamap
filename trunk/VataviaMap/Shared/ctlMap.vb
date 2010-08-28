@@ -1945,7 +1945,7 @@ Public Class ctlMap
         pCellLocationProviders.Add(New clsCellLocationGoogle)
 
         pCursorLayer = New clsLayerGPX("cursor", Me)
-        pCursorLayer.SymbolPen = New Pen(Color.Red)
+        pCursorLayer.SymbolPen = New Pen(Color.Red, 2) 'TODO: make width user-configurable, allow drawing icon as cursor instead of arrow
         pCursorLayer.SymbolSize = GPSSymbolSize
     End Sub
 
