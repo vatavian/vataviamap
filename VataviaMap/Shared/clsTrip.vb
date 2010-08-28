@@ -27,6 +27,49 @@
         NewSegmentMinimumTime = TimeSpan.FromHours(0)
     End Sub
 
+    Public Shared Function DateAndDistanceReport(ByVal aGPX As clsGPX) As String
+        Dim lSB As New System.Text.StringBuilder
+        'lSB.AppendLine("Start" _
+        '    & vbTab & "Hours" _
+        '    & vbTab & "Distance" _
+        '    & vbTab & "AverageSpeedMph")
+        Dim lMetersToMiles As Double = 1 / (0.0254 * 12 * 5280)
+        For Each lTrack As clsGPXtrack In aGPX.trk
+            'lSB.AppendLine("Track " & lTrack.name & ":" & lTrack.number)
+            For Each lTrackSegment As clsGPXtracksegment In lTrack.trkseg
+                Dim lTrackPointOld As clsGPXwaypoint = Nothing
+                Dim lSegmentDistance As Double = 0
+                Dim lSegmentStartTime As Date = Date.MinValue
+                Dim lSegmentEndTime As Date = Date.MinValue
+                For Each lTrackPoint As clsGPXwaypoint In lTrackSegment.trkpt
+                    With lTrackPoint
+                        If lTrackPointOld Is Nothing Then
+                            If lTrackPoint.timeSpecified Then lSegmentStartTime = lTrackPoint.time
+                        Else
+                            If lTrackPoint.timeSpecified Then
+                                If lSegmentStartTime = Date.MinValue Then lSegmentStartTime = lTrackPoint.time
+                                lSegmentEndTime = lTrackPoint.time
+                            End If
+                            lSegmentDistance += MetersBetweenLatLon(lTrackPointOld.lat, lTrackPointOld.lon, .lat, .lon)
+                        End If
+                    End With
+                    lTrackPointOld = lTrackPoint
+                Next
+                If lSegmentDistance > 0 AndAlso lSegmentEndTime > lSegmentStartTime Then
+                    lSegmentDistance *= lMetersToMiles
+                    Dim lSegmentDuration As Double = lSegmentEndTime.Subtract(lSegmentStartTime).TotalHours
+                    Dim lAverageSpeedMph As Double = lSegmentDistance / lSegmentDuration
+                    lSB.AppendLine(lSegmentStartTime.ToShortDateString _
+                        & vbTab & Format(lSegmentDuration, "0.##") _
+                        & vbTab & Format(lSegmentDistance, "0.##") _
+                        & vbTab & Format(lAverageSpeedMph, "0"))
+                End If
+            Next
+        Next
+        Return lSB.ToString
+    End Function
+
+
     ''' <summary>
     ''' Create a report based on the given GPX
     ''' </summary>
@@ -55,7 +98,7 @@
                             Dim lDistanceMiles As Double = lMetersToMiles * MetersBetweenLatLon(lTrackPointOld.lat, lTrackPointOld.lon, .lat, .lon)
                             Dim lTimeElapsed As TimeSpan = .time.Subtract(lTrackPointOld.time)
                             Dim lSpeedMph As Double = lDistanceMiles / lTimeElapsed.TotalHours
-                            lSB.Append(Format(lDistanceMiles, "#,##0.000").PadLeft(9) & Format(lSpeedMph, "##.00").PadLeft(6))
+                            'lSB.Append(Format(lDistanceMiles, "#,##0.000").PadLeft(9) & Format(lSpeedMph, "##.00").PadLeft(6))
                             lTrip.AddSegment(lTrackPointOld.time, lDistanceMiles, lTimeElapsed)
                             For Each lDuration As clsTrip In lTrip.RollingAverages
                                 If lDuration.DurationLimitMet AndAlso lDuration.Segments.Count > 0 Then
