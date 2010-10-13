@@ -164,9 +164,8 @@ Public Class ctlMap
         ' Me.FinishedQueue and Me.DownloadedPoint are also called when appropriate
         Downloader.Listeners.Add(Me)
 
-        'Start the download and upload queue runners
-        Downloader.Enabled = True
-        Uploader.Enabled = True
+        'Start the download queue runner
+        Downloader.Enabled = True        
     End Sub
 
     Public Property ImportOffsetFromUTC() As TimeSpan
@@ -1940,6 +1939,7 @@ Public Class ctlMap
         End Try
 
         SharedNew()
+        Uploader.Enabled = True
 
         pCellLocationProviders.Add(New clsCellLocationOpenCellID)
         pCellLocationProviders.Add(New clsCellLocationGoogle)

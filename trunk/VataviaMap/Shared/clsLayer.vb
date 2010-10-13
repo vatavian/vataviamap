@@ -177,7 +177,17 @@ Public Class clsBuddy
                     End If
                     .sym = IconFilename
                     .name = Name
-                    'TODO: decode timeStamp to GMT
+
+                    Dim lValue As String
+
+                    lValue = GetJSONTagContents(aFileContents, "timeStamp")
+                    If IsNumeric(lValue) Then
+                        Dim lBaseDate As New Date(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)
+                        .time = lBaseDate.AddSeconds(Double.Parse(lValue))
+                    End If
+                    lValue = GetJSONTagContents(aFileContents, "altitude") : If IsNumeric(lValue) Then .ele = lValue
+                    lValue = GetJSONTagContents(aFileContents, "speed") : If IsNumeric(lValue) Then .speed = lValue
+                    lValue = GetJSONTagContents(aFileContents, "heading") : If IsNumeric(lValue) Then .course = lValue
                     Return True
                 End With
             Catch ex As Exception
@@ -248,11 +258,16 @@ Public Class clsBuddy
             Waypoint = New clsGPXwaypoint("wpt", lLat, lLon)
 
             With Waypoint
-                Dim lBaseDate As New Date(1970, 1, 1)
-                .time = lBaseDate.AddSeconds(GetJSONTagContents(aFileContents, "timestamp"))
                 .name = GetJSONTagContents(aFileContents, "device_label")
 
                 Dim lValue As String
+
+                lValue = GetJSONTagContents(aFileContents, "timestamp")
+                If IsNumeric(lValue) Then
+                    Dim lBaseDate As New Date(1970, 1, 1)
+                    .time = lBaseDate.AddSeconds(lValue)
+                End If
+
                 lValue = GetJSONTagContents(aFileContents, "altitude") : If IsNumeric(lValue) Then .ele = lValue
                 lValue = GetJSONTagContents(aFileContents, "speed") : If IsNumeric(lValue) Then .speed = lValue
                 lValue = GetJSONTagContents(aFileContents, "heading") : If IsNumeric(lValue) Then .course = lValue
