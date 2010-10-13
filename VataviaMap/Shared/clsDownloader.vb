@@ -517,7 +517,7 @@ AfterDownload:
                 ElseIf lSkipped Then
                     Dim lSavedModified As Boolean = False
                     If lReplacingFilename.Length > 0 Then
-                        If lReplacingFilename.Contains(pExpiresExt) Then
+                        If lReplacingFilename.IndexOf(pExpiresExt) > -1 Then
                             lSavedModified = True
                         Else
                             lMoveTo = lReplacingFilename
@@ -555,7 +555,7 @@ AfterDownload:
                     End While
                     Try
                         If aIsTile Then
-                            If Not lMoveTo.Contains(pExpiresExt) Then
+                            If Not lMoveTo.IndexOf(pExpiresExt) > -1 Then
                                 WriteTextFile(lMoveTo & pLastCheckedExtension, lNewLastModified)
                             End If
                             If IsBadTile(lDownloadAs) Then

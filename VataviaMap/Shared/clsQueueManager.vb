@@ -132,7 +132,7 @@ NextUpload:
                        ByVal aZoom As Integer, _
               Optional ByVal aPriority As Integer = 0, _
               Optional ByVal aReplaceExisting As Boolean = False)
-        If ValidTilePoint(aTilePoint, aZoom) Then
+        If aPriority >= 0 AndAlso ValidTilePoint(aTilePoint, aZoom) Then
             Dim lFoundMatch As Boolean = False
             pQueueMutex.WaitOne()
             While aPriority >= pQueues.Count

@@ -527,6 +527,13 @@ Public Class frmMap
         pBuddyListForm.AskUser(pMap.Buddies)
     End Sub
 
+    Private Sub pBuddyListForm_Center(ByVal aLatitude As Double, ByVal aLongitude As Double) Handles pBuddyListForm.Center
+        pMap.CenterLat = aLatitude
+        pMap.CenterLon = aLongitude
+        pMap.SanitizeCenterLatLon()
+        pMap.NeedRedraw()
+    End Sub
+
     Private Sub pBuddyListForm_Ok(ByVal aBuddies As System.Collections.Generic.Dictionary(Of String, clsBuddy)) Handles pBuddyListForm.Ok
         pMap.Buddies.Clear()
         pMap.Buddies = aBuddies

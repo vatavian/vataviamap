@@ -300,8 +300,18 @@ EndFound:
         Dim lIndex As Integer = 0
         While lIndex < aEncoded.Length
             If aEncoded(lIndex) = "%" Then
-                lRetval.Append(Chr(Convert.ToInt32(aEncoded.Substring(lIndex + 1, 2), 16)))
-                lIndex += 3
+                If aEncoded.Substring(lIndex + 1, 1) = "_" Then
+                    lRetval.Append(" ")
+                    lIndex += 2
+                Else
+                    Try
+                        lRetval.Append(Chr(Convert.ToInt32(aEncoded.Substring(lIndex + 1, 2), 16)))
+                        lIndex += 3
+                    Catch e As exception
+                        lRetval.Append(aEncoded(lIndex))
+                        lIndex += 1
+                    End Try
+                End If
             Else
                 lRetval.Append(aEncoded(lIndex))
                 lIndex += 1
