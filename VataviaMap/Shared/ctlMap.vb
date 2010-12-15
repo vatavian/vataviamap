@@ -707,6 +707,49 @@ Public Class ctlMap
         End While
     End Sub
 
+    Private Function TilesPointsInView(ByVal aTopLeft As Point, ByVal aBotRight As Point) As SortedList(Of Single, Point)
+        Dim lTilePoints As New SortedList(Of Single, Point)
+        Dim x, y As Integer
+        Dim lMidX As Integer = (aTopLeft.X + aBotRight.X) / 2
+        Dim lMidY As Integer = (aTopLeft.Y + aBotRight.Y) / 2
+        Dim lDistance As Single
+
+        'Loop through each visible tile
+        For x = aTopLeft.X To aBotRight.X
+            For y = aTopLeft.Y To aBotRight.Y
+                Try
+                    lDistance = (x - lMidX) ^ 2 + (y - lMidY) ^ 2
+                    While lTilePoints.ContainsKey(lDistance)
+                        lDistance += 0.1
+                    End While
+                    lTilePoints.Add(lDistance, New Point(x, y))
+                Catch
+                    lDistance = 11
+                    While lTilePoints.ContainsKey(lDistance)
+                        lDistance += 0.1
+                    End While
+                    lTilePoints.Add(lDistance, New Point(x, y))
+                End Try
+            Next
+        Next
+        Return lTilePoints
+    End Function
+
+    Public Sub ReDownloadAllVisibleTiles()
+        Dim lOffsetToCenter As Point
+        Dim lTopLeft As Point
+        Dim lBotRight As Point
+
+        FindTileBounds(New RectangleF(0, 0, Width, Height), lOffsetToCenter, lTopLeft, lBotRight)
+        For Each lTilePoint As Point In TilesPointsInView(lTopLeft, lBotRight).Values
+            Dim lTileFilename As String = TileFilename(lTilePoint, pZoom, False)
+            If lTileFilename.Length > 0 Then
+                Downloader.DeleteTile(lTileFilename)
+                NeedRedraw()
+            End If
+        Next
+    End Sub
+
     ''' <summary>
     ''' Draw all the visible tiles
     ''' </summary>
@@ -724,38 +767,13 @@ Public Class ctlMap
 
         FindTileBounds(g.ClipBounds, lOffsetToCenter, lTopLeft, lBotRight)
 
-        Dim lTilePoint As Point
+        Dim x, y As Integer
         Dim lOffsetFromWindowCorner As Point
 
         'TODO: check available memory before deciding how many tiles to keep in RAM
         Downloader.TileRAMcacheLimit = (lBotRight.X - lTopLeft.X + 1) * (lBotRight.Y - lTopLeft.Y + 1) * 2
 
-        Dim lTilePoints As New SortedList(Of Single, Point)
-        Dim x, y As Integer
-        Dim lMidX As Integer = (lTopLeft.X + lBotRight.X) / 2
-        Dim lMidY As Integer = (lTopLeft.Y + lBotRight.Y) / 2
-        Dim lDistance As Single
-
-        'Loop through each visible tile
-        For x = lTopLeft.X To lBotRight.X
-            For y = lTopLeft.Y To lBotRight.Y
-                Try
-                    lDistance = (x - lMidX) ^ 2 + (y - lMidY) ^ 2
-                    While lTilePoints.ContainsKey(lDistance)
-                        lDistance += 0.1
-                    End While
-                    lTilePoints.Add(lDistance, New Point(x, y))
-                Catch
-                    lDistance = 11
-                    While lTilePoints.ContainsKey(lDistance)
-                        lDistance += 0.1
-                    End While
-                    lTilePoints.Add(lDistance, New Point(x, y))
-                End Try
-            Next
-        Next
-
-        For Each lTilePoint In lTilePoints.Values
+        For Each lTilePoint As Point In TilesPointsInView(lTopLeft, lBotRight).Values
             If pRedrawPending Then Exit Sub
 
             x = lTilePoint.X
