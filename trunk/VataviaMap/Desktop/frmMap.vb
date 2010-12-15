@@ -12,6 +12,9 @@ Public Class frmMap
 
     Private pLastKeyDown As Integer = 0
 
+    Delegate Sub CheckZoomCallback()
+    Private pCheckZoomCallback As New CheckZoomCallback(AddressOf CheckZoom)
+
     Public Sub New()
         Application.CurrentCulture = New Globalization.CultureInfo("")
         InitializeComponent()
@@ -643,6 +646,15 @@ Public Class frmMap
     End Sub
 
     Private Sub pMap_Zoomed() Handles pMap.Zoomed
+        'If running in another thread, can't call directly
+        If Me.InvokeRequired Then
+            Me.Invoke(pCheckZoomCallback)
+        Else
+            CheckZoom()
+        End If
+    End Sub
+
+    Private Sub CheckZoom()
         ZoomToolStripMenuItem.Text = "Zoom " & pMap.Zoom
         For Each lItem As ToolStripMenuItem In ZoomToolStripMenuItem.DropDownItems
             If IsNumeric(lItem.Text) Then
@@ -775,5 +787,9 @@ Public Class frmMap
 
     Private Sub pTimeSpanForm_Changed(ByVal aUTCoffset As System.TimeSpan) Handles pTimeSpanForm.Changed
 
+    End Sub
+
+    Private Sub RefreshAllToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles RefreshAllToolStripMenuItem.Click
+        pMap.ReDownloadAllVisibleTiles()
     End Sub
 End Class

@@ -89,6 +89,7 @@ Partial Class frmMap
         Me.PrintToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.LetterPortraitToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.LetterLandscapeToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.RefreshAllToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.MenuStripMain.SuspendLayout()
         Me.SuspendLayout()
         '
@@ -178,7 +179,7 @@ Partial Class frmMap
         '
         'ViewToolStripMenuItem
         '
-        Me.ViewToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.TileOutlinesToolStripMenuItem, Me.TileNamesToolStripMenuItem, Me.TileImagesToolStripMenuItem, Me.PanToGPXToolStripMenuItem, Me.ZoomToGPXToolStripMenuItem, Me.UseMarkedTilesToolStripMenuItem, Me.CoordinatesToolStripMenuItem, Me.WaypointsToolStripMenuItem, Me.TimeSpanToolStripMenuItem, Me.TimestampToolStripMenuItem, Me.TransparencyToolStripMenuItem})
+        Me.ViewToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.TileOutlinesToolStripMenuItem, Me.TileNamesToolStripMenuItem, Me.TileImagesToolStripMenuItem, Me.PanToGPXToolStripMenuItem, Me.ZoomToGPXToolStripMenuItem, Me.UseMarkedTilesToolStripMenuItem, Me.CoordinatesToolStripMenuItem, Me.WaypointsToolStripMenuItem, Me.TimeSpanToolStripMenuItem, Me.TimestampToolStripMenuItem, Me.TransparencyToolStripMenuItem, Me.RefreshAllToolStripMenuItem})
         Me.ViewToolStripMenuItem.Name = "ViewToolStripMenuItem"
         Me.ViewToolStripMenuItem.Size = New System.Drawing.Size(55, 23)
         Me.ViewToolStripMenuItem.Text = "View"
@@ -186,13 +187,13 @@ Partial Class frmMap
         'TileOutlinesToolStripMenuItem
         '
         Me.TileOutlinesToolStripMenuItem.Name = "TileOutlinesToolStripMenuItem"
-        Me.TileOutlinesToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
+        Me.TileOutlinesToolStripMenuItem.Size = New System.Drawing.Size(319, 24)
         Me.TileOutlinesToolStripMenuItem.Text = "Tile Outlines"
         '
         'TileNamesToolStripMenuItem
         '
         Me.TileNamesToolStripMenuItem.Name = "TileNamesToolStripMenuItem"
-        Me.TileNamesToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
+        Me.TileNamesToolStripMenuItem.Size = New System.Drawing.Size(319, 24)
         Me.TileNamesToolStripMenuItem.Text = "Tile Names"
         '
         'TileImagesToolStripMenuItem
@@ -200,50 +201,50 @@ Partial Class frmMap
         Me.TileImagesToolStripMenuItem.Checked = True
         Me.TileImagesToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked
         Me.TileImagesToolStripMenuItem.Name = "TileImagesToolStripMenuItem"
-        Me.TileImagesToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
+        Me.TileImagesToolStripMenuItem.Size = New System.Drawing.Size(319, 24)
         Me.TileImagesToolStripMenuItem.Text = "Tile Images"
         '
         'PanToGPXToolStripMenuItem
         '
         Me.PanToGPXToolStripMenuItem.Name = "PanToGPXToolStripMenuItem"
-        Me.PanToGPXToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
+        Me.PanToGPXToolStripMenuItem.Size = New System.Drawing.Size(319, 24)
         Me.PanToGPXToolStripMenuItem.Text = "Pan to GPX"
         '
         'ZoomToGPXToolStripMenuItem
         '
         Me.ZoomToGPXToolStripMenuItem.Name = "ZoomToGPXToolStripMenuItem"
-        Me.ZoomToGPXToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
+        Me.ZoomToGPXToolStripMenuItem.Size = New System.Drawing.Size(319, 24)
         Me.ZoomToGPXToolStripMenuItem.Text = "Zoom to GPX"
         '
         'UseMarkedTilesToolStripMenuItem
         '
         Me.UseMarkedTilesToolStripMenuItem.Name = "UseMarkedTilesToolStripMenuItem"
-        Me.UseMarkedTilesToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
+        Me.UseMarkedTilesToolStripMenuItem.Size = New System.Drawing.Size(319, 24)
         Me.UseMarkedTilesToolStripMenuItem.Text = "Use Marked Tiles"
         '
         'CoordinatesToolStripMenuItem
         '
         Me.CoordinatesToolStripMenuItem.Name = "CoordinatesToolStripMenuItem"
-        Me.CoordinatesToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
+        Me.CoordinatesToolStripMenuItem.Size = New System.Drawing.Size(319, 24)
         Me.CoordinatesToolStripMenuItem.Text = "Coordinates"
         '
         'WaypointsToolStripMenuItem
         '
         Me.WaypointsToolStripMenuItem.Name = "WaypointsToolStripMenuItem"
-        Me.WaypointsToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
+        Me.WaypointsToolStripMenuItem.Size = New System.Drawing.Size(319, 24)
         Me.WaypointsToolStripMenuItem.Text = "Waypoints..."
         '
         'TimestampToolStripMenuItem
         '
         Me.TimestampToolStripMenuItem.Name = "TimestampToolStripMenuItem"
-        Me.TimestampToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
+        Me.TimestampToolStripMenuItem.Size = New System.Drawing.Size(319, 24)
         Me.TimestampToolStripMenuItem.Text = "Timestamp"
         '
         'TransparencyToolStripMenuItem
         '
         Me.TransparencyToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.TransparencyNone, Me.Transparency10, Me.Transparency20, Me.Transparency30, Me.Transparency40, Me.Transparency50, Me.Transparency60, Me.Transparency70, Me.Transparency80, Me.Transparency90})
         Me.TransparencyToolStripMenuItem.Name = "TransparencyToolStripMenuItem"
-        Me.TransparencyToolStripMenuItem.Size = New System.Drawing.Size(214, 24)
+        Me.TransparencyToolStripMenuItem.Size = New System.Drawing.Size(319, 24)
         Me.TransparencyToolStripMenuItem.Text = "Transparency"
         '
         'TransparencyNone
@@ -507,6 +508,13 @@ Partial Class frmMap
         Me.LetterLandscapeToolStripMenuItem.Size = New System.Drawing.Size(212, 24)
         Me.LetterLandscapeToolStripMenuItem.Text = "Letter Landscape"
         '
+        'RefreshAllToolStripMenuItem
+        '
+        Me.RefreshAllToolStripMenuItem.Name = "RefreshAllToolStripMenuItem"
+        Me.RefreshAllToolStripMenuItem.ShortcutKeys = CType((System.Windows.Forms.Keys.Control Or System.Windows.Forms.Keys.R), System.Windows.Forms.Keys)
+        Me.RefreshAllToolStripMenuItem.Size = New System.Drawing.Size(319, 24)
+        Me.RefreshAllToolStripMenuItem.Text = "Refresh All From Server"
+        '
         'frmMap
         '
         Me.AllowDrop = True
@@ -590,4 +598,5 @@ Partial Class frmMap
     Friend WithEvents LetterPortraitToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents LetterLandscapeToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents TimeSpanToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents RefreshAllToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
 End Class
