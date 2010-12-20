@@ -227,7 +227,9 @@ Public Class clsServer
                     aCenterLongitude = Double.Parse(ll(1))
                 End If
             End If
-            Return aCenterLatitude <> 0 AndAlso aCenterLongitude <> 0 AndAlso aZoom >= g_TileServer.ZoomMin AndAlso aZoom <= g_TileServer.ZoomMax
+            If aZoom > g_TileServer.ZoomMax Then aZoom = g_TileServer.ZoomMax
+            If aZoom < g_TileServer.ZoomMin Then aZoom = g_TileServer.ZoomMin
+            Return aCenterLatitude <> 0 AndAlso aCenterLongitude <> 0
         Catch
             Return False
         End Try
