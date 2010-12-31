@@ -231,17 +231,7 @@ Public Class frmMap
 
     Private Sub TileServer_Click(ByVal sender As System.Object, ByVal e As System.EventArgs)
         Dim lItemClicked As ToolStripMenuItem = sender
-        For Each lItem As ToolStripMenuItem In TileServerToolStripMenuItem.DropDownItems
-            If lItem.Equals(lItemClicked) Then
-                lItem.Checked = True
-                pMap.TileServerName = lItem.Text
-            ElseIf lItem.Equals(AddTileServerMenuItem) Then
-                Exit For
-            Else
-                lItem.Checked = False
-            End If
-        Next
-        pMap.NeedRedraw()
+        pMap.TileServerName = lItemClicked.Text
     End Sub
 
     Private Sub NewTileServerForm()
@@ -643,6 +633,28 @@ Public Class frmMap
 
     Private Sub pMap_Panned() Handles pMap.Panned
         If pCoordinatesForm IsNot Nothing Then pCoordinatesForm.Show(pMap)
+    End Sub
+
+    Private Sub pMap_StatusChanged(ByVal aStatusMessage As String) Handles pMap.StatusChanged
+        If String.IsNullOrEmpty(aStatusMessage) Then
+            Me.Text = g_AppName & " " & g_TileServer.Name
+        Else
+            Me.Text = aStatusMessage
+        End If
+    End Sub
+
+    Private Sub pMap_TileServerChanged() Handles pMap.TileServerChanged
+        For Each lItem As ToolStripMenuItem In TileServerToolStripMenuItem.DropDownItems
+            If lItem.Text = g_TileServer.Name Then
+                lItem.Checked = True
+            ElseIf lItem.Equals(AddTileServerMenuItem) Then
+                Exit For
+            Else
+                lItem.Checked = False
+            End If
+        Next
+        pMap.NeedRedraw()
+        pMap_StatusChanged(Nothing)
     End Sub
 
     Private Sub pMap_Zoomed() Handles pMap.Zoomed

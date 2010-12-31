@@ -14,6 +14,8 @@ Public Class ctlMap
     Public Event Zoomed()
     Public Event Panned()
     Public Event CenterBehaviorChanged()
+    Public Event TileServerChanged()
+    Public Event StatusChanged(ByVal aStatusMessage As String)
 
     Private pZoom As Integer = 10 'varies from g_TileServer.ZoomMin to g_TileServer.ZoomMax
 
@@ -541,6 +543,7 @@ Public Class ctlMap
                     CenterLon = g_TileServer.LonMin + (g_TileServer.LonMax - g_TileServer.LonMin) / 2
                 End If
                 SanitizeCenterLatLon()
+                RaiseEvent TileServerChanged()
             End If
         End Set
     End Property
@@ -1322,7 +1325,7 @@ Public Class ctlMap
             If IO.Directory.Exists(lFilename) Then
                 OpenFiles(IO.Directory.GetFileSystemEntries(lFilename))
             Else
-                'TODO: show progress to user, when this code was directly in the form we used: Me.Text = "Loading " & lCurFile & "/" & lNumFiles & " '" & IO.Path.GetFileNameWithoutExtension(lFilename) & "'"
+                RaiseEvent StatusChanged("Loading " & lCurFile & "/" & lNumFiles & " '" & IO.Path.GetFileNameWithoutExtension(lFilename) & "'")
                 OpenFile(lFilename)
                 lCurFile += 1
             End If
@@ -1335,6 +1338,7 @@ Public Class ctlMap
         End If
 
         If Not GPXPanTo AndAlso Not GPXZoomTo Then NeedRedraw()
+        RaiseEvent StatusChanged(Nothing)
     End Sub
 
     Public Function OpenFile(ByVal aFilename As String) As clsLayer
@@ -2769,21 +2773,25 @@ RestartRedraw:
                     Zoom -= 1
                 End If
             Case EnumWheelAction.TileServer
-                'TODO:
-                'For lItemIndex As Integer = 0 To TileServerToolStripMenuItem.DropDownItems.Count - 2
-                '    Dim lItem As ToolStripMenuItem = TileServerToolStripMenuItem.DropDownItems(lItemIndex)
-                '    If lItem.Checked Then
-                '        If e.Delta > 0 Then
-                '            lItemIndex += 1
-                '            If lItemIndex >= TileServers.Keys.Count Then lItemIndex = 0
-                '        Else
-                '            lItemIndex -= 1
-                '            If lItemIndex < 0 Then lItemIndex = TileServers.Keys.Count - 1
-                '        End If
-                '        TileServer_Click(TileServerToolStripMenuItem.DropDownItems(lItemIndex), e)
-                '        Exit Sub
-                '    End If
-                'Next
+                Dim lTileServerNames As New Generic.List(Of String)
+                For Each lServer As clsServer In Servers.Values
+                    If Not String.IsNullOrEmpty(lServer.TilePattern) Then
+                        lTileServerNames.Add(lServer.Name)
+                    End If
+                Next
+                If lTileServerNames.Count > 0 Then
+                    Dim lNextServerIndex As Integer = lTileServerNames.IndexOf(g_TileServer.Name)
+                    If e.Delta > 0 Then
+                        lNextServerIndex += 1
+                    Else
+                        lNextServerIndex -= 1
+                    End If
+
+                    If lNextServerIndex >= lTileServerNames.Count Then lNextServerIndex = 0
+                    If lNextServerIndex < 0 Then lNextServerIndex = lTileServerNames.Count - 1
+
+                    TileServerName = lTileServerNames(lNextServerIndex)
+                End If
             Case EnumWheelAction.Layer
                 Dim lVisibleIndex As Integer = -1
                 For lVisibleIndex = 0 To Layers.Count - 1
