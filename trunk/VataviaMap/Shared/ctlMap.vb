@@ -866,7 +866,7 @@ Public Class ctlMap
 
         If GPXShow Then DrawLayers(g, lTopLeft, lOffsetToCenter)
 
-        If pShowCopyright AndAlso pShowTileImages AndAlso g_TileServer.Copyright IsNot Nothing Then
+        If pShowCopyright AndAlso pShowTileImages AndAlso Not String.IsNullOrEmpty(g_TileServer.Copyright) Then
             g.DrawString(g_TileServer.Copyright, pFontCopyright, pBrushCopyright, 3, pBitmap.Height - 20)
         End If
 
