@@ -39,7 +39,9 @@ Public Class clsServer
         Link = aLink
         TilePattern = aTilePattern
         WebmapPattern = aWebmapPattern
-        Copyright = aCopyright.Replace("(C)", "©")
+        If aCopyright IsNot Nothing Then
+            Copyright = aCopyright.Replace("(C)", "©")
+        End If
         ZoomMin = aZoomMin
         ZoomMax = aZoomMax
 
