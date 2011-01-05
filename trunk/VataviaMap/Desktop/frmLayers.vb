@@ -126,7 +126,7 @@ Public Class frmLayers
             pLayers = New Generic.List(Of clsLayer)
         End If
         cboLayerZoom.Items.Clear()
-        For lZoom As Integer = g_TileServer.ZoomMin To g_TileServer.ZoomMax
+        For lZoom As Integer = 0 To 20 ' g_TileServer.ZoomMin To g_TileServer.ZoomMax
             cboLayerZoom.Items.Add(lZoom)
         Next
         pPopulating = False

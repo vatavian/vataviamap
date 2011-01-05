@@ -38,7 +38,7 @@ Public Class frmOpenCellID
             .FileName = "cells.txt"
             If .ShowDialog = Windows.Forms.DialogResult.OK Then
                 Dim lActualFilename As String = Nothing
-                If pDownloader.DownloadFile(clsCellLocationOpenCellID.RawDatabaseURL, .FileName & ".gz", lActualFilename, False) Then
+                If pDownloader.DownloadFile(Nothing, clsCellLocationOpenCellID.RawDatabaseURL, .FileName & ".gz", lActualFilename) Then
                     gunzip(lActualFilename, .FileName)
                     SaveAppSetting("OpenCellIDRaw", .FileName)
                     MsgBox("Downloaded to " & .FileName, , "OpenCellID")

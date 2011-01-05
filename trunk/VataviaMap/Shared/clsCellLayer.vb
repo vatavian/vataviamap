@@ -116,7 +116,7 @@ Public Class clsCellLayer
         Return pFields
     End Function
 
-    Public Overrides Sub Render(ByVal g As Graphics, ByVal aTopLeftTile As Point, ByVal aOffsetToCenter As Point)
+    Public Overrides Sub Render(ByVal aTileServer As clsServer, ByVal g As Graphics, ByVal aTopLeftTile As Point, ByVal aOffsetToCenter As Point)
         If Me.Visible Then
             Dim lDrawLayer As Boolean = True
             If pBounds IsNot Nothing Then
@@ -132,7 +132,7 @@ Public Class clsCellLayer
             If lDrawLayer Then
                 If pGroups IsNot Nothing AndAlso pGroups.Count > 0 Then
                     For Each lGroup As clsLayer In pGroups.Values
-                        lGroup.Render(g, aTopLeftTile, aOffsetToCenter)
+                        lGroup.Render(aTileServer, g, aTopLeftTile, aOffsetToCenter)
                     Next
                 Else
                     Dim lCell As clsCell = Nothing
@@ -171,9 +171,9 @@ Public Class clsCellLayer
 
                     Dim lTileXY As Point 'Which tile this point belongs in
                     Dim lTileOffset As Point 'Offset within lTileXY in pixels
-                    lTileXY = CalcTileXY(pCenterLat, pCenterLon, Map.Zoom, lTileOffset)
-                    Dim lCenterX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileServer.TileSize + aOffsetToCenter.X + lTileOffset.X
-                    Dim lCenterY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileServer.TileSize + aOffsetToCenter.Y + lTileOffset.Y
+                    lTileXY = CalcTileXY(aTileServer, pCenterLat, pCenterLon, Map.Zoom, lTileOffset)
+                    Dim lCenterX As Integer = (lTileXY.X - aTopLeftTile.X) * aTileServer.TileSize + aOffsetToCenter.X + lTileOffset.X
+                    Dim lCenterY As Integer = (lTileXY.Y - aTopLeftTile.Y) * aTileServer.TileSize + aOffsetToCenter.Y + lTileOffset.Y
 
                     Dim lSkip As Integer = pCells.Count / 200
                     Dim lSkipped As Integer = 0
@@ -183,9 +183,9 @@ Public Class clsCellLayer
                         Else
                             lSkipped = 0
                             With lCell
-                                lTileXY = CalcTileXY(.Latitude, .Longitude, Map.Zoom, lTileOffset)
-                                Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileServer.TileSize + aOffsetToCenter.X + lTileOffset.X
-                                Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileServer.TileSize + aOffsetToCenter.Y + lTileOffset.Y
+                                lTileXY = CalcTileXY(aTileServer, .Latitude, .Longitude, Map.Zoom, lTileOffset)
+                                Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * aTileServer.TileSize + aOffsetToCenter.X + lTileOffset.X
+                                Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * aTileServer.TileSize + aOffsetToCenter.Y + lTileOffset.Y
 
                                 g.DrawLine(SymbolPen, lX, lY, lCenterX, lCenterY)
 
@@ -223,16 +223,17 @@ Public Class clsCellLayer
     ''' <param name="aOffsetToCenter"></param>
     ''' <returns>True if waypoint was drawn, False if it was outside view</returns>
     ''' <remarks></remarks>
-    Private Function DrawCell(ByVal g As Graphics, _
+    Private Function DrawCell(ByVal aTileServer As clsServer, _
+                              ByVal g As Graphics, _
                               ByVal aCell As clsCell, _
                               ByVal aTopLeftTile As Point, _
                               ByVal aOffsetToCenter As Point) As Boolean
         With aCell
             Dim lTileXY As Point 'Which tile this point belongs in
             Dim lTileOffset As Point 'Offset within lTileXY in pixels
-            lTileXY = CalcTileXY(.Latitude, .Longitude, Map.Zoom, lTileOffset)
-            Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileServer.TileSize + aOffsetToCenter.X + lTileOffset.X
-            Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileServer.TileSize + aOffsetToCenter.Y + lTileOffset.Y
+            lTileXY = CalcTileXY(aTileServer, .Latitude, .Longitude, Map.Zoom, lTileOffset)
+            Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * aTileServer.TileSize + aOffsetToCenter.X + lTileOffset.X
+            Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * aTileServer.TileSize + aOffsetToCenter.Y + lTileOffset.Y
 
             If Map.Zoom < 16 Then
                 g.DrawLine(SymbolPen, lX - 3, lY - 3, lX + 3, lY + 3)

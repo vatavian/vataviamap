@@ -20,7 +20,7 @@ Public Class frmMap
         InitializeComponent()
 
         'Create zoom level menu items
-        For lZoomLevel As Integer = g_TileServer.ZoomMin To g_TileServer.ZoomMax
+        For lZoomLevel As Integer = pMap.TileServer.ZoomMin To pMap.TileServer.ZoomMax
             Me.ZoomToolStripMenuItem.DropDownItems.Add(New ToolStripMenuItem(CStr(lZoomLevel), Nothing, New EventHandler(AddressOf ZoomToolStripMenuItem_Click)))
         Next
 
@@ -247,7 +247,7 @@ Public Class frmMap
 
     Private Sub AddTileServerMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles AddTileServerMenuItem.Click
         NewTileServerForm()
-        pTileServerForm.AskUser("Add New Tile Server", g_TileServer.Name, g_TileServer.TilePattern, False, g_TileServerExampleLabel, g_TileServerExampleFile)
+        pTileServerForm.AskUser("Add New Tile Server", pMap.TileServer.Name, pMap.TileServer.TilePattern, False, g_TileServerExampleLabel, g_TileServerExampleFile)
         'http://opentiles.appspot.com/tile/get/ma/' 12/1242/1512.png
     End Sub
 
@@ -272,7 +272,7 @@ Public Class frmMap
 
     Private Sub pTileServerForm_Remove(ByVal aOriginalName As String) Handles pTileServerForm.Remove
         pMap.Servers.Remove(aOriginalName)
-        If g_TileServer.Name = aOriginalName AndAlso pMap.Servers.Count > 0 Then
+        If pMap.TileServer.Name = aOriginalName AndAlso pMap.Servers.Count > 0 Then
             'If we just removed the current tile server, set to the first one left
             For Each lName As String In pMap.Servers.Keys
                 pMap.TileServerName = lName
@@ -290,7 +290,7 @@ Public Class frmMap
             If Not String.IsNullOrEmpty(lServer.TilePattern) Then
                 Dim lNewItem As New ToolStripMenuItem(lServer.Name)
                 AddHandler lNewItem.Click, AddressOf TileServer_Click
-                If lServer.Name = g_TileServer.Name Then lNewItem.Checked = True
+                If lServer.Name = pMap.TileServer.Name Then lNewItem.Checked = True
                 TileServerToolStripMenuItem.DropDownItems.Add(lNewItem)
 
                 Dim lNewEditItem As New ToolStripMenuItem(lServer.Name)
@@ -320,7 +320,7 @@ Public Class frmMap
 
     Private Sub OverlayMaplintToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles OverlayMaplintToolStripMenuItem.Click
         'TODO:
-        'g_TileServerTransparentURL = "http://tah.openstreetmap.org/Tiles/maplint/"
+        'pMap.g_TileServerTransparentURL = "http://tah.openstreetmap.org/Tiles/maplint/"
         'OverlayMaplintToolStripMenuItem.Checked = Not OverlayMaplintToolStripMenuItem.Checked
         'If OverlayMaplintToolStripMenuItem.Checked Then
         '    OverlayYahooLabelsToolStripMenuItem.Checked = False
@@ -333,7 +333,7 @@ Public Class frmMap
 
     Private Sub OverlayYahooLabelsToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles OverlayYahooLabelsToolStripMenuItem.Click
         ''TODO: manage transparent tile server like main tile server, add Transparent field to server type
-        ''g_TileServerTransparentURL = "..."
+        ''pMap.g_TileServerTransparentURL = "..."
         'OverlayYahooLabelsToolStripMenuItem.Checked = Not OverlayYahooLabelsToolStripMenuItem.Checked
         'If OverlayYahooLabelsToolStripMenuItem.Checked Then
         '    OverlayMaplintToolStripMenuItem.Checked = False
@@ -398,7 +398,7 @@ Public Class frmMap
             Dim lSaveTitle As String = Me.Text
             Me.Text = "Downloading http://josm.openstreetmap.de/josm-tested.jar ..."
             Application.DoEvents()
-            If Not pMap.Downloader.DownloadFile("http://josm.openstreetmap.de/josm-tested.jar", lJosmFilename, lActualFilename, False) Then
+            If Not pMap.Downloader.DownloadFile(Nothing, "http://josm.openstreetmap.de/josm-tested.jar", lJosmFilename, lActualFilename) Then
                 MsgBox("Please manually download JOSM from" & vbCrLf & "http://josm.openstreetmap.de/" & vbCrLf & "and save as " & vbCrLf & lJosmFilename, MsgBoxStyle.OkOnly, "Unable to download JOSM")
             End If
             Me.Text = lSaveTitle
@@ -567,7 +567,7 @@ Public Class frmMap
             & "&open=yes"
         Dim lBugsGPXfilename As String = IO.Path.Combine(My.Computer.FileSystem.SpecialDirectories.MyDocuments, "bugs.gpx")
         Dim lActualFilename As String = Nothing
-        If pMap.Downloader.DownloadFile(lBugsGPXurl, lBugsGPXfilename, lActualFilename, False) Then
+        If pMap.Downloader.DownloadFile(Nothing, lBugsGPXurl, lBugsGPXfilename, lActualFilename) Then
             pMap.OpenFile(lActualFilename)
             'TODO: set .LabelField = "desc"
         End If
@@ -637,7 +637,7 @@ Public Class frmMap
 
     Private Sub pMap_StatusChanged(ByVal aStatusMessage As String) Handles pMap.StatusChanged
         If String.IsNullOrEmpty(aStatusMessage) Then
-            Me.Text = g_AppName & " " & g_TileServer.Name
+            Me.Text = g_AppName & " " & pMap.TileServer.Name
         Else
             Me.Text = aStatusMessage
         End If
@@ -645,7 +645,7 @@ Public Class frmMap
 
     Private Sub pMap_TileServerChanged() Handles pMap.TileServerChanged
         For Each lItem As ToolStripMenuItem In TileServerToolStripMenuItem.DropDownItems
-            If lItem.Text = g_TileServer.Name Then
+            If lItem.Text = pMap.TileServer.Name Then
                 lItem.Checked = True
             ElseIf lItem.Equals(AddTileServerMenuItem) Then
                 Exit For

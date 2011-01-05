@@ -4,6 +4,18 @@ Public Class ctlMap
     Public CenterLat As Double = 33.8
     Public CenterLon As Double = -84.3
 
+    ''' <summary>
+    ''' Tile server for opaque background map
+    ''' </summary>
+    ''' <remarks></remarks>
+    Public TileServer As New clsServer("OpenStreetMap", _
+                                       "http://openstreetmap.org/", _
+                                       "http://{abc}.tile.openstreetmap.org/{Zoom}/{X}/{Y}.png", _
+                                       "http://www.openstreetmap.org/?lat={Lat}&lon={Lon}&zoom={Zoom}", _
+                                       "© OpenStreetMap")
+
+    Public TransparentTileServers As New Generic.List(Of clsServer)
+
     Public LatHeight As Double 'Height of map display area in latitude degrees
     Public LonWidth As Double  'Width of map display area in longitude degrees
     'bounds of map display area
@@ -167,7 +179,7 @@ Public Class ctlMap
         Downloader.Listeners.Add(Me)
 
         'Start the download queue runner
-        Downloader.Enabled = True        
+        Downloader.Enabled = True
     End Sub
 
     Public Property ImportOffsetFromUTC() As TimeSpan
@@ -363,7 +375,7 @@ Public Class ctlMap
                     Loop
 
                     'TileCacheFolder gets set earlier
-                    lTileServerName = .GetValue("TileServer", g_TileServer.Name)
+                    lTileServerName = .GetValue("TileServer", TileServer.Name)
                     g_UploadPointURL = .GetValue("UploadPointURL", g_UploadPointURL)
                     g_UploadTrackURL = .GetValue("UploadTrackURL", g_UploadTrackURL)
 
@@ -424,7 +436,7 @@ Public Class ctlMap
     Public Sub SetDefaultTileServers()
         Dim lTileServersFilename As String = pTileCacheFolder & "servers.html"
         If IO.File.Exists(lTileServersFilename) OrElse _
-           Downloader.DownloadFile("http://vatavia.net/mark/VataviaMap/servers.html", lTileServersFilename, lTileServersFilename, False) Then
+           Downloader.DownloadFile(Nothing, "http://vatavia.net/mark/VataviaMap/servers.html", lTileServersFilename, lTileServersFilename) Then
             Dim lServersHTML As String = ReadTextFile(lTileServersFilename) 'TODO: embed default version of servers.html?
             Servers = clsServer.ReadServers(lServersHTML)
         End If
@@ -480,7 +492,7 @@ Public Class ctlMap
                     If IO.Directory.Exists(pTileCacheFolder) Then
                         .SetValue("TileCacheFolder", pTileCacheFolder)
                     End If
-                    .SetValue("TileServer", g_TileServer.Name)
+                    .SetValue("TileServer", TileServer.Name)
                     .SetValue("Zoom", Zoom)
 
                     .SetValue("GPXShow", GPXShow)
@@ -523,24 +535,24 @@ Public Class ctlMap
 
     Public Property TileServerName() As String
         Get
-            Return g_TileServer.Name
+            Return TileServer.Name
         End Get
         Set(ByVal value As String)
             If Servers IsNot Nothing AndAlso Servers.ContainsKey(value) Then
-                g_TileServer = Servers(value)
+                TileServer = Servers(value)
                 If Downloader IsNot Nothing Then Downloader.ClearQueue(QueueItemType.TileItem, -1)
-                Me.Text = g_AppName & " " & g_TileServer.Name
+                Me.Text = g_AppName & " " & TileServer.Name
                 SetCacheFolderFromTileServer()
 
                 'If new server does not cover the area we were looking at, pan to center of area new server covers
-                If CenterLat > g_TileServer.LatMax OrElse _
-                   CenterLat < g_TileServer.LatMin Then
-                    CenterLat = g_TileServer.LatMin + (g_TileServer.LatMax - g_TileServer.LatMin) / 2
+                If CenterLat > TileServer.LatMax OrElse _
+                   CenterLat < TileServer.LatMin Then
+                    CenterLat = TileServer.LatMin + (TileServer.LatMax - TileServer.LatMin) / 2
                 End If
 
-                If CenterLon > g_TileServer.LonMax OrElse _
-                   CenterLon < g_TileServer.LonMin Then
-                    CenterLon = g_TileServer.LonMin + (g_TileServer.LonMax - g_TileServer.LonMin) / 2
+                If CenterLon > TileServer.LonMax OrElse _
+                   CenterLon < TileServer.LonMin Then
+                    CenterLon = TileServer.LonMin + (TileServer.LonMax - TileServer.LonMin) / 2
                 End If
                 SanitizeCenterLatLon()
                 RaiseEvent TileServerChanged()
@@ -549,7 +561,7 @@ Public Class ctlMap
     End Property
 
     Private Sub SetCacheFolderFromTileServer()
-        g_TileCacheFolder = pTileCacheFolder & SafeFilename(g_TileServer.Name.Replace(" ", "")) & g_PathChar
+        g_TileCacheFolder = pTileCacheFolder & SafeFilename(TileServer.Name.Replace(" ", "")) & g_PathChar
         g_BadTileSize = FileSize(g_TileCacheFolder & "unavailable")
     End Sub
 
@@ -564,7 +576,7 @@ Public Class ctlMap
             Dim lSouth As Double = 0
             Dim lEast As Double = 0
 
-            If clsServer.ParseWebmapURL(aURL, lLat, lLon, lZoom, lNorth, lWest, lSouth, lEast) Then
+            If TileServer.ParseWebmapURL(aURL, lLat, lLon, lZoom, lNorth, lWest, lSouth, lEast) Then
                 CenterLat = lLat
                 CenterLon = lLon
                 SanitizeCenterLatLon()
@@ -593,10 +605,10 @@ Public Class ctlMap
         Set(ByVal value As Integer)
             If value <> pZoom Then
                 Downloader.ClearQueue(QueueItemType.TileItem, -1)
-                If value > g_TileServer.ZoomMax Then
-                    pZoom = g_TileServer.ZoomMax
-                ElseIf value < g_TileServer.ZoomMin Then
-                    pZoom = g_TileServer.ZoomMin
+                If value > TileServer.ZoomMax Then
+                    pZoom = TileServer.ZoomMax
+                ElseIf value < TileServer.ZoomMin Then
+                    pZoom = TileServer.ZoomMin
                 Else
                     'ZoomPreview(value)
                     pZoom = value
@@ -670,11 +682,11 @@ Public Class ctlMap
                                ByRef aOffsetToCenter As Point, _
                                ByRef aTopLeft As Point, ByRef aBotRight As Point)
         Dim lOffsetFromTileEdge As Point
-        Dim lCentermostTile As Point = CalcTileXY(CenterLat, CenterLon, pZoom, lOffsetFromTileEdge)
+        Dim lCentermostTile As Point = CalcTileXY(TileServer, CenterLat, CenterLon, pZoom, lOffsetFromTileEdge)
         Dim lNorth As Double, lWest As Double, lSouth As Double, lEast As Double
         CalcLatLonFromTileXY(lCentermostTile, pZoom, lNorth, lWest, lSouth, lEast)
-        LatHeight = (lNorth - lSouth) * aBounds.Height / g_TileServer.TileSize
-        LonWidth = (lEast - lWest) * aBounds.Width / g_TileServer.TileSize
+        LatHeight = (lNorth - lSouth) * aBounds.Height / TileServer.TileSize
+        LonWidth = (lEast - lWest) * aBounds.Width / TileServer.TileSize
         SanitizeCenterLatLon()
 
         aTopLeft = New Point(lCentermostTile.X, lCentermostTile.Y)
@@ -682,7 +694,7 @@ Public Class ctlMap
         'Move west until we find the edge of g, TODO: find faster with mod?
         While x > 0
             aTopLeft.X -= 1
-            x -= g_TileServer.TileSize
+            x -= TileServer.TileSize
         End While
         aOffsetToCenter.X = x
 
@@ -690,23 +702,23 @@ Public Class ctlMap
         'Move north until we find the edge of g, TODO: find faster with mod?
         While y > 0
             aTopLeft.Y -= 1
-            y -= g_TileServer.TileSize
+            y -= TileServer.TileSize
         End While
         aOffsetToCenter.Y = y
 
         aBotRight = New Point(lCentermostTile.X, lCentermostTile.Y)
-        x = (aBounds.Width / 2) - lOffsetFromTileEdge.X + g_TileServer.TileSize
+        x = (aBounds.Width / 2) - lOffsetFromTileEdge.X + TileServer.TileSize
         'Move east until we find the edge of g, TODO: find faster with mod?
         While x < aBounds.Width
             aBotRight.X += 1
-            x += g_TileServer.TileSize
+            x += TileServer.TileSize
         End While
 
-        y = (aBounds.Height / 2) - lOffsetFromTileEdge.Y + g_TileServer.TileSize
+        y = (aBounds.Height / 2) - lOffsetFromTileEdge.Y + TileServer.TileSize
         'Move south until we find the edge of g, TODO: find faster with mod?
         While y < aBounds.Height
             aBotRight.Y += 1
-            y += g_TileServer.TileSize
+            y += TileServer.TileSize
         End While
     End Sub
 
@@ -745,7 +757,7 @@ Public Class ctlMap
 
         FindTileBounds(New RectangleF(0, 0, Width, Height), lOffsetToCenter, lTopLeft, lBotRight)
         For Each lTilePoint As Point In TilesPointsInView(lTopLeft, lBotRight).Values
-            Dim lTileFilename As String = TileFilename(lTilePoint, pZoom, False)
+            Dim lTileFilename As String = TileServer.TileFilename(lTilePoint, pZoom, False)
             If lTileFilename.Length > 0 Then
                 Downloader.DeleteTile(lTileFilename)
                 NeedRedraw()
@@ -760,8 +772,8 @@ Public Class ctlMap
     Private Sub DrawTiles(ByVal g As Graphics)
         'TODO: add transparency as property of clsServer instead of testing names here
         If Not pShowTransparentTiles AndAlso _
-            (g_TileServer.TilePattern.IndexOf("/maplint/") >= 0 OrElse _
-             g_TileServer.TilePattern.IndexOf("toposm.com/co") >= 0) Then
+            (TileServer.TilePattern.IndexOf("/maplint/") >= 0 OrElse _
+             TileServer.TilePattern.IndexOf("toposm.com/co") >= 0) Then
             g.Clear(Color.White)
         End If
         Dim lOffsetToCenter As Point
@@ -782,8 +794,8 @@ Public Class ctlMap
             x = lTilePoint.X
             y = lTilePoint.Y
 
-            lOffsetFromWindowCorner.X = (x - lTopLeft.X) * g_TileServer.TileSize + lOffsetToCenter.X
-            lOffsetFromWindowCorner.Y = (y - lTopLeft.Y) * g_TileServer.TileSize + lOffsetToCenter.Y
+            lOffsetFromWindowCorner.X = (x - lTopLeft.X) * TileServer.TileSize + lOffsetToCenter.X
+            lOffsetFromWindowCorner.Y = (y - lTopLeft.Y) * TileServer.TileSize + lOffsetToCenter.Y
 
             Dim lDrewTile As Boolean = DrawTile(lTilePoint, pZoom, g, lOffsetFromWindowCorner, 0)
 
@@ -794,11 +806,11 @@ Public Class ctlMap
                 Dim lY As Integer = y
                 Dim lNextX As Integer
                 Dim lNextY As Integer
-                Dim lZoomedTilePortion As Integer = g_TileServer.TileSize
+                Dim lZoomedTilePortion As Integer = TileServer.TileSize
                 Dim lFromX As Integer = 0
                 Dim lFromY As Integer = 0
-                Dim lRectOrigTile As New Rectangle(lOffsetFromWindowCorner.X, lOffsetFromWindowCorner.Y, g_TileServer.TileSize, g_TileServer.TileSize)
-                Dim lZoomMin As Integer = Math.Max(g_TileServer.ZoomMin, pZoom - 4)
+                Dim lRectOrigTile As New Rectangle(lOffsetFromWindowCorner.X, lOffsetFromWindowCorner.Y, TileServer.TileSize, TileServer.TileSize)
+                Dim lZoomMin As Integer = Math.Max(TileServer.ZoomMin, pZoom - 4)
                 For lZoom = pZoom - 1 To lZoomMin Step -1
                     'Tile coordinates of next zoom out are half
                     lNextX = lX >> 1
@@ -812,8 +824,8 @@ Public Class ctlMap
                     lFromY >>= 1
 
                     'If zoomed from an odd-numbered tile, it was in the right and/or bottom half of next zoom out
-                    If lX > lNextX << 1 Then lFromX += g_TileServer.HalfTileSize
-                    If lY > lNextY << 1 Then lFromY += g_TileServer.HalfTileSize
+                    If lX > lNextX << 1 Then lFromX += TileServer.HalfTileSize
+                    If lY > lNextY << 1 Then lFromY += TileServer.HalfTileSize
 
                     If DrawTile(New Drawing.Point(lNextX, lNextY), lZoom, g, lRectOrigTile, _
                                 New Rectangle(lFromX, lFromY, lZoomedTilePortion, lZoomedTilePortion), -1) Then
@@ -823,34 +835,34 @@ Public Class ctlMap
                     lY = lNextY
                 Next
 
-                If pZoom < g_TileServer.ZoomMax Then ' Try to draw tiles within this tile at finer zoom level
+                If pZoom < TileServer.ZoomMax Then ' Try to draw tiles within this tile at finer zoom level
                     lZoom = pZoom + 1
                     Dim lDoubleX As Integer = x << 1
                     Dim lFineTilePoint As New Drawing.Point(lDoubleX, y << 1)
                     ' Portion of the tile covered by a finer zoom tile
                     Dim lRectDestination As New Rectangle(lOffsetFromWindowCorner.X, _
                                                           lOffsetFromWindowCorner.Y, _
-                                                          g_TileServer.HalfTileSize, g_TileServer.HalfTileSize)
+                                                          TileServer.HalfTileSize, TileServer.HalfTileSize)
 
                     ' upper left tile
-                    If Not DrawTile(lFineTilePoint, lZoom, g, lRectDestination, g_TileServer.TileSizeRect, -1) Then
+                    If Not DrawTile(lFineTilePoint, lZoom, g, lRectDestination, TileServer.TileSizeRect, -1) Then
                         'TODO: four tiles at next finer zoom level, at this and other three DrawTile below
                     End If
 
                     ' upper right tile
                     lFineTilePoint.X += 1
-                    lRectDestination.X = lOffsetFromWindowCorner.X + g_TileServer.HalfTileSize
-                    DrawTile(lFineTilePoint, lZoom, g, lRectDestination, g_TileServer.TileSizeRect, -1)
+                    lRectDestination.X = lOffsetFromWindowCorner.X + TileServer.HalfTileSize
+                    DrawTile(lFineTilePoint, lZoom, g, lRectDestination, TileServer.TileSizeRect, -1)
 
                     ' lower right tile
                     lFineTilePoint.Y += 1
-                    lRectDestination.Y = lOffsetFromWindowCorner.Y + g_TileServer.HalfTileSize
-                    DrawTile(lFineTilePoint, lZoom, g, lRectDestination, g_TileServer.TileSizeRect, -1)
+                    lRectDestination.Y = lOffsetFromWindowCorner.Y + TileServer.HalfTileSize
+                    DrawTile(lFineTilePoint, lZoom, g, lRectDestination, TileServer.TileSizeRect, -1)
 
                     ' lower left tile
                     lFineTilePoint.X = lDoubleX
                     lRectDestination.X = lOffsetFromWindowCorner.X
-                    DrawTile(lFineTilePoint, lZoom, g, lRectDestination, g_TileServer.TileSizeRect, -1)
+                    DrawTile(lFineTilePoint, lZoom, g, lRectDestination, TileServer.TileSizeRect, -1)
                 End If
             End If
         Next
@@ -866,8 +878,8 @@ Public Class ctlMap
 
         If GPXShow Then DrawLayers(g, lTopLeft, lOffsetToCenter)
 
-        If pShowCopyright AndAlso pShowTileImages AndAlso Not String.IsNullOrEmpty(g_TileServer.Copyright) Then
-            g.DrawString(g_TileServer.Copyright, pFontCopyright, pBrushCopyright, 3, pBitmap.Height - 20)
+        If pShowCopyright AndAlso pShowTileImages AndAlso Not String.IsNullOrEmpty(TileServer.Copyright) Then
+            g.DrawString(TileServer.Copyright, pFontCopyright, pBrushCopyright, 3, pBitmap.Height - 20)
         End If
 
         If pShowDate OrElse pShowURL.Length > 0 Then
@@ -906,12 +918,12 @@ Public Class ctlMap
             For y As Integer = lTopLeft.Y To lBotRight.Y
                 TilePoint = New Point(x, y)
 
-                lOffsetFromWindowCorner.X = (x - lTopLeft.X) * g_TileServer.TileSize + lOffsetToCenter.X
-                lOffsetFromWindowCorner.Y = (y - lTopLeft.Y) * g_TileServer.TileSize + lOffsetToCenter.Y
+                lOffsetFromWindowCorner.X = (x - lTopLeft.X) * TileServer.TileSize + lOffsetToCenter.X
+                lOffsetFromWindowCorner.Y = (y - lTopLeft.Y) * TileServer.TileSize + lOffsetToCenter.Y
 
                 With lOffsetFromWindowCorner
-                    If .X <= aX AndAlso .X + g_TileServer.TileSize >= aX AndAlso .Y <= aY AndAlso .Y + g_TileServer.TileSize >= aY Then
-                        Return TileFilename(TilePoint, pZoom, False)
+                    If .X <= aX AndAlso .X + TileServer.TileSize >= aX AndAlso .Y <= aY AndAlso .Y + TileServer.TileSize >= aY Then
+                        Return TileServer.TileFilename(TilePoint, pZoom, False)
                     End If
                 End With
             Next
@@ -927,7 +939,7 @@ Public Class ctlMap
     ''' <param name="aTileFilename"></param>
     ''' <remarks></remarks>
     Public Sub DownloadedTile(ByVal aTilePoint As Point, ByVal aZoom As Integer, ByVal aTileFilename As String, ByVal aTileServerURL As String) Implements IQueueListener.DownloadedTile
-        If aTileServerURL = g_TileServer.TilePattern AndAlso aZoom = pZoom Then
+        If aTileServerURL = TileServer.TilePattern AndAlso aZoom = pZoom Then
             NeedRedraw()
             'pRedrawWhenFinishedQueue = True
             'Just draw the tile downloaded, not the whole display
@@ -1044,7 +1056,7 @@ Public Class ctlMap
         If Layers IsNot Nothing AndAlso Layers.Count > 0 Then
             For Each lLayer As clsLayer In Layers
                 If pRedrawPending Then Exit Sub
-                lLayer.Render(g, aTopLeftTile, aOffsetToCenter)
+                lLayer.Render(TileServer, g, aTopLeftTile, aOffsetToCenter)
             Next
         End If
         If Buddies IsNot Nothing AndAlso Buddies.Count > 0 Then
@@ -1062,7 +1074,7 @@ Public Class ctlMap
             If lWaypoints.Count > 0 Then
                 Dim lLayer As New clsLayerGPX(lWaypoints, Me)
                 lLayer.LabelField = "name"
-                lLayer.Render(g, aTopLeftTile, aOffsetToCenter)
+                lLayer.Render(TileServer, g, aTopLeftTile, aOffsetToCenter)
             End If
         End If
     End Sub
@@ -1083,18 +1095,18 @@ Public Class ctlMap
             If pShowTileImages Then
                 Dim lTileImage As Bitmap = TileBitmap(aTilePoint, aZoom, aPriority)
                 If lTileImage IsNot Nothing Then
-                    Dim lDestRect As New Rectangle(aOffset.X, aOffset.Y, g_TileServer.TileSize, g_TileServer.TileSize)
-                    Dim lSrcRect As New Rectangle(0, 0, g_TileServer.TileSize, g_TileServer.TileSize)
+                    Dim lDestRect As New Rectangle(aOffset.X, aOffset.Y, TileServer.TileSize, TileServer.TileSize)
+                    Dim lSrcRect As New Rectangle(0, 0, TileServer.TileSize, TileServer.TileSize)
                     g.DrawImage(lTileImage, lDestRect, lSrcRect, GraphicsUnit.Pixel)
                     lDrewImage = True
                 End If
             End If
             If pClearDelayedTiles AndAlso Not lDrewImage Then
-                g.FillRectangle(pBrushWhite, aOffset.X, aOffset.Y, g_TileServer.TileSize, g_TileServer.TileSize)
+                g.FillRectangle(pBrushWhite, aOffset.X, aOffset.Y, TileServer.TileSize, TileServer.TileSize)
             End If
-            If pShowTileOutlines Then g.DrawRectangle(pPenBlack, aOffset.X, aOffset.Y, g_TileServer.TileSize, g_TileServer.TileSize)
+            If pShowTileOutlines Then g.DrawRectangle(pPenBlack, aOffset.X, aOffset.Y, TileServer.TileSize, TileServer.TileSize)
             If pShowTileNames Then
-                Dim lTileFileName As String = TileFilename(aTilePoint, aZoom, False)
+                Dim lTileFileName As String = TileServer.TileFilename(aTilePoint, aZoom, False)
                 If lTileFileName.Length > 0 Then
                     g.DrawString(lTileFileName.Substring(g_TileCacheFolder.Length).Replace(g_TileExtension, ""), _
                                  pFontTileLabel, _
@@ -1145,16 +1157,16 @@ Public Class ctlMap
     ''' returns unmarked tile if marked was requested but not available
     ''' </remarks>
     Private Function TileBitmap(ByVal aTilePoint As Point, ByVal aZoom As Integer, ByVal aPriority As Integer) As Bitmap
-        Dim lTileFileName As String = TileFilename(aTilePoint, aZoom, pUseMarkedTiles)
+        Dim lTileFileName As String = TileServer.TileFilename(aTilePoint, aZoom, pUseMarkedTiles)
         If lTileFileName.Length = 0 Then
             Return Nothing
         Else
-            Dim lTileImage As Bitmap = Downloader.GetTileBitmap(lTileFileName, aTilePoint, aZoom, aPriority, False)
+            Dim lTileImage As Bitmap = Downloader.GetTileBitmap(TileServer, lTileFileName, aTilePoint, aZoom, aPriority, False)
 
             'Fall back to using unmarked tile if we have it but not a marked version
             If pUseMarkedTiles AndAlso lTileImage Is Nothing Then
-                lTileFileName = TileFilename(aTilePoint, pZoom, False)
-                lTileImage = Downloader.GetTileBitmap(lTileFileName, aTilePoint, aZoom, aPriority, False)
+                lTileFileName = TileServer.TileFilename(aTilePoint, pZoom, False)
+                lTileImage = Downloader.GetTileBitmap(TileServer, lTileFileName, aTilePoint, aZoom, aPriority, False)
             End If
             Return lTileImage
         End If
@@ -1175,14 +1187,14 @@ Public Class ctlMap
             CenterLon += 360
         End While
 
-        If CenterLat > g_TileServer.LatMax Then CenterLat = g_TileServer.LatMax
-        If CenterLat < g_TileServer.LatMin Then CenterLat = g_TileServer.LatMin
+        If CenterLat > TileServer.LatMax Then CenterLat = TileServer.LatMax
+        If CenterLat < TileServer.LatMin Then CenterLat = TileServer.LatMin
 
-        If CenterLon > g_TileServer.LonMax Then CenterLon = g_TileServer.LonMax
-        If CenterLon < g_TileServer.LonMin Then CenterLon = g_TileServer.LonMin
+        If CenterLon > TileServer.LonMax Then CenterLon = TileServer.LonMax
+        If CenterLon < TileServer.LonMin Then CenterLon = TileServer.LonMin
 
-        If pZoom > g_TileServer.ZoomMax Then Zoom = g_TileServer.ZoomMax
-        If pZoom < g_TileServer.ZoomMin Then Zoom = g_TileServer.ZoomMin
+        If pZoom > TileServer.ZoomMax Then Zoom = TileServer.ZoomMax
+        If pZoom < TileServer.ZoomMin Then Zoom = TileServer.ZoomMin
 
         LatMin = CenterLat - LatHeight / 2
         LatMax = CenterLat + LatHeight / 2
@@ -1215,19 +1227,19 @@ Public Class ctlMap
         e.Handled = True
         Dim lNeedRedraw As Boolean = True
         Select Case e.KeyCode
-            Case Keys.Right : CenterLon += MetersPerPixel(Zoom) * Me.Width / g_CircumferenceOfEarth * 180
-            Case Keys.Left : CenterLon -= MetersPerPixel(Zoom) * Me.Width / g_CircumferenceOfEarth * 180
+            Case Keys.Right : CenterLon += MetersPerPixel(Zoom, TileServer.TileSize) * Me.Width / g_CircumferenceOfEarth * 180
+            Case Keys.Left : CenterLon -= MetersPerPixel(Zoom, TileServer.TileSize) * Me.Width / g_CircumferenceOfEarth * 180
             Case Keys.Up
                 If pLastKeyDown = 131 Then 'using scroll wheel
                     Zoom += 1 : lNeedRedraw = False
                 Else
-                    CenterLat += MetersPerPixel(Zoom) * Me.Height / g_CircumferenceOfEarth * 90
+                    CenterLat += MetersPerPixel(Zoom, TileServer.TileSize) * Me.Height / g_CircumferenceOfEarth * 90
                 End If
             Case Keys.Down
                 If pLastKeyDown = 131 Then 'using scroll wheel
                     Zoom -= 1 : lNeedRedraw = False
                 Else
-                    CenterLat -= MetersPerPixel(Zoom) * Me.Height / g_CircumferenceOfEarth * 90
+                    CenterLat -= MetersPerPixel(Zoom, TileServer.TileSize) * Me.Height / g_CircumferenceOfEarth * 90
                 End If
             Case Keys.A : Zoom -= 1 : lNeedRedraw = False
             Case Keys.Q : Zoom += 1 : lNeedRedraw = False
@@ -1253,7 +1265,7 @@ Public Class ctlMap
                 ElseIf e.Y > Me.Height - pControlsMargin Then
                     Zoom -= 1 : lNeedRedraw = False 'Bottom Left Corner, zoom out
                 Else 'Left Edge, pan left
-                    CenterLon -= MetersPerPixel(pZoom) * Me.Width / g_CircumferenceOfEarth * 180
+                    CenterLon -= MetersPerPixel(pZoom, TileServer.TileSize) * Me.Width / g_CircumferenceOfEarth * 180
                 End If
             ElseIf e.X > Me.Width - pControlsMargin Then
                 If e.Y < pControlsMargin Then 'Top Right Corner, zoom in
@@ -1261,12 +1273,12 @@ Public Class ctlMap
                 ElseIf e.Y > Me.Height - pControlsMargin Then
                     Zoom -= 1 : lNeedRedraw = False 'Bottom Right Corner, zoom out
                 Else 'Right Edge, pan right
-                    CenterLon += MetersPerPixel(pZoom) * Me.Width / g_CircumferenceOfEarth * 180
+                    CenterLon += MetersPerPixel(pZoom, TileServer.TileSize) * Me.Width / g_CircumferenceOfEarth * 180
                 End If
             ElseIf e.Y < pControlsMargin Then 'Top edge, pan up
-                CenterLat += MetersPerPixel(pZoom) * Me.Height / g_CircumferenceOfEarth * 90
+                CenterLat += MetersPerPixel(pZoom, TileServer.TileSize) * Me.Height / g_CircumferenceOfEarth * 90
             ElseIf e.Y > Me.Height - pControlsMargin Then 'Bottom edge, pan down
-                CenterLat -= MetersPerPixel(pZoom) * Me.Height / g_CircumferenceOfEarth * 90
+                CenterLat -= MetersPerPixel(pZoom, TileServer.TileSize) * Me.Height / g_CircumferenceOfEarth * 90
             Else
                 lNeedRedraw = False
             End If
@@ -1571,7 +1583,7 @@ Public Class ctlMap
             Dim lNewLatHeight As Double = LatHeight
             Dim lNewLonWidth As Double = LonWidth
             If aZoomIn Then
-                While lDesiredZoom < g_TileServer.ZoomMax AndAlso _
+                While lDesiredZoom < TileServer.ZoomMax AndAlso _
                       .maxlat < CenterLat + lNewLatHeight / 4 AndAlso _
                       .minlat > CenterLat - lNewLatHeight / 4 AndAlso _
                       .maxlon < CenterLon + lNewLonWidth / 4 AndAlso _
@@ -1582,7 +1594,7 @@ Public Class ctlMap
                 End While
             End If
             If aZoomOut Then
-                While lDesiredZoom > g_TileServer.ZoomMin AndAlso _
+                While lDesiredZoom > TileServer.ZoomMin AndAlso _
                      (.maxlat > CenterLat + lNewLatHeight / 2 OrElse _
                       .minlat < CenterLat - lNewLatHeight / 2 OrElse _
                       .maxlon > CenterLon + lNewLonWidth / 2 OrElse _
@@ -2631,7 +2643,7 @@ RestartRedraw:
         ' and thanks to Bostjan for the idea
 
         Dim lFormat As String = "0.00000000000000000"
-        Dim lMetersPerPixel As Double = MetersPerPixel(aZoom)
+        Dim lMetersPerPixel As Double = MetersPerPixel(aZoom, TileServer.TileSize)
         Dim lFileWriter As New IO.StreamWriter(aSaveAsFileName)
         If lFileWriter IsNot Nothing Then
             With lFileWriter
@@ -2780,7 +2792,7 @@ RestartRedraw:
                     End If
                 Next
                 If lTileServerNames.Count > 0 Then
-                    Dim lNextServerIndex As Integer = lTileServerNames.IndexOf(g_TileServer.Name)
+                    Dim lNextServerIndex As Integer = lTileServerNames.IndexOf(TileServer.Name)
                     If e.Delta > 0 Then
                         lNextServerIndex += 1
                     Else

@@ -474,8 +474,6 @@ Partial Class frmMap
         Me.pMap.Name = "pMap"
         Me.pMap.Size = New System.Drawing.Size(910, 451)
         Me.pMap.TabIndex = 1
-        Me.pMap.TileCacheFolder = ""
-        Me.pMap.Zoom = 10
         '
         'TimeZoneToolStripMenuItem
         '
