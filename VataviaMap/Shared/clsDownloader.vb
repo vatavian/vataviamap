@@ -67,7 +67,8 @@ Public Class clsDownloader
     ''' <param name="aReplaceExisting">True to download even if we already have a recently cached tile</param>
     ''' <returns>True if bitmap was successfully added</returns>
     ''' <remarks>missing tiles downloaded with aPriority, downloads from expired or aReplaceExisting=true done at aPriority+1 which is lower</remarks>
-    Private Function TileRAMcacheAddTile(ByVal aTileFilename As String, _
+    Private Function TileRAMcacheAddTile(ByVal aTileServer As clsServer, _
+                                         ByVal aTileFilename As String, _
                                          ByVal aActualFilename As String, _
                                          ByVal aTilePoint As Point, _
                                          ByVal aZoom As Integer, _
@@ -75,9 +76,9 @@ Public Class clsDownloader
                                          ByVal aReplaceExisting As Boolean) As Boolean
 
         Dim lBitmap As Bitmap = Nothing
-        Dim lCanDownload As Boolean = (aPriority > -1 AndAlso Enabled AndAlso g_TileServer.TilePattern IsNot Nothing AndAlso g_TileServer.TilePattern.Length > 0 AndAlso g_TileServer.TilePattern.IndexOf("cacheonly") < 0)
+        Dim lCanDownload As Boolean = (aPriority > -1 AndAlso Enabled AndAlso aTileServer.TilePattern IsNot Nothing AndAlso aTileServer.TilePattern.Length > 0 AndAlso aTileServer.TilePattern.IndexOf("cacheonly") < 0)
         If aActualFilename Is Nothing Then 'OrElse Not IO.File.Exists(aActualFilename)
-            aActualFilename = GetTileFilename(aTileFilename, aTilePoint, aZoom, aPriority, aReplaceExisting)
+            aActualFilename = GetTileFilename(aTileServer, aTileFilename, aTilePoint, aZoom, aPriority, aReplaceExisting)
         End If
         If IO.File.Exists(aActualFilename) Then
             Try
@@ -98,7 +99,7 @@ Public Class clsDownloader
 
             'Try tile with error again?
             If lCanDownload AndAlso TileLastCheckedDate(aActualFilename).AddMinutes(5) < Date.UtcNow Then
-                Enqueue(aTilePoint, aZoom, aPriority, True) 'Request error tile replacement
+                Enqueue(aTileServer, aTilePoint, aZoom, aPriority, True) 'Request error tile replacement
             End If
 
         End If
@@ -165,7 +166,8 @@ Public Class clsDownloader
     ''' <param name="aReplaceExisting"></param>
     ''' <returns></returns>
     ''' <remarks></remarks>
-    Public Function GetTileBitmap(ByVal aTileFilename As String, _
+    Public Function GetTileBitmap(ByVal aTileServer As clsServer, _
+                                  ByVal aTileFilename As String, _
                                   ByVal aTilePoint As Point, _
                                   ByVal aZoom As Integer, _
                                   ByVal aPriority As Integer, _
@@ -180,7 +182,8 @@ CheckCache:
             pTileRAMcacheRecent.Insert(0, aTileFilename)
         ElseIf Not lTriedLoad Then 'Try loading bitmap from cached file
             lTriedLoad = True
-            If TileRAMcacheAddTile(aTileFilename, Nothing, _
+            If TileRAMcacheAddTile(aTileServer, _
+                                   aTileFilename, Nothing, _
                                    aTilePoint, _
                                    aZoom, _
                                    aPriority, _
@@ -189,13 +192,14 @@ CheckCache:
         Return lBitmap
     End Function
 
-    Public Function GetTileFilename(ByVal aTileFilename As String, _
+    Public Function GetTileFilename(ByVal aTileServer As clsServer, _
+                                    ByVal aTileFilename As String, _
                                     ByVal aTilePoint As Point, _
                                     ByVal aZoom As Integer, _
                                     ByVal aPriority As Integer, _
                                     ByVal aReplaceExisting As Boolean) As String
         If aTileFilename Is Nothing Then Return ""
-        Dim lCanDownload As Boolean = (aPriority > -1 AndAlso Enabled AndAlso g_TileServer.TilePattern IsNot Nothing AndAlso g_TileServer.TilePattern.Length > 0 AndAlso g_TileServer.TilePattern.IndexOf("cacheonly") < 0)
+        Dim lCanDownload As Boolean = (aPriority > -1 AndAlso Enabled AndAlso aTileServer.TilePattern IsNot Nothing AndAlso aTileServer.TilePattern.Length > 0 AndAlso aTileServer.TilePattern.IndexOf("cacheonly") < 0)
         Dim lActualFilename As String = LatestTileFileName(aTileFilename)
         If IO.File.Exists(lActualFilename) Then
 
@@ -204,12 +208,12 @@ CheckCache:
             If lCanDownload AndAlso _
               (aReplaceExisting OrElse _
                (TileCacheOldest > Date.MinValue AndAlso TileLastCheckedDate(lActualFilename) < TileCacheOldest)) Then
-                Enqueue(aTilePoint, aZoom, aPriority + 1, True) 'Request stale tile replacement with lower priority
+                Enqueue(aTileServer, aTilePoint, aZoom, aPriority + 1, True) 'Request stale tile replacement with lower priority
             End If
 
             Return lActualFilename
         Else
-            Enqueue(aTilePoint, aZoom, aPriority) 'Request missing tile
+            Enqueue(aTileServer, aTilePoint, aZoom, aPriority) 'Request missing tile
             Return ""
         End If
     End Function
@@ -279,7 +283,7 @@ CheckCache:
     Public Overrides Sub ServiceItem(ByVal aQueueItem As clsQueueItem)
         Select Case aQueueItem.ItemType
             Case QueueItemType.TileItem
-                DownloadTile(aQueueItem.TilePoint, aQueueItem.Zoom, aQueueItem.ReplaceExisting)
+                DownloadTile(aQueueItem.TileServer, aQueueItem.TilePoint, aQueueItem.Zoom, aQueueItem.ReplaceExisting)
             Case QueueItemType.FileItem, QueueItemType.IconItem, QueueItemType.PointItem
                 If aQueueItem.ReplaceExisting OrElse Not IO.File.Exists(aQueueItem.Filename) Then
                     DownloadItem(aQueueItem)
@@ -294,12 +298,13 @@ CheckCache:
     ''' <param name="aZoom">OSM zoom level (0-17)</param>
     ''' <param name="aReplaceExisting">True to download even if we already have a recently cached tile</param>
     ''' <returns>Filename of downloaded tile image or empty string if not downloaded</returns>
-    Public Function DownloadTile(ByVal aTilePoint As Point, _
+    Public Function DownloadTile(ByVal aTileServer As clsServer, _
+                                 ByVal aTilePoint As Point, _
                                  ByVal aZoom As Integer, _
                                  ByVal aReplaceExisting As Boolean) As String
 
-        Dim lTileServerURL As String = g_TileServer.TilePattern
-        Dim lFileName As String = TileFilename(aTilePoint, aZoom, False)
+        Dim lTileServerURL As String = aTileServer.TilePattern
+        Dim lFileName As String = aTileServer.TileFilename(aTilePoint, aZoom, False)
         If lFileName.Length > 0 Then
             If EnsureDirForFile(lFileName) Then
                 Dim lActualFilename As String = LatestTileFileName(lFileName)
@@ -307,7 +312,7 @@ CheckCache:
                     OrElse Not IO.File.Exists(lActualFilename) _
                     OrElse (TileCacheOldest > Date.MinValue AndAlso TileLastCheckedDate(lActualFilename) < TileCacheOldest) Then
                     Dbg("Downloading Tile " & aZoom & "/" & aTilePoint.X & "/" & aTilePoint.Y)
-                    If DownloadFile(g_TileServer.BuildTileURL(aTilePoint, aZoom), lFileName, lActualFilename, True) Then
+                    If DownloadFile(aTileServer, aTileServer.BuildTileURL(aTilePoint, aZoom), lFileName, lActualFilename) Then
                         For Each lListener As IQueueListener In Listeners
                             lListener.DownloadedTile(aTilePoint, aZoom, lActualFilename, lTileServerURL)
                         Next
@@ -331,16 +336,17 @@ CheckCache:
     ''' <param name="aZoomMax">Maximum zoom level to download (0 to g_TileServer.ZoomMax)</param>
     ''' <returns>True if all descendants were downloaded, False if any could not be downloaded</returns>
     ''' <remarks>If any descendant cannot be downloaded, no further descendants are attempted</remarks>
-    Public Function DownloadDescendants(ByVal aTilePoint As Point, _
+    Public Function DownloadDescendants(ByVal aTileServer As clsServer, _
+                                        ByVal aTilePoint As Point, _
                                         ByVal aZoom As Integer, _
                                         ByVal aZoomMax As Integer, _
                                Optional ByVal aReplaceExisting As Boolean = False) As Boolean
 
-        If DownloadTile(aTilePoint, aZoom, aReplaceExisting).Length > 0 Then
+        If DownloadTile(aTileServer, aTilePoint, aZoom, aReplaceExisting).Length > 0 Then
             For lZoom As Integer = aZoom + 1 To aZoomMax
                 For childX As Integer = aTilePoint.X * 2 To aTilePoint.X * 2 + 1
                     For childY As Integer = aTilePoint.Y * 2 To aTilePoint.Y * 2 + 1
-                        If Not DownloadDescendants(New Point(childX, childY), lZoom, aZoomMax, aReplaceExisting) Then Return False
+                        If Not DownloadDescendants(aTileServer, New Point(childX, childY), lZoom, aZoomMax, aReplaceExisting) Then Return False
                     Next
                 Next
             Next
@@ -357,7 +363,7 @@ CheckCache:
     ''' <returns>Filename of downloaded file or empty string if not downloaded</returns>
     Private Function DownloadItem(ByVal aItem As clsQueueItem) As Boolean
         Dim lActualFilename As String = Nothing
-        If DownloadFile(aItem.URL, aItem.Filename, lActualFilename, False) Then
+        If DownloadFile(Nothing, aItem.URL, aItem.Filename, lActualFilename) Then
             'TODO: If IO.File.Exists(lActualFilename) Then aItem.Filename = lActualFilename ?
             For Each lListener As IQueueListener In Listeners
                 lListener.DownloadedItem(aItem)
@@ -369,7 +375,10 @@ CheckCache:
     End Function
 
     ' This function should not be used from outside this class for downloading tiles points, or icons, those should use DownloadTile and DownloadItem above
-    Friend Function DownloadFile(ByVal aUrl As String, ByVal aFileName As String, ByRef aActualFilename As String, ByVal aIsTile As Boolean) As Boolean
+    Friend Function DownloadFile(ByVal aTileServer As clsServer, _
+                                 ByVal aUrl As String, _
+                                 ByVal aFileName As String, _
+                                 ByRef aActualFilename As String) As Boolean
         Dim lSuccess As Boolean = False
 
         Dim lReplacingFilename As String
@@ -431,7 +440,7 @@ CheckCache:
                                     Case "image/jpeg" : If lMoveTo.IndexOf(".jp") < 0 Then lMoveTo &= ".jpg"
                                     Case "image/png" : If lMoveTo.IndexOf(".png") < 0 Then lMoveTo &= ".png"
                                     Case Else
-                                        If aIsTile Then
+                                        If aTileServer IsNot Nothing Then
                                             lError = True
                                             GoTo AfterDownload
                                         End If
@@ -507,7 +516,7 @@ AfterDownload:
                     End Try
                 End If
                 If lError Then
-                    If aIsTile AndAlso lDownloadAs.Length > 0 AndAlso Not IO.File.Exists(aFileName) Then
+                    If aTileServer IsNot Nothing AndAlso lDownloadAs.Length > 0 AndAlso Not IO.File.Exists(aFileName) Then
                         Try ' create placeholder empty file for tile with download error
                             IO.File.Create(aFileName).Close()
                         Catch
@@ -537,7 +546,7 @@ AfterDownload:
                     Dim lStartMoving As DateTime = DateTime.Now
                     While IO.File.Exists(lMoveTo)
                         Try
-                            If aIsTile Then
+                            If aTileServer IsNot Nothing Then
                                 DeleteTile(lMoveTo)
                             Else
                                 IO.File.Delete(aFileName)
@@ -554,7 +563,7 @@ AfterDownload:
                         End Try
                     End While
                     Try
-                        If aIsTile Then
+                        If aTileServer IsNot Nothing Then
                             If Not lMoveTo.IndexOf(pExpiresExt) > -1 Then
                                 WriteTextFile(lMoveTo & pLastCheckedExtension, lNewLastModified)
                             End If
@@ -564,7 +573,7 @@ AfterDownload:
                                 Return False
                             Else
                                 IO.File.Move(lDownloadAs, lMoveTo)
-                                If TileRAMcacheAddTile(aFileName, lMoveTo, Nothing, -1, -1, False) Then
+                                If TileRAMcacheAddTile(aTileServer, aFileName, lMoveTo, Nothing, -1, -1, False) Then
                                     aActualFilename = lMoveTo
                                 End If
                             End If

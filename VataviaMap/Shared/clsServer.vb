@@ -4,6 +4,7 @@ Public Class clsServer
     Public TilePattern As String
     Public WebmapPattern As String
     Public Copyright As String
+    Public Transparent As Boolean = False
 
     ''' <summary>
     ''' Minimum zoom level available from this server, default is 0=one tile for whole world
@@ -34,7 +35,8 @@ Public Class clsServer
           Optional ByVal aWebmapPattern As String = Nothing, _
           Optional ByVal aCopyright As String = Nothing, _
           Optional ByVal aZoomMin As Integer = 0, _
-          Optional ByVal aZoomMax As Integer = 17)
+          Optional ByVal aZoomMax As Integer = 17, _
+          Optional ByVal aTransparent As Boolean = False)
         Name = aName
         Link = aLink
         TilePattern = aTilePattern
@@ -51,6 +53,7 @@ Public Class clsServer
                 SetFields(lFields)
             End If
         End If
+        Transparent = aTransparent
     End Sub
 
     Public Sub SetFields(ByVal aFields() As String)
@@ -65,6 +68,7 @@ Public Class clsServer
         If aFields.Length > 8 Then DoubleTryParse(aFields(8), LatMax)
         If aFields.Length > 9 Then DoubleTryParse(aFields(9), LonMin)
         If aFields.Length > 10 Then DoubleTryParse(aFields(10), LonMax)
+        If aFields.Length > 11 Then Transparent = aFields(11).ToLower.Equals("transparent")
     End Sub
 
     Public Shared Function FromFields(ByVal aFields() As String) As clsServer
@@ -86,7 +90,8 @@ Public Class clsServer
         lBuilder.Append("|")
         If WebmapPattern IsNot Nothing Then lBuilder.Append(WebmapPattern)
         lBuilder.Append("|")
-        If Copyright IsNot Nothing Then lBuilder.Append(Copyright)
+        If Copyright IsNot Nothing Then lBuilder.Append(Copyright)        
+        If Transparent Then lBuilder.Append("|Transparent")
         Return lBuilder.ToString
     End Function
 
@@ -175,7 +180,7 @@ Public Class clsServer
         Return lURL
     End Function
 
-    Public Shared Function ParseWebmapURL(ByVal aURL As String, _
+    Public Function ParseWebmapURL(ByVal aURL As String, _
                                           ByRef aCenterLatitude As Double, ByRef aCenterLongitude As Double, _
                                           ByRef aZoom As Integer, _
                                           ByRef aNorth As Double, ByRef aWest As Double, _
@@ -229,12 +234,43 @@ Public Class clsServer
                     aCenterLongitude = Double.Parse(ll(1))
                 End If
             End If
-            If aZoom > g_TileServer.ZoomMax Then aZoom = g_TileServer.ZoomMax
-            If aZoom < g_TileServer.ZoomMin Then aZoom = g_TileServer.ZoomMin
+            If aZoom > ZoomMax Then aZoom = ZoomMax
+            If aZoom < ZoomMin Then aZoom = ZoomMin
             Return aCenterLatitude <> 0 AndAlso aCenterLongitude <> 0
         Catch
             Return False
         End Try
     End Function
 
+    ''' <summary>
+    ''' Return the full path for a cached tile from g_TileCacheFolder and OSM X, Y and Zoom
+    ''' </summary>
+    ''' <param name="aTilePoint">OSM Tile X and Y</param>
+    ''' <param name="aZoom">OSM zoom level (0-17)</param>
+    ''' <returns>full path for a cached tile file</returns>
+    ''' <remarks>Returns empty string when aTilePoint and aZoom are not a valid tile specification</remarks>
+    Public Function TileFilename(ByVal aTilePoint As Point, _
+                                 ByVal aZoom As Integer, _
+                                 ByVal aUseMarkedTiles As Boolean) As String
+        With aTilePoint
+            If g_TileCacheFolder.Length > 0 AndAlso ValidTilePoint(aTilePoint, aZoom) Then
+                Dim lMarked As String = ""
+                If aUseMarkedTiles Then lMarked = g_MarkedPrefix
+                Return g_TileCacheFolder & lMarked & aZoom _
+                     & g_PathChar & .X _
+                     & g_PathChar & .Y 'other convention = (1 << aZoom) - .Y
+            Else
+                Return ""
+            End If
+        End With
+    End Function
+
+    Public Function ValidTilePoint(ByVal aTilePoint As Point, _
+                                   ByVal aZoom As Integer) As Boolean
+        With aTilePoint
+            Return aZoom >= ZoomMin AndAlso aZoom <= ZoomMax _
+              AndAlso .X >= 0 AndAlso .Y >= 0 _
+              AndAlso .X < (1 << aZoom) AndAlso .Y < (1 << aZoom)
+        End With
+    End Function
 End Class

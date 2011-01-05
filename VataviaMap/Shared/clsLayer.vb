@@ -49,7 +49,7 @@ Public Class clsLayer
         End Set
     End Property
 
-    Public Overridable Sub Render(ByVal g As Graphics, ByVal aTopLeftTile As Point, ByVal aOffsetToCenter As Point)
+    Public Overridable Sub Render(ByVal aTileServer As clsServer, ByVal g As Graphics, ByVal aTopLeftTile As Point, ByVal aOffsetToCenter As Point)
     End Sub
 
     Public Overridable Function Fields() As String()
@@ -431,7 +431,10 @@ Public Class clsLayerGPX
         Return pFields
     End Function
 
-    Public Overrides Sub Render(ByVal g As Graphics, ByVal aTopLeftTile As Point, ByVal aOffsetToCenter As Point)
+    Public Overrides Sub Render(ByVal aTileServer As clsServer, _
+                                ByVal g As Graphics, _
+                                ByVal aTopLeftTile As Point, _
+                                ByVal aOffsetToCenter As Point)
         If Me.Visible Then
             Dim lDrawThisOne As Boolean = True
             If GPX.bounds IsNot Nothing Then
@@ -448,12 +451,12 @@ Public Class clsLayerGPX
                 pDistSinceArrow = 0
                 Dim lStartTime As Date = Date.Now
                 For Each lWaypoint As clsGPXwaypoint In GPX.wpt
-                    DrawWaypoint(g, lWaypoint, aTopLeftTile, aOffsetToCenter)
+                    DrawWaypoint(aTileServer, g, lWaypoint, aTopLeftTile, aOffsetToCenter)
                     If Date.Now.Subtract(lStartTime).TotalSeconds > 2 Then Exit For
                 Next
 
                 If GPX.trk.Count = 1 AndAlso (GPX.trk(0).trkseg.Count = 1) AndAlso (GPX.trk(0).trkseg(0).trkpt.Count = 1) Then
-                    DrawWaypoint(g, GPX.trk(0).trkseg(0).trkpt(0), aTopLeftTile, aOffsetToCenter)
+                    DrawWaypoint(aTileServer, g, GPX.trk(0).trkseg(0).trkpt(0), aTopLeftTile, aOffsetToCenter)
                 Else
 
 #If Not Smartphone Then
@@ -469,7 +472,7 @@ Public Class clsLayerGPX
                                 If Not lTrackPoint.timeSpecified OrElse _
                                    (lTrackPoint.time >= OmitBefore AndAlso lTrackPoint.time <= OmitAfter) Then
 #If Not Smartphone Then
-                                    If Not DrawTrackpoint(g, lTrackPoint, aTopLeftTile, aOffsetToCenter, lSymbolPath, lTrackPath, lLastX, lLastY) Then
+                                    If Not DrawTrackpoint(aTileServer, g, lTrackPoint, aTopLeftTile, aOffsetToCenter, lSymbolPath, lTrackPath, lLastX, lLastY) Then
                                         If lTrackPath.PointCount > 0 Then 'Draw the path we already had accumulated for this track
                                             g.DrawPath(PenTrack, lTrackPath)
                                             lTrackPath.Reset()
@@ -509,7 +512,8 @@ Public Class clsLayerGPX
     ''' <param name="aOffsetToCenter"></param>
     ''' <returns>True if waypoint was drawn, False if it was outside view</returns>
     ''' <remarks></remarks>
-    Private Function DrawWaypoint(ByVal g As Graphics, _
+    Private Function DrawWaypoint(ByVal aTileServer As clsServer, _
+                                  ByVal g As Graphics, _
                                   ByVal aWaypoint As clsGPXwaypoint, _
                                   ByVal aTopLeftTile As Point, _
                                   ByVal aOffsetToCenter As Point) As Boolean
@@ -517,9 +521,9 @@ Public Class clsLayerGPX
             If True Then 'MapForm.LatLonInView(.lat, .lon) Then
                 Dim lTileXY As Point 'Which tile this point belongs in
                 Dim lTileOffset As Point 'Offset within lTileXY in pixels
-                lTileXY = CalcTileXY(.lat, .lon, Map.Zoom, lTileOffset)
-                Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileServer.TileSize + aOffsetToCenter.X + lTileOffset.X
-                Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileServer.TileSize + aOffsetToCenter.Y + lTileOffset.Y
+                lTileXY = CalcTileXY(aTileServer, .lat, .lon, Map.Zoom, lTileOffset)
+                Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * aTileServer.TileSize + aOffsetToCenter.X + lTileOffset.X
+                Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * aTileServer.TileSize + aOffsetToCenter.Y + lTileOffset.Y
                 Dim lBitmap As Drawing.Bitmap = Nothing
 
                 Select Case .sym
@@ -578,7 +582,7 @@ Public Class clsLayerGPX
                     Dim color As Color = lBitmap.GetPixel(0, 0)
                     lImageAttributes.SetColorKey(color, color)
                     g.DrawImage(lBitmap, lRectDest, 0, 0, lBitmap.Width, lBitmap.Height, GraphicsUnit.Pixel, lImageAttributes)
-                    If Map.Zoom = g_TileServer.ZoomMax Then  'Show more exact point at max zoom
+                    If Map.Zoom > 16 Then  'Show more exact point at high zoom
                         g.DrawLine(PenGeocache, lX, lY - 8, lX, lY + 8)
                         g.DrawLine(PenGeocache, lX - 8, lY, lX + 8, lY)
                     End If
@@ -661,7 +665,8 @@ Public Class clsLayerGPX
     ''' <param name="aFromY">Y coordinate of point to draw line from, -1 to skip drawing from</param>
     ''' <returns>True if waypoint was drawn, False if it was outside view</returns>
     ''' <remarks></remarks>
-    Public Function DrawTrackpoint(ByVal g As Graphics, _
+    Public Function DrawTrackpoint(ByVal aTileServer As clsServer, _
+                                   ByVal g As Graphics, _
                                    ByVal aWaypoint As clsGPXwaypoint, _
                                    ByVal aTopLeftTile As Point, _
                                    ByVal aOffsetToCenter As Point, _
@@ -671,9 +676,9 @@ Public Class clsLayerGPX
             If Map.LatLonInView(.lat, .lon) Then
                 Dim lTileXY As Point 'Which tile this point belongs in
                 Dim lTileOffset As Point 'Offset within lTileXY in pixels
-                lTileXY = CalcTileXY(.lat, .lon, Map.Zoom, lTileOffset)
-                Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileServer.TileSize + aOffsetToCenter.X + lTileOffset.X
-                Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileServer.TileSize + aOffsetToCenter.Y + lTileOffset.Y
+                lTileXY = CalcTileXY(aTileServer, .lat, .lon, Map.Zoom, lTileOffset)
+                Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * aTileServer.TileSize + aOffsetToCenter.X + lTileOffset.X
+                Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * aTileServer.TileSize + aOffsetToCenter.Y + lTileOffset.Y
 
                 If aFromX <> -1 OrElse aFromY <> -1 Then
                     g.DrawLine(PenTrack, aFromX, aFromY, lX, lY)
@@ -725,7 +730,8 @@ Public Class clsLayerGPX
     ''' <param name="aFromY">Y coordinate of point to draw line from, -1 to skip drawing from</param>
     ''' <returns></returns>
     ''' <remarks></remarks>
-    Private Function DrawTrackpoint(ByVal g As Graphics, _
+    Private Function DrawTrackpoint(ByVal aTileServer As clsServer, _
+                                    ByVal g As Graphics, _
                                     ByVal aWaypoint As clsGPXwaypoint, _
                                     ByVal aTopLeftTile As Point, _
                                     ByVal aOffsetToCenter As Point, _
@@ -737,9 +743,9 @@ Public Class clsLayerGPX
             If Map.LatLonInView(.lat, .lon) Then
                 Dim lTileXY As Point 'Which tile this point belongs in
                 Dim lTileOffset As Point 'Offset within lTileXY in pixels
-                lTileXY = CalcTileXY(.lat, .lon, Map.Zoom, lTileOffset)
-                Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * g_TileServer.TileSize + aOffsetToCenter.X + lTileOffset.X
-                Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * g_TileServer.TileSize + aOffsetToCenter.Y + lTileOffset.Y
+                lTileXY = CalcTileXY(aTileServer, .lat, .lon, Map.Zoom, lTileOffset)
+                Dim lX As Integer = (lTileXY.X - aTopLeftTile.X) * aTileServer.TileSize + aOffsetToCenter.X + lTileOffset.X
+                Dim lY As Integer = (lTileXY.Y - aTopLeftTile.Y) * aTileServer.TileSize + aOffsetToCenter.Y + lTileOffset.Y
 
                 If aFromX <> -1 OrElse aFromY <> -1 Then
                     aTrackPath.AddLine(aFromX, aFromY, lX, lY)

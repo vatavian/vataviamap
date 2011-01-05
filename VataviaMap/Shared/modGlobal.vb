@@ -20,11 +20,6 @@ Module modGlobal
     Private g_LimitY As Double = ProjectF(85.0511)
     Private g_RangeY As Double = 2 * g_LimitY
 
-    Public g_TileServer As New clsServer("OpenStreetMap", _
-                                         "http://openstreetmap.org/", _
-                                         "http://{abc}.tile.openstreetmap.org/{Zoom}/{X}/{Y}.png", _
-                                         "http://www.openstreetmap.org/?lat={Lat}&lon={Lon}&zoom={Zoom}", _
-                                         "© OpenStreetMap")
     Public g_TileServerExampleLabel As String = "URL of server"
     Public g_TileServerExampleFile As String = "http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Tiles"
 
@@ -138,8 +133,8 @@ Module modGlobal
         Return Math.Sqrt(dy * dy + dx * dx)
     End Function
 
-    Public Function MetersPerPixel(ByVal aZoom As Integer) As Double
-        Return g_CircumferenceOfEarth / ((1 << aZoom) * g_TileServer.TileSize)
+    Public Function MetersPerPixel(ByVal aZoom As Integer, ByVal aTileSize As Integer) As Double
+        Return g_CircumferenceOfEarth / ((1 << aZoom) * aTileSize)
     End Function
 
     Public Function LatitudeToMeters(ByVal aLatitude As Double) As Double
@@ -152,14 +147,14 @@ Module modGlobal
     End Function
 
     'helper function - converts a latitude at a certain zoom into a y pixel
-    Private Function LatitudeToYAtZoom(ByVal aLatitude As Double, ByVal aZoom As Integer) As Integer
-        Dim arc As Double = MetersPerPixel(aZoom)
+    Private Function LatitudeToYAtZoom(ByVal aLatitude As Double, ByVal aZoom As Integer, ByVal aTileSize As Integer) As Integer
+        Dim arc As Double = MetersPerPixel(aZoom, aTileSize)
         Return CInt(Math.Round((g_HalfCircumferenceOfEarth - LatitudeToMeters(aLatitude)) / arc))
     End Function
 
     'helper function - converts a longitude at a certain zoom into a x pixel
-    Private Function LongitudeToXAtZoom(ByVal aLongitude As Double, ByVal aZoom As Integer) As Integer
-        Dim arc As Double = MetersPerPixel(aZoom)
+    Private Function LongitudeToXAtZoom(ByVal aLongitude As Double, ByVal aZoom As Integer, ByVal aTileSize As Integer) As Integer
+        Dim arc As Double = MetersPerPixel(aZoom, aTileSize)
         Return CInt(Math.Round((g_HalfCircumferenceOfEarth + LongitudeToMeters(aLongitude)) / arc))
     End Function
 
@@ -223,19 +218,20 @@ Module modGlobal
     ''' <param name="aZoom">OSM zoom level (0-17)</param>
     ''' <param name="aOffset">ByRef returns pixel offset of given point within the OSM tile</param>
     ''' <returns>Point containing X and Y of OSM tile containing the given lat/long point</returns>
-    Public Function CalcTileXY(ByVal aLatitude As Double, _
+    Public Function CalcTileXY(ByVal aTileServer As clsServer, _
+                               ByVal aLatitude As Double, _
                                ByVal aLongitude As Double, _
                                ByVal aZoom As Long, _
                                ByRef aOffset As Point) As Point
-        If aLatitude > g_TileServer.LatMax Then aLatitude = g_TileServer.LatMax
-        If aLatitude < g_TileServer.LatMin Then aLatitude = g_TileServer.LatMin
+        If aLatitude > aTileServer.LatMax Then aLatitude = aTileServer.LatMax
+        If aLatitude < aTileServer.LatMin Then aLatitude = aTileServer.LatMin
 
         Dim lNumTiles As Integer = 1 << aZoom
         Dim x As Double = (aLongitude + 180) / 360 * lNumTiles
         Dim y As Double = (1 - Math.Log(Math.Tan(aLatitude * Math.PI / 180) _
                                   + 1 / Math.Cos(aLatitude * Math.PI / 180)) / Math.PI) / 2 * lNumTiles
         Dim lPoint As New Point(Math.Floor(x), Math.Floor(y))
-        aOffset = New Point((x - lPoint.X) * g_TileServer.TileSize, (y - lPoint.Y) * g_TileServer.TileSize)
+        aOffset = New Point((x - lPoint.X) * aTileServer.TileSize, (y - lPoint.Y) * aTileServer.TileSize)
         Return lPoint
     End Function
 
@@ -343,29 +339,6 @@ EndFound:
         Return ""
     End Function
 
-    ''' <summary>
-    ''' Return the full path for a cached tile from g_TileCacheFolder and OSM X, Y and Zoom
-    ''' </summary>
-    ''' <param name="aTilePoint">OSM Tile X and Y</param>
-    ''' <param name="aZoom">OSM zoom level (0-17)</param>
-    ''' <returns>full path for a cached tile file</returns>
-    ''' <remarks>Returns empty string when aTilePoint and aZoom are not a valid tile specification</remarks>
-    Public Function TileFilename(ByVal aTilePoint As Point, _
-                                 ByVal aZoom As Integer, _
-                                 ByVal aUseMarkedTiles As Boolean) As String
-        With aTilePoint
-            If g_TileCacheFolder.Length > 0 AndAlso ValidTilePoint(aTilePoint, aZoom) Then
-                Dim lMarked As String = ""
-                If aUseMarkedTiles Then lMarked = g_MarkedPrefix
-                Return g_TileCacheFolder & lMarked & aZoom _
-                     & g_PathChar & .X _
-                     & g_PathChar & .Y 'other convention = (1 << aZoom) - .Y
-            Else
-                Return ""
-            End If
-        End With
-    End Function
-
     Public Function DateTryParse(ByVal aDateString As String, ByRef aDate As Date) As Boolean
         If aDateString IsNot Nothing AndAlso aDateString.Length > 5 AndAlso aDateString <> "Fri, 01 Jan 1990 00:00:00 GMT" Then
             Try
@@ -396,15 +369,6 @@ EndFound:
         Else
             Return False
         End If
-    End Function
-
-    Public Function ValidTilePoint(ByVal aTilePoint As Point, _
-                                   ByVal aZoom As Integer) As Boolean
-        With aTilePoint
-            Return aZoom >= g_TileServer.ZoomMin AndAlso aZoom <= g_TileServer.ZoomMax _
-              AndAlso .X >= 0 AndAlso .Y >= 0 _
-              AndAlso .X < (1 << aZoom) AndAlso .Y < (1 << aZoom)
-        End With
     End Function
 
     Public Function ReadableFromXML(ByVal aXML As String) As String

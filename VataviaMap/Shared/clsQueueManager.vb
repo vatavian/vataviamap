@@ -21,6 +21,7 @@ End Enum
 ''' </summary>
 Public Class clsQueueItem
     Public ItemType As QueueItemType
+    Public TileServer As clsServer
     Public TilePoint As Point
     Public Zoom As Integer
     Public ReplaceExisting As Boolean = False
@@ -128,11 +129,12 @@ NextUpload:
         'Inheriting class will want to override
     End Sub
 
-    Public Sub Enqueue(ByVal aTilePoint As Point, _
+    Public Sub Enqueue(ByVal aTileServer As clsServer, _
+                       ByVal aTilePoint As Point, _
                        ByVal aZoom As Integer, _
               Optional ByVal aPriority As Integer = 0, _
               Optional ByVal aReplaceExisting As Boolean = False)
-        If aPriority >= 0 AndAlso ValidTilePoint(aTilePoint, aZoom) Then
+        If aPriority >= 0 AndAlso aTileServer.ValidTilePoint(aTilePoint, aZoom) Then
             Dim lFoundMatch As Boolean = False
             pQueueMutex.WaitOne()
             While aPriority >= pQueues.Count
@@ -141,7 +143,7 @@ NextUpload:
             Dim lQueue As Generic.Queue(Of clsQueueItem) = pQueues(aPriority)
             For Each lQueuedArg As clsQueueItem In lQueue
                 With lQueuedArg
-                    If .ItemType = QueueItemType.TileItem AndAlso .TilePoint.X = aTilePoint.X AndAlso .TilePoint.Y = aTilePoint.Y AndAlso .Zoom = aZoom Then
+                    If .ItemType = QueueItemType.TileItem AndAlso .TileServer.Name = aTileServer.Name AndAlso .TilePoint.X = aTilePoint.X AndAlso .TilePoint.Y = aTilePoint.Y AndAlso .Zoom = aZoom Then
                         'Debug.WriteLine("Not adding duplicate request to queue")
                         lFoundMatch = True
                         Exit For
@@ -153,6 +155,7 @@ NextUpload:
                 With lQueueItem
                     .ItemType = QueueItemType.TileItem
                     .ReplaceExisting = aReplaceExisting
+                    .TileServer = aTileServer
                     .TilePoint = aTilePoint
                     .Zoom = aZoom
                 End With
