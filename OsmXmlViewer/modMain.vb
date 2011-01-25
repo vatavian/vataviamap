@@ -148,7 +148,8 @@ Module modMain
         pSB = Nothing
         pSB = New StringBuilder
         pSB.AppendLine(vbCrLf & "TagNames " & Tags.TagNames.Count)
-        Dim pXmlSB As New StringBuilder
+        Dim lXmlSB As New StringBuilder
+        lXmlSB.AppendLine("<osm>")
         For Each lTagName As KeyValuePair(Of String, SortedList) In Tags.TagNames
             Dim lValueCollection As SortedList = lTagName.Value
             pSB.AppendLine(vbCrLf & lTagName.Key & "(" & lValueCollection.Count & ")")
@@ -164,13 +165,13 @@ Module modMain
                             Select Case lReference.GetType.Name
                                 Case "Node"
                                     Dim lNode As Node = lReference
-                                    pXmlSB.AppendLine(lNode.XML.OuterXml)
+                                    lXmlSB.AppendLine(lNode.XML.OuterXml)
                                 Case "Way"
                                     Dim lWay As Way = lReference
-                                    pXmlSB.AppendLine(lWay.XML.OuterXml)
+                                    lXmlSB.AppendLine(lWay.XML.OuterXml)
                                     For lNodeIndex As Integer = 0 To lWay.NodeKeys.Count - 1
                                         Dim lNode As Node = Nodes(lWay.NodeKeys(lNodeIndex))
-                                        pXmlSB.AppendLine(lNode.XML.OuterXml)
+                                        lXmlSB.AppendLine(lNode.XML.OuterXml)
                                     Next
                                 Case "Relation"
                                     'TODO: something here
@@ -185,10 +186,11 @@ Module modMain
                 Next
             End If
         Next
+        lXmlSB.AppendLine("</osm>")
         lOutFileName = pLocation & Format(IO.File.GetCreationTime(pXmlFileName), "yyyy-MM-dd-hh-mm") & "Tags.txt"
         IO.File.WriteAllText(lOutFileName, pSB.ToString)
-        lOutFileName = pLocation & Format(IO.File.GetCreationTime(pXmlFileName), "yyyy-MM-dd-hh-mm") & "Buildings.xml"
-        IO.File.WriteAllText(lOutFileName, pXmlSB.ToString)
+        lOutFileName = pLocation & Format(IO.File.GetCreationTime(pXmlFileName), "yyyy-MM-dd-hh-mm") & "Buildings.osm"
+        IO.File.WriteAllText(lOutFileName, lXmlSB.ToString)
     End Sub
 
     Private Function MemUsage() As String

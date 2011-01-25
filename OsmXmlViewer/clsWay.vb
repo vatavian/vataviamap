@@ -93,9 +93,14 @@ Public Class Way
         If Timestamp.ToString.Length > 0 Then lXmlNode.SetAttribute("timestamp", Timestamp)
         For lNodeKeyIndex As Integer = 0 To NodeKeys.Count - 1
             Dim lXmlNodeChild As Xml.XmlElement = lXmlDocument.CreateElement("nd")
-            lXmlNodeChild.SetAttribute("ref", NodeKeys(lNodeKeyIndex).Substring(2))
+            lXmlNodeChild.SetAttribute("ref", NodeKeys(lNodeKeyIndex).Substring(1))
             lXmlNode.AppendChild(lXmlNodeChild)
         Next
+        If Closed Then
+            Dim lXmlNodeChild As Xml.XmlElement = lXmlDocument.CreateElement("nd")
+            lXmlNodeChild.SetAttribute("ref", NodeKeys(0).Substring(1))
+            lXmlNode.AppendChild(lXmlNodeChild)
+        End If
         For Each lTag As Tag In Tags
             lXmlNode.AppendChild(lTag.XML(lXmlDocument))
         Next
