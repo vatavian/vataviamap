@@ -1,9 +1,9 @@
 Public Class clsServer
-    Public Name As String
-    Public Link As String
-    Public TilePattern As String
-    Public WebmapPattern As String
-    Public Copyright As String
+    Public Name As String = ""
+    Public Link As String = ""
+    Public TilePattern As String = ""
+    Public WebmapPattern As String = ""
+    Public Copyright As String = ""
     Public Transparent As Boolean = False
 
     ''' <summary>
@@ -12,7 +12,7 @@ Public Class clsServer
     Public ZoomMin As Integer = 0
 
     ''' <summary>
-    ''' Maximum zoom level available from this server, default is 17=one tile for whole world
+    ''' Maximum zoom level available from this server, default is 17
     ''' </summary>
     Public ZoomMax As Integer = 17
 
@@ -48,7 +48,7 @@ Public Class clsServer
         ZoomMax = aZoomMax
 
         If Link Is Nothing AndAlso TilePattern Is Nothing AndAlso WebmapPattern Is Nothing Then
-            Dim lFields() As String = Name.Split("|")
+            Dim lFields() As String = Name.Replace(vbCr, "").Split(vbLf)
             If lFields.Length > 1 Then
                 SetFields(lFields)
             End If
@@ -58,16 +58,16 @@ Public Class clsServer
 
     Public Sub SetFields(ByVal aFields() As String)
         If aFields.Length > 0 Then Name = aFields(0)
-        If aFields.Length > 1 Then Link = aFields(1)
-        If aFields.Length > 2 Then TilePattern = aFields(2)
-        If aFields.Length > 3 Then WebmapPattern = aFields(3)
-        If aFields.Length > 4 Then Copyright = aFields(4).Replace("(C)", "©")
-        If aFields.Length > 5 Then IntegerTryParse(aFields(5), ZoomMin)
-        If aFields.Length > 6 Then IntegerTryParse(aFields(6), ZoomMax)
-        If aFields.Length > 7 Then DoubleTryParse(aFields(7), LatMin)
-        If aFields.Length > 8 Then DoubleTryParse(aFields(8), LatMax)
-        If aFields.Length > 9 Then DoubleTryParse(aFields(9), LonMin)
-        If aFields.Length > 10 Then DoubleTryParse(aFields(10), LonMax)
+        If aFields.Length > 1 AndAlso aFields(1).Length > 0 Then Link = aFields(1)
+        If aFields.Length > 2 AndAlso aFields(2).Length > 0 Then TilePattern = aFields(2)
+        If aFields.Length > 3 AndAlso aFields(3).Length > 0 Then WebmapPattern = aFields(3)
+        If aFields.Length > 4 AndAlso aFields(4).Length > 0 Then Copyright = aFields(4).Replace("(C)", "©")
+        If aFields.Length > 5 AndAlso aFields(5).Length > 0 Then IntegerTryParse(aFields(5), ZoomMin)
+        If aFields.Length > 6 AndAlso aFields(6).Length > 0 Then IntegerTryParse(aFields(6), ZoomMax)
+        If aFields.Length > 7 AndAlso aFields(7).Length > 0 Then DoubleTryParse(aFields(7), LatMin)
+        If aFields.Length > 8 AndAlso aFields(8).Length > 0 Then DoubleTryParse(aFields(8), LatMax)
+        If aFields.Length > 9 AndAlso aFields(9).Length > 0 Then DoubleTryParse(aFields(9), LonMin)
+        If aFields.Length > 10 AndAlso aFields(10).Length > 0 Then DoubleTryParse(aFields(10), LonMax)
         If aFields.Length > 11 Then Transparent = aFields(11).ToLower.Equals("transparent")
     End Sub
 
@@ -83,16 +83,53 @@ Public Class clsServer
     Public Overrides Function ToString() As String
         Dim lBuilder As New System.Text.StringBuilder
         If Name IsNot Nothing Then lBuilder.Append(Name)
-        lBuilder.Append("|")
+        lBuilder.Append(vbLf)
         If Link IsNot Nothing Then lBuilder.Append(Link)
-        lBuilder.Append("|")
+        lBuilder.Append(vbLf)
         If TilePattern IsNot Nothing Then lBuilder.Append(TilePattern)
-        lBuilder.Append("|")
+        lBuilder.Append(vbLf)
         If WebmapPattern IsNot Nothing Then lBuilder.Append(WebmapPattern)
-        lBuilder.Append("|")
-        If Copyright IsNot Nothing Then lBuilder.Append(Copyright)        
-        If Transparent Then lBuilder.Append("|Transparent")
+        lBuilder.Append(vbLf)
+        If Copyright IsNot Nothing Then lBuilder.Append(Copyright.Replace("©", "(C)"))
+        lBuilder.Append(vbLf)
+        lBuilder.Append(ZoomMin)
+        lBuilder.Append(vbLf)
+        lBuilder.Append(ZoomMax)
+        lBuilder.Append(vbLf)
+        If LatMin > -85.051 Then lBuilder.Append(LatMin)
+        lBuilder.Append(vbLf)
+        If LatMax < 85.051 Then lBuilder.Append(LatMax)
+        lBuilder.Append(vbLf)
+        If LonMin > -180 Then lBuilder.Append(LonMin)
+        lBuilder.Append(vbLf)
+        If LonMax < 180 Then lBuilder.Append(LonMax)
+        lBuilder.Append(vbLf)
+        If Transparent Then lBuilder.Append("Transparent")
         Return lBuilder.ToString
+    End Function
+
+    Public Shared Function WriteServers(ByVal aServers As Generic.Dictionary(Of String, clsServer)) As String
+        Dim lHTML As String = _
+          "<html><head><title>Web Tile Servers And Maps</title></head><body>" & vbLf _
+        & "<table>" & vbLf _
+        & "<tr><th>Server Name</th>" & vbLf _
+        & "    <th>Link</th>" & vbLf _
+        & "    <th>TileURLPattern</th>" & vbLf _
+        & "    <th>WebmapURLPattern</th>" & vbLf _
+        & "    <th>Copyright</th>" & vbLf _
+        & "    <th>ZoomMin</th>" & vbLf _
+        & "    <th>ZoomMax</th>" & vbLf _
+        & "    <th>LatMin</th>" & vbLf _
+        & "    <th>LatMax</th>" & vbLf _
+        & "    <th>LonMin</th>" & vbLf _
+        & "    <th>LonMax</th>" & vbLf _
+        & "    <th>Transparent</th>" & vbLf _
+        & "</tr>" & vbLf
+        For Each lServer As clsServer In aServers.Values
+            lHTML &= "<tr><td>" & lServer.ToString.Replace(vbCr, "").TrimEnd(vbLf).Replace(vbLf, "</td>" & vbLf & "    <td>") & "</td>" & vbLf & "</tr>" & vbLf
+        Next
+        lHTML &= "</table>" & vbLf & "</body>" & vbLf
+        Return lHTML
     End Function
 
     ''' <summary>
@@ -140,10 +177,32 @@ Public Class clsServer
     End Function
 
     Public Function BuildTileURL(ByVal aTilePoint As Drawing.Point, ByVal aZoom As Integer) As String
+        Static lServerIndex As Integer = 0
+        Static lServerWildcards() As String = {"{abc}", "{abcd}", _
+                                               "{123}", "{1234}"}
+
         Dim lURL As String = TilePattern.Replace("{Zoom}", aZoom) _
                                         .Replace("{X}", aTilePoint.X) _
-                                        .Replace("{Y}", aTilePoint.Y) _
-                                        .Replace("{abc}", "a") 'TODO: spread load by returning different server letters
+                                        .Replace("{Y}", aTilePoint.Y)
+
+        'Spread load by returning different server letters/numbers from wildcard patterns
+        For Each lWildcard As String In lServerWildcards
+            Dim lWildcardPos As Integer = lURL.IndexOf(lWildcard)
+            If lWildcardPos >= 0 Then
+                Dim lServerChar As String = ""
+                Do
+                    Select Case lServerChar
+                        Case "", " ", "{", "}", ","
+                            lServerIndex += 1
+                            If lServerIndex >= lWildcard.Length Then lServerIndex = 1
+                            lServerChar = lWildcard.Substring(lServerIndex, 1)
+                        Case Else : Exit Do
+                    End Select
+                Loop
+                lURL = lURL.Replace(lWildcard, lServerChar)
+            End If
+        Next
+
         If lURL.IndexOf("{YY}") > 0 Then lURL = lURL.Replace("{YY}", (((1 << aZoom) >> 1) - 1 - aTilePoint.Y))
         If lURL.IndexOf("{Zoom+1}") > 0 Then lURL = lURL.Replace("{Zoom+1}", aZoom + 1)
         If lURL.IndexOf("{VersionYahooSatellite}") > 0 Then lURL = lURL.Replace("{VersionYahooSatellite}", "1.9")

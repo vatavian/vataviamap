@@ -89,6 +89,12 @@
     <Compile Include="Desktop\frmWaypoints.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Desktop\frmServer.designer.vb">
+      <DependentUpon>frmServer.vb</DependentUpon>
+    </Compile>
+    <Compile Include="Desktop\frmServer.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Shared\clsCache.vb" />
     <Compile Include="Shared\clsCell.vb" />
     <Compile Include="Shared\clsCellLayer.vb" />
@@ -181,6 +187,10 @@
     <EmbeddedResource Include="Desktop\frmOpenCellID.resx">
       <SubType>Designer</SubType>
       <DependentUpon>frmOpenCellID.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Desktop\frmServer.resx">
+      <SubType>Designer</SubType>
+      <DependentUpon>frmServer.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Desktop\frmTimeSpan.resx">
       <SubType>Designer</SubType>
