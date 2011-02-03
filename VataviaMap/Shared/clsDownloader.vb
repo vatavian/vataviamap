@@ -32,7 +32,7 @@ Public Class clsDownloader
         Try
             If aTileFilename IsNot Nothing Then
                 TileRAMcacheForgetTile(aTileFilename)
-                If aBitmap IsNot Nothing AndAlso pTileRAMcacheLimit > 0 Then
+                If pTileRAMcacheLimit > 0 Then
                     pTileRAMcache.Add(aTileFilename, aBitmap)
                     pTileRAMcacheRecent.Insert(0, aTileFilename)
                     'Make space in tile cache for new tile
@@ -113,7 +113,8 @@ Public Class clsDownloader
     Private Sub TileRAMcacheForgetTile(ByVal aTileFilename As String)
         If pTileRAMcache.ContainsKey(aTileFilename) Then
             Try
-                pTileRAMcache.Item(aTileFilename).Dispose()
+                Dim lItem As Bitmap = pTileRAMcache.Item(aTileFilename)
+                If lItem IsNot Nothing Then lItem.Dispose()
             Catch
             End Try
             pTileRAMcache.Remove(aTileFilename)
@@ -240,6 +241,33 @@ CheckCache:
         End If
     End Function
 
+    Private Sub TileLastCheckedSet(ByVal aTileFilename As String, ByVal aLastCheckedDate As String)
+        Dim lExpires As String = FilenameDecodeExt(aTileFilename, pExpiresExt)
+        If lExpires.Length > 0 AndAlso Date.Parse(lExpires) > Date.Now Then
+            'Already have a future expiration date, don't need to save when it was last checked
+        Else
+            'Dim lSavedModified As Boolean = False
+            'If lReplacingFilename.Length > 0 Then
+            '    If lReplacingFilename.IndexOf(pExpiresExt) > -1 Then
+            '        lSavedModified = True
+            '    Else
+            '        lMoveTo = lReplacingFilename
+            '        Try
+            '            IO.File.AppendText(lMoveTo).Close()
+            '            'Does not work on Phone: IO.File.SetCreationTimeUtc(lMoveTo, Date.Parse(lNewLastModified)) 'TODO: replace use of .LastModified file with creation time
+            '            'Dbg("Changed Creation Time of " & lMoveTo & " to " & lNewLastModified)
+            '            lSavedModified = True
+            '        Catch eSCT As Exception
+            '        End Try
+            '    End If
+            'End If
+            'If Not lSavedModified Then
+            WriteTextFile(aTileFilename & pLastCheckedExtension, aLastCheckedDate) 'TODO: save date last checked somewhere else, tiny files waste storage space
+            'End If
+        End If
+
+    End Sub
+
     ''' <summary>
     ''' Find the most recent tile file fitting the given file name key
     ''' If DeleteOldTiles=True, also delete any older versions of same tile
@@ -247,34 +275,49 @@ CheckCache:
     ''' <param name="aTileFilename">base name of tile file</param>
     ''' <returns>actual file name of most recent tile including any extensions (ETag, Expires)</returns>
     Public Function LatestTileFileName(ByVal aTileFilename As String) As String
+        Static lNotTileSuffixes() As String = {".prj", ".xml", pLastCheckedExtension.ToLower, pPartialDownloadExtension.ToLower}
+        Static lNotTileNotPartialSuffixes() As String = {".prj", ".xml", pLastCheckedExtension.ToLower}
         Dim lFilenameMatch As String = aTileFilename
         Dim lFiledateMatch As Date = Date.MinValue
         Dim lDate As Date
         Dim lDirectory As String = IO.Path.GetDirectoryName(aTileFilename)
         If IO.Directory.Exists(lDirectory) Then
             Dim lMatchingFilenames As String() = IO.Directory.GetFiles(lDirectory, IO.Path.GetFileName(aTileFilename) & ".*")
-            Dim lFilename As String
-            For Each lFilename In lMatchingFilenames
-                If Not lFilename.EndsWith(pPartialDownloadExtension) _
-                    AndAlso Not lFilename.EndsWith(pLastCheckedExtension) _
-                    AndAlso Not lFilename.EndsWith(".prj") Then
+            If lMatchingFilenames.Length > 0 Then
+                Dim lTileFilenames As New Generic.List(Of String)
+                Dim lFilename As String
+                For Each lFilename In lMatchingFilenames
+                    For Each lSuffix As String In lNotTileSuffixes
+                        If lFilename.ToLower.EndsWith(lSuffix) Then
+                            GoTo SkipNotTile
+                        End If
+                    Next
+                    lTileFilenames.Add(lFilename)
+
                     lDate = TileLastCheckedDate(lFilename)
                     If lDate > lFiledateMatch Then
                         lFiledateMatch = lDate
                         lFilenameMatch = lFilename
                     End If
-                End If
-            Next
-            If DeleteOldTiles Then
-                For Each lFilename In lMatchingFilenames
-                    If Not lFilename.StartsWith(lFilenameMatch) Then
-                        Try
-                            IO.File.Delete(lFilename)
-                        Catch ex As Exception
-                            Debug.WriteLine("Unable to delete " & lFilename)
-                        End Try
-                    End If
+SkipNotTile:
                 Next
+
+                If DeleteOldTiles Then
+                    For Each lFilename In lTileFilenames
+                        If lFilename <> lFilenameMatch Then
+                            Try
+                                IO.File.Delete(lFilename)
+                                For Each lSuffix As String In lNotTileNotPartialSuffixes
+                                    If IO.File.Exists(lFilename & lSuffix) Then
+                                        IO.File.Delete(lFilename & lSuffix)
+                                    End If
+                                Next
+                            Catch ex As Exception
+                                Debug.WriteLine("Unable to delete " & lFilename)
+                            End Try
+                        End If
+                    Next
+                End If
             End If
         End If
         Return lFilenameMatch
@@ -382,7 +425,7 @@ CheckCache:
         Dim lSuccess As Boolean = False
 
         Dim lReplacingFilename As String
-        If IO.File.Exists(aActualFilename) Then
+        If IO.File.Exists(aActualFilename) AndAlso FileSize(aActualFilename) > 0 Then
             lReplacingFilename = aActualFilename
 
             'Do not download new version if existing one has not yet expired
@@ -394,7 +437,6 @@ CheckCache:
                     Return False
                 End If
             End If
-
         Else
             lReplacingFilename = ""
         End If
@@ -414,7 +456,8 @@ CheckCache:
                 Dim lCachedETag As String = FilenameDecodeExt(lReplacingFilename, pETagExt)
                 Dim lMoveTo As String = aFileName
                 Dbg("Download '" & aUrl & "' to '" & aFileName & "'")
-                Dim lNewLastModified As String = Format(Date.UtcNow, "R") ' "yyyy-MM-dd HH:mm:ss") 'Format(Date.UtcNow, "ddd, dd MMM yyyy HH:mm:ss") & " GMT"
+                Dim lNewLastChecked As String = Format(Date.UtcNow, "R") ' "yyyy-MM-dd HH:mm:ss") 'Format(Date.UtcNow, "ddd, dd MMM yyyy HH:mm:ss") & " GMT"
+                Dim lNewLastModified As String = lNewLastChecked.Clone
 
                 Try
                     Dim request As Net.HttpWebRequest = Net.WebRequest.Create(aUrl)
@@ -423,10 +466,7 @@ CheckCache:
                         If lCachedETag.Length > 0 Then
                             request.Headers.Set("If-None-Match", """" & lCachedETag & """")
                         ElseIf lReplacingFilename.Length > 0 Then
-                            If Not IO.File.Exists(lReplacingFilename & pLastCheckedExtension) OrElse _
-                              Not DateTryParse(ReadTextFile(lReplacingFilename & pLastCheckedExtension), request.IfModifiedSince) Then
-                                request.IfModifiedSince = IO.File.GetLastWriteTime(lReplacingFilename)
-                            End If
+                            request.IfModifiedSince = TileLastCheckedDate(lReplacingFilename)
                         End If
                         lResponse = request.GetResponse()
                         If lResponse IsNot Nothing Then
@@ -437,15 +477,14 @@ CheckCache:
                                 lError = True
                             Else
                                 Select Case lResponse.Headers.Item("Content-Type")
-                                    Case "image/jpeg" : If lMoveTo.IndexOf(".jp") < 0 Then lMoveTo &= ".jpg"
-                                    Case "image/png" : If lMoveTo.IndexOf(".png") < 0 Then lMoveTo &= ".png"
+                                    Case "image/jpeg" : If lMoveTo.ToLower.IndexOf(".jp") < 0 Then lMoveTo &= ".jpg"
+                                    Case "image/png" : If lMoveTo.ToLower.IndexOf(".png") < 0 Then lMoveTo &= ".png"
                                     Case Else
                                         If aTileServer IsNot Nothing Then
                                             lError = True
                                             GoTo AfterDownload
                                         End If
                                 End Select
-                                Dim lNewExpires As String = lResponse.Headers.Item("Expires")
                                 Dim lResponseLastModified As String = lResponse.Headers.Item("Last-Modified")
                                 If lResponseLastModified IsNot Nothing Then
                                     lNewLastModified = lResponseLastModified
@@ -464,12 +503,19 @@ CheckCache:
                                         GoTo AfterDownload
                                     End If
                                 End If
+
+                                Dim lNewExpires As String = lResponse.Headers.Item("Expires")
+                                If lNewExpires Is Nothing Then 'If they don't tell us when it expires, assume it expires in a week
+                                    lNewExpires = Format(Date.UtcNow.AddDays(7), "R")
+                                End If
+
                                 If lNewExpires IsNot Nothing Then
                                     Dim lNewExpiresDate As Date
-                                    If DateTryParse(lNewExpires, lNewExpiresDate) AndAlso lNewExpiresDate > Date.UtcNow Then
+                                    If DateTryParse(lNewExpires, lNewExpiresDate) AndAlso lNewExpiresDate > Date.Now Then
                                         lMoveTo = IO.Path.ChangeExtension(lMoveTo, pExpiresExt & FilenameEncode(lNewExpires) & IO.Path.GetExtension(lMoveTo))
                                     End If
                                 End If
+
                                 lDownloadAs = lMoveTo & pPartialDownloadExtension
                                 lInput = lResponse.GetResponseStream()
                                 If lInput IsNot Nothing Then
@@ -524,30 +570,15 @@ AfterDownload:
                     End If
                     Return False
                 ElseIf lSkipped Then
-                    Dim lSavedModified As Boolean = False
                     If lReplacingFilename.Length > 0 Then
-                        If lReplacingFilename.IndexOf(pExpiresExt) > -1 Then
-                            lSavedModified = True
-                        Else
-                            lMoveTo = lReplacingFilename
-                            Try
-                                IO.File.AppendText(lMoveTo).Close()
-                                'Does not work on Phone: IO.File.SetCreationTimeUtc(lMoveTo, Date.Parse(lNewLastModified)) 'TODO: replace use of .LastModified file with creation time
-                                'Dbg("Changed Creation Time of " & lMoveTo & " to " & lNewLastModified)
-                                lSavedModified = True
-                            Catch eSCT As Exception
-                            End Try
-                        End If
-                    End If
-                    If Not lSavedModified Then
-                        WriteTextFile(lMoveTo & pLastCheckedExtension, lNewLastModified) 'TODO: save date last checked somewhere else, tiny files waste storage space
+                        TileLastCheckedSet(lReplacingFilename, lNewLastChecked)
                     End If
                 ElseIf IO.File.Exists(lDownloadAs) Then
                     Dim lStartMoving As DateTime = DateTime.Now
                     While IO.File.Exists(lMoveTo)
                         Try
                             If aTileServer IsNot Nothing Then
-                                DeleteTile(lMoveTo)
+                                DeleteTile(aFileName)
                             Else
                                 IO.File.Delete(aFileName)
                             End If
@@ -564,9 +595,7 @@ AfterDownload:
                     End While
                     Try
                         If aTileServer IsNot Nothing Then
-                            If Not lMoveTo.IndexOf(pExpiresExt) > -1 Then
-                                WriteTextFile(lMoveTo & pLastCheckedExtension, lNewLastModified)
-                            End If
+                            TileLastCheckedSet(lMoveTo, lNewLastChecked)
                             If IsBadTile(lDownloadAs) Then
                                 IO.File.Delete(lDownloadAs)
                                 IO.File.Create(lMoveTo).Close()

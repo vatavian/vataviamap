@@ -607,6 +607,7 @@ EndFound:
     End Function
 
     Public Function ReadTextFile(ByVal aFilename As String) As String
+        If Not IO.File.Exists(aFilename) Then Return ""
 #If Smartphone Then
         Dim lReader As IO.StreamReader = IO.File.OpenText(aFilename)
         ReadTextFile = lReader.ReadToEnd()

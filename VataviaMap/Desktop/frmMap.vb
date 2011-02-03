@@ -5,7 +5,7 @@ Public Class frmMap
     WithEvents pBuddyListForm As frmBuddyList
     WithEvents pWaypointsListForm As frmWaypoints
     WithEvents pCoordinatesForm As frmCoordinates
-    WithEvents pTileServerForm As frmEditNameURL
+    WithEvents pTileServerForm As frmServer
     WithEvents pTimeSpanForm As frmTimeSpan
     WithEvents pOpenCellIDForm As frmOpenCellID
     WithEvents pTimeZoneForm As frmTimeZone
@@ -18,11 +18,6 @@ Public Class frmMap
     Public Sub New()
         Application.CurrentCulture = New Globalization.CultureInfo("")
         InitializeComponent()
-
-        'Create zoom level menu items
-        For lZoomLevel As Integer = pMap.TileServer.ZoomMin To pMap.TileServer.ZoomMax
-            Me.ZoomToolStripMenuItem.DropDownItems.Add(New ToolStripMenuItem(CStr(lZoomLevel), Nothing, New EventHandler(AddressOf ZoomToolStripMenuItem_Click)))
-        Next
 
         Dim lTileCacheFolder As String = GetAppSetting("TileCacheFolder", IO.Path.GetTempPath() & "tiles" & g_PathChar)
 
@@ -241,33 +236,30 @@ Public Class frmMap
             Catch
             End Try
         End If
-        pTileServerForm = New frmEditNameURL
+        pTileServerForm = New frmServer
         pTileServerForm.Icon = Me.Icon
     End Sub
 
     Private Sub AddTileServerMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles AddTileServerMenuItem.Click
         NewTileServerForm()
-        pTileServerForm.AskUser("Add New Tile Server", pMap.TileServer.Name, pMap.TileServer.TilePattern, False, g_TileServerExampleLabel, g_TileServerExampleFile)
-        'http://opentiles.appspot.com/tile/get/ma/' 12/1242/1512.png
+        pTileServerForm.AskUser("Add New Tile Server", New clsServer, False, g_TileServerExampleLabel, g_TileServerExampleFile)
     End Sub
 
     Private Sub EditTileServerMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs)
-        Dim lItemClicked As ToolStripMenuItem = sender
         NewTileServerForm()
-        pTileServerForm.AskUser("Edit Tile Server", lItemClicked.Text, pMap.Servers.Item(lItemClicked.Text).TilePattern, True, g_TileServerExampleLabel, g_TileServerExampleFile)
+        pTileServerForm.AskUser("Edit Tile Server", pMap.Servers.Item(CType(sender, ToolStripMenuItem).Text), True, g_TileServerExampleLabel, g_TileServerExampleFile)
     End Sub
 
-    Private Sub pTileServerForm_Add(ByVal aName As String, ByVal aURL As String) Handles pTileServerForm.Add
-        If aURL.Length > 0 AndAlso Not aURL.EndsWith("/") Then aURL &= "/"
-        pMap.Servers.Add(aName, New clsServer(aName, , aURL))
-        pMap.TileServerName = aName
+    Private Sub pTileServerForm_Add(ByVal aServer As clsServer) Handles pTileServerForm.Add
+        'If aURL.Length > 0 AndAlso Not aURL.EndsWith("/") Then aURL &= "/"
+        pMap.Servers.Add(aServer.Name, aServer)
         BuildTileServerMenu()
         pMap.NeedRedraw()
     End Sub
 
-    Private Sub pTileServerForm_Change(ByVal aOriginalName As String, ByVal aName As String, ByVal aURL As String) Handles pTileServerForm.Change
+    Private Sub pTileServerForm_Change(ByVal aOriginalName As String, ByVal aServer As clsServer) Handles pTileServerForm.Change
         pMap.Servers.Remove(aOriginalName)
-        pTileServerForm_Add(aName, aURL)
+        pTileServerForm_Add(aServer)
     End Sub
 
     Private Sub pTileServerForm_Remove(ByVal aOriginalName As String) Handles pTileServerForm.Remove
@@ -653,6 +645,15 @@ Public Class frmMap
                 lItem.Checked = False
             End If
         Next
+
+        'Populate Zoom menu for the new tile server
+        ZoomToolStripMenuItem.DropDownItems.Clear()
+        ZoomToolStripMenuItem.DropDownItems.Add(ZoomAllLayersToolStripMenuItem)
+        For lZoomLevel As Integer = pMap.TileServer.ZoomMin To pMap.TileServer.ZoomMax
+            Me.ZoomToolStripMenuItem.DropDownItems.Add(New ToolStripMenuItem(CStr(lZoomLevel), Nothing, New EventHandler(AddressOf ZoomToolStripMenuItem_Click)))
+        Next
+        CheckZoom()
+
         pMap.NeedRedraw()
         pMap_StatusChanged(Nothing)
     End Sub
@@ -803,5 +804,9 @@ Public Class frmMap
 
     Private Sub RefreshAllToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles RefreshAllToolStripMenuItem.Click
         pMap.ReDownloadAllVisibleTiles()
+    End Sub
+
+    Private Sub OpenTileCacheFolderToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles OpenTileCacheFolderToolStripMenuItem.Click
+        OpenFileOrURL(pMap.TileCacheFolder, False)
     End Sub
 End Class

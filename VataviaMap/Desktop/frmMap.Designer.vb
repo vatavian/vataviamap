@@ -84,6 +84,7 @@ Partial Class frmMap
         Me.VataviaMapProjectPageToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.RefreshFromServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.pMap = New VataviaMap.ctlMap
+        Me.OpenTileCacheFolderToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.TimeZoneToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.TimeSpanToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.PrintToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
@@ -104,7 +105,7 @@ Partial Class frmMap
         '
         'FileToolStripMenuItem
         '
-        Me.FileToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.SaveAsToolStripMenuItem, Me.CopyToClipboardToolStripMenuItem, Me.AddLayerToolStripMenuItem, Me.LayersToolStripMenuItem, Me.RemoveAllLayersToolStripMenuItem, Me.OpenJOSMToolStripMenuItem, Me.FollowWebMapURLToolStripMenuItem, Me.GetOSMBugsToolStripMenuItem, Me.PrintToolStripMenuItem, Me.ExitToolStripSeparator, Me.ExitToolStripMenuItem, Me.TimeZoneToolStripMenuItem})
+        Me.FileToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.SaveAsToolStripMenuItem, Me.CopyToClipboardToolStripMenuItem, Me.AddLayerToolStripMenuItem, Me.LayersToolStripMenuItem, Me.RemoveAllLayersToolStripMenuItem, Me.OpenJOSMToolStripMenuItem, Me.FollowWebMapURLToolStripMenuItem, Me.GetOSMBugsToolStripMenuItem, Me.OpenTileCacheFolderToolStripMenuItem, Me.PrintToolStripMenuItem, Me.ExitToolStripSeparator, Me.ExitToolStripMenuItem, Me.TimeZoneToolStripMenuItem})
         Me.FileToolStripMenuItem.Name = "FileToolStripMenuItem"
         Me.FileToolStripMenuItem.Size = New System.Drawing.Size(45, 23)
         Me.FileToolStripMenuItem.Text = "File"
@@ -330,7 +331,7 @@ Partial Class frmMap
         'PlacesAddToolStripMenuItem
         '
         Me.PlacesAddToolStripMenuItem.Name = "PlacesAddToolStripMenuItem"
-        Me.PlacesAddToolStripMenuItem.Size = New System.Drawing.Size(138, 24)
+        Me.PlacesAddToolStripMenuItem.Size = New System.Drawing.Size(152, 24)
         Me.PlacesAddToolStripMenuItem.Text = "Add..."
         '
         'TileServerToolStripMenuItem
@@ -475,6 +476,12 @@ Partial Class frmMap
         Me.pMap.Size = New System.Drawing.Size(910, 451)
         Me.pMap.TabIndex = 1
         '
+        'OpenTileCacheFolderToolStripMenuItem
+        '
+        Me.OpenTileCacheFolderToolStripMenuItem.Name = "OpenTileCacheFolderToolStripMenuItem"
+        Me.OpenTileCacheFolderToolStripMenuItem.Size = New System.Drawing.Size(337, 24)
+        Me.OpenTileCacheFolderToolStripMenuItem.Text = "Open Tile Cache Folder"
+        '
         'TimeZoneToolStripMenuItem
         '
         Me.TimeZoneToolStripMenuItem.Name = "TimeZoneToolStripMenuItem"
@@ -597,4 +604,5 @@ Partial Class frmMap
     Friend WithEvents LetterLandscapeToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents TimeSpanToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents RefreshAllToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents OpenTileCacheFolderToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
 End Class

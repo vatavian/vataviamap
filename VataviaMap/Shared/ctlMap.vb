@@ -342,7 +342,7 @@ Public Class ctlMap
 
     Private Sub GetSettings()
         Dim lTileServerName As String = ""
-        Servers = New Dictionary(Of String, clsServer)
+        SetDefaultTileServers()
         Dim lSoftwareKey As Microsoft.Win32.RegistryKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("Software")
         If lSoftwareKey IsNot Nothing Then
             Dim lAppKey As Microsoft.Win32.RegistryKey = lSoftwareKey.OpenSubKey(g_AppName)
@@ -351,8 +351,9 @@ Public Class ctlMap
                     On Error Resume Next 'Maybe a registry setting is not numeric but needs to be, skip bad settings
 
                     Dim lKeyIndex As Integer = 1
+                    'Not currently saving servers in registry, saving in text file instead which is read in SetDefaultTileServers
                     'Do
-                    '    Dim lServerNameUrl() As String = CStr(.GetValue("Server" & lKeyIndex, "")).Split("|")
+                    '    Dim lServerNameUrl() As String = CStr(.GetValue("Server" & lKeyIndex, "")).replace(vbcr, "").Split(vblf)
                     '    If lServerNameUrl.Length > 1 Then
                     '        Servers.Add(lServerNameUrl(0), clsServer.FromFields(lServerNameUrl))
                     '        lKeyIndex += 1
@@ -376,6 +377,7 @@ Public Class ctlMap
 
                     'TileCacheFolder gets set earlier
                     lTileServerName = .GetValue("TileServer", TileServer.Name)
+                    TileServerName = lTileServerName
                     g_UploadPointURL = .GetValue("UploadPointURL", g_UploadPointURL)
                     g_UploadTrackURL = .GetValue("UploadTrackURL", g_UploadTrackURL)
 
@@ -427,18 +429,16 @@ Public Class ctlMap
                 End With
             End If
         End If
-        If Servers.Count = 0 Then
-            SetDefaultTileServers()
-        End If
         TileServerName = lTileServerName
     End Sub
 
     Public Sub SetDefaultTileServers()
-        Dim lTileServersFilename As String = pTileCacheFolder & "servers.html"
-        If IO.File.Exists(lTileServersFilename) OrElse _
-           Downloader.DownloadFile(Nothing, "http://vatavia.net/mark/VataviaMap/servers.html", lTileServersFilename, lTileServersFilename) Then
-            Dim lServersHTML As String = ReadTextFile(lTileServersFilename) 'TODO: embed default version of servers.html?
+        Dim lTileServersFilename As String = TileServersFilename()
+        Dim lServersHTML As String = ReadTextFile(lTileServersFilename)
+        If lServersHTML.ToLower.IndexOf("<table>") > 0 Then
             Servers = clsServer.ReadServers(lServersHTML)
+        Else
+            'TODO: embed default version of servers.html?
         End If
         If Servers.Count = 0 Then
             Dim pDefaultTileServers() As String = {"OpenStreetMap", "http://tile.openstreetmap.org/mapnik/", _
@@ -469,6 +469,15 @@ Public Class ctlMap
         End If
     End Sub
 
+    Private Function TileServersFilename() As String
+        Dim lTileServersFilename As String = pTileCacheFolder & "servers.html"
+        If IO.File.Exists(lTileServersFilename) OrElse _
+           Downloader.DownloadFile(Nothing, "http://vatavia.net/mark/VataviaMap/servers.html", lTileServersFilename, lTileServersFilename) Then
+            Return lTileServersFilename
+        End If
+        Return ""
+    End Function
+
     Public Sub SaveSettings()
         On Error Resume Next
         Dim lSoftwareKey As Microsoft.Win32.RegistryKey = Microsoft.Win32.Registry.CurrentUser.CreateSubKey("Software")
@@ -479,6 +488,15 @@ Public Class ctlMap
                     'TODO: .SetValue("TileCacheDays", lCacheDays)
 
                     Dim lKeyIndex As Integer = 1
+
+                    Dim lTileServersFilename As String = TileServersFilename()
+                    If Not String.IsNullOrEmpty(lTileServersFilename) Then
+                        Dim lNewServersHTML As String = clsServer.WriteServers(Servers)
+                        If lNewServersHTML <> ReadTextFile(lTileServersFilename) Then
+                            WriteTextFile(lTileServersFilename, lNewServersHTML)
+                        End If
+                    End If
+
                     'For Each lName As String In Servers.Keys
                     '    .SetValue("Server" & lKeyIndex, Servers.Item(lName).ToString)
                     '    lKeyIndex += 1
@@ -1094,7 +1112,7 @@ Public Class ctlMap
             Dim lDrewImage As Boolean = False
             If pShowTileImages Then
                 Dim lTileImage As Bitmap = TileBitmap(aTilePoint, aZoom, aPriority)
-                If lTileImage IsNot Nothing Then
+                If lTileImage IsNot Nothing AndAlso lTileImage.Width > 1 Then
                     Dim lDestRect As New Rectangle(aOffset.X, aOffset.Y, TileServer.TileSize, TileServer.TileSize)
                     Dim lSrcRect As New Rectangle(0, 0, TileServer.TileSize, TileServer.TileSize)
                     g.DrawImage(lTileImage, lDestRect, lSrcRect, GraphicsUnit.Pixel)
@@ -2110,7 +2128,7 @@ RestartRedraw:
                 Dim lWaypoint As New clsGPXwaypoint("wpt", GPS_POSITION.Latitude, GPS_POSITION.Longitude)
                 lWaypoint.sym = "cursor"
                 lWaypoint.course = GPS_POSITION.Heading
-                pCursorLayer.DrawTrackpoint(g, lWaypoint, aTopLeft, aOffsetToCenter, -1, -1)
+                pCursorLayer.DrawTrackpoint(TileServer, g, lWaypoint, aTopLeft, aOffsetToCenter, -1, -1)
             End If
         End If
     End Sub

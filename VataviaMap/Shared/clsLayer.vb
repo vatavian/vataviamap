@@ -478,7 +478,7 @@ Public Class clsLayerGPX
                                             lTrackPath.Reset()
                                         End If
 #Else
-                                    If Not DrawTrackpoint(g, lTrackPoint, aTopLeftTile, aOffsetToCenter, lLastX, lLastY) Then
+                                    If Not DrawTrackpoint(aTileServer, g, lTrackPoint, aTopLeftTile, aOffsetToCenter, lLastX, lLastY) Then
 #End If
                                         lLastX = -1
                                         lLastY = -1
