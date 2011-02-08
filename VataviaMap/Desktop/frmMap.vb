@@ -11,6 +11,7 @@ Public Class frmMap
     WithEvents pTimeZoneForm As frmTimeZone
 
     Private pLastKeyDown As Integer = 0
+    Private Const pCopyPrefix As String = "Copy "
 
     Delegate Sub CheckZoomCallback()
     Private pCheckZoomCallback As New CheckZoomCallback(AddressOf CheckZoom)
@@ -253,6 +254,7 @@ Public Class frmMap
     Private Sub pTileServerForm_Add(ByVal aServer As clsServer) Handles pTileServerForm.Add
         'If aURL.Length > 0 AndAlso Not aURL.EndsWith("/") Then aURL &= "/"
         pMap.Servers.Add(aServer.Name, aServer)
+        BuildWebsiteMenu()
         BuildTileServerMenu()
         pMap.NeedRedraw()
     End Sub
@@ -272,6 +274,7 @@ Public Class frmMap
             Next
             pMap.NeedRedraw()
         End If
+        BuildWebsiteMenu()
         BuildTileServerMenu()
     End Sub
 
@@ -297,16 +300,19 @@ Public Class frmMap
 
     Private Sub BuildWebsiteMenu()
         Dim lWebsiteEventHandler As New EventHandler(AddressOf Website_Click)
+        WebsiteToolStripMenuItem.DropDownItems.Clear()
         For Each lServer As clsServer In pMap.Servers.Values
             If Not String.IsNullOrEmpty(lServer.WebmapPattern) Then
                 Dim lItem As New ToolStripMenuItem(lServer.Name, Nothing, lWebsiteEventHandler)
                 Me.WebsiteToolStripMenuItem.DropDownItems.Add(lItem)
+                lItem.DropDownItems.Add(New ToolStripMenuItem(pCopyPrefix & lServer.Name, Nothing, lWebsiteEventHandler))
             End If
         Next
     End Sub
 
     Private Sub DefaultsTileServerMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles DefaultsTileServerMenuItem.Click
         pMap.SetDefaultTileServers()
+        BuildWebsiteMenu()
         BuildTileServerMenu()
     End Sub
 
@@ -719,11 +725,21 @@ Public Class frmMap
     Private Sub Website_Click(ByVal sender As System.Object, ByVal e As System.EventArgs)
         Try
             Dim lItem As ToolStripMenuItem = sender
-            Dim lServer As clsServer = pMap.Servers(lItem.Text)
+            Dim lServerName As String = lItem.Text
+            Dim lOpen As Boolean = True
+            If lServerName.StartsWith(pCopyPrefix) Then
+                lServerName = lServerName.Substring(pCopyPrefix.Length)
+                lOpen = False
+            End If
+            Dim lServer As clsServer = pMap.Servers(lServerName)
             Dim lURL As String = lServer.BuildWebmapURL(pMap.CenterLat, pMap.CenterLon, pMap.Zoom, pMap.LatMax, pMap.LonMin, pMap.LatMin, pMap.LonMax)
             If lURL IsNot Nothing AndAlso lURL.Length > 0 Then
-                OpenFileOrURL(lURL, False)
                 pMap.ShowURL = lURL
+                If lOpen Then
+                    OpenFileOrURL(lURL, False)
+                Else
+                    Clipboard.SetText(lURL)
+                End If
             End If
         Catch ex As System.ComponentModel.Win32Exception
             'This happens when Firefox takes a moment to start due to updates, ignore it
