@@ -259,10 +259,10 @@ Public Class clsServer
                             aZoom = Integer.Parse(lArgPart(1))
                         Case "ll", "q"
                             Dim ll() As String = lArgPart(1).Split(",")
-                            If ll.Length = 2 AndAlso IsNumeric(ll(0)) AndAlso IsNumeric(ll(1)) Then
+                            If ll.Length = 2 AndAlso IsNumeric(ll(0)) Then
                                 'aSite = SiteEnum.GoogleMaps
-                                aCenterLatitude = Double.Parse(ll(0))
-                                aCenterLongitude = Double.Parse(ll(1))
+                                DoubleTryParse(ll(0), aCenterLatitude)
+                                DoubleTryParse(ll(1), aCenterLongitude)
                             End If
                         Case "spn"
                             'TODO: parse Google's height,width into zoom

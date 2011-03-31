@@ -629,15 +629,33 @@ EndFound:
 
     Public Function DoubleTryParse(ByVal aString As String, ByRef aDouble As Double) As Boolean
 #If Smartphone Then
-        Try
+        Try 'do not have TryParse available
             aDouble = Double.Parse(aString)
             Return True
         Catch ex As Exception
-            Return False
         End Try
-#Else
-        Return Double.TryParse(aString, aDouble)
+#Else   'Use TryParse to avoid exception
+        If Double.TryParse(aString, aDouble) Then Return True
 #End If
+        'See if we can find a Double by only using first part of aString
+        Dim lCharIndex As Integer = 0
+        Dim lChar As String
+        While lCharIndex < aString.Length
+            lChar = aString.Substring(lCharIndex, 1)
+            If Not IsNumeric(lChar) Then
+                Select Case lChar
+                    Case "-", "."
+                    Case Else : Exit While
+                End Select
+            End If
+            lCharIndex += 1
+        End While
+
+        If lCharIndex > 0 AndAlso lCharIndex < aString.Length Then
+            Return DoubleTryParse(aString.Substring(0, lCharIndex), aDouble)
+        End If
+
+        Return False
     End Function
 
     Public Function IntegerTryParse(ByVal aString As String, ByRef aInteger As Integer) As Boolean
@@ -646,11 +664,26 @@ EndFound:
             aInteger = Integer.Parse(aString)
             Return True
         Catch ex As Exception
-            Return False
         End Try
 #Else
-        Return Integer.TryParse(aString, aInteger)
+        If Integer.TryParse(aString, aInteger) Then Return True
 #End If
+        'See if we can find a number by only using first part of aString
+        Dim lCharIndex As Integer = 0
+        Dim lChar As String
+        While lCharIndex < aString.Length
+            lChar = aString.Substring(lCharIndex, 1)
+            If Not IsNumeric(lChar) AndAlso lChar <> "-" Then
+                Exit While
+            End If
+            lCharIndex += 1
+        End While
+
+        If lCharIndex > 0 AndAlso lCharIndex < aString.Length Then
+            Return IntegerTryParse(aString.Substring(0, lCharIndex), aInteger)
+        End If
+
+        Return False
     End Function
 
     ' Return a random RGB color.
