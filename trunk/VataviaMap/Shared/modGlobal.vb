@@ -11,7 +11,6 @@ Module modGlobal
     Public Const g_FeetPerMeter As Double = 3.2808399
     Public Const g_MilesPerKnot As Double = 1.15077945
 
-    Public g_TileExtension As String = ".png"
     Public g_PathChar As String = IO.Path.DirectorySeparatorChar
     Public g_MarkedPrefix As String = "Marked" & g_PathChar
 
@@ -23,12 +22,6 @@ Module modGlobal
     Public g_TileServerExampleLabel As String = "URL of server"
     Public g_TileServerExampleFile As String = "http://wiki.openstreetmap.org/wiki/Slippy_map_tilenames#Tiles"
 
-    Public g_TileServerTransparentName As String = "Maplint"
-    Public g_TileServerTransparentURL As String = "http://tah.openstreetmap.org/Tiles/maplint/"
-
-    'Top-level folder containing cached tiles, must end with trailing IO.Path.DirectorySeparatorChar
-    Public g_TileCacheFolder As String = ""
-    Public g_BadTileSize As Integer = 0
 
     ' URL of server to upload points to
     Public g_UploadPointURL As String = "http://vatavia.net/cgi-bin/gps?u=unknown&y=#Lat#&x=#Lon#&e=#Alt#&s=#Speed#&h=#Heading#&t=#Time#&l=#Label#&c=#CellID#"
@@ -357,18 +350,6 @@ EndFound:
         Catch
         End Try
         Return -1
-    End Function
-
-    Public Function IsBadTile(ByVal aFilename As String) As Boolean
-        Dim lFileSize As Integer = FileSize(aFilename)
-        If lFileSize <= 0 Then
-            Return True
-        ElseIf lFileSize = g_BadTileSize Then
-            'TODO: binary compare with bad tile
-            Return True
-        Else
-            Return False
-        End If
     End Function
 
     Public Function ReadableFromXML(ByVal aXML As String) As String

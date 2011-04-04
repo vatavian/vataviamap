@@ -5,6 +5,11 @@ Public Class clsServer
     Public WebmapPattern As String = ""
     Public Copyright As String = ""
     Public Transparent As Boolean = False
+    Public FileExtension As String = ".png"
+
+    'Top-level folder containing cached tiles for this server, must end with trailing IO.Path.DirectorySeparatorChar
+    Public CacheFolder As String = ""
+    Public BadTileSize As Integer = 0
 
     ''' <summary>
     ''' Minimum zoom level available from this server, default is 0=one tile for whole world
@@ -312,16 +317,28 @@ Public Class clsServer
                                  ByVal aZoom As Integer, _
                                  ByVal aUseMarkedTiles As Boolean) As String
         With aTilePoint
-            If g_TileCacheFolder.Length > 0 AndAlso ValidTilePoint(aTilePoint, aZoom) Then
+            If CacheFolder.Length > 0 AndAlso ValidTilePoint(aTilePoint, aZoom) Then
                 Dim lMarked As String = ""
                 If aUseMarkedTiles Then lMarked = g_MarkedPrefix
-                Return g_TileCacheFolder & lMarked & aZoom _
+                Return CacheFolder & lMarked & aZoom _
                      & g_PathChar & .X _
                      & g_PathChar & .Y 'other convention = (1 << aZoom) - .Y
             Else
                 Return ""
             End If
         End With
+    End Function
+
+    Public Function IsBadTile(ByVal aFilename As String) As Boolean
+        Dim lFileSize As Integer = FileSize(aFilename)
+        If lFileSize <= 0 Then
+            Return True
+        ElseIf lFileSize = BadTileSize Then
+            'TODO: binary compare with bad tile
+            Return True
+        Else
+            Return False
+        End If
     End Function
 
     Public Function ValidTilePoint(ByVal aTilePoint As Point, _

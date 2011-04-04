@@ -38,8 +38,7 @@ Public Class frmMap
             lTileCacheFolder &= g_PathChar
         End If
 
-        pMap.TileCacheFolder = lTileCacheFolder
-        pMap.SharedNew()
+        pMap.SharedNew(lTileCacheFolder)
 
         BuildWebsiteMenu()
         BuildTileServerMenu()
@@ -147,9 +146,9 @@ Public Class frmMap
     Private Sub SaveAsToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles SaveAsToolStripMenuItem.Click
         Dim lSaveDialog As New SaveFileDialog
         With lSaveDialog
-            .DefaultExt = g_TileExtension
+            .DefaultExt = pMap.TileServer.FileExtension
             .InitialDirectory = My.Computer.FileSystem.SpecialDirectories.MyDocuments
-            .FileName = "OpenStreetMap-" & Format(Now, "yyyy-MM-dd") & "at" & Format(Now, "HH-mm-ss") & g_TileExtension
+            .FileName = "OpenStreetMap-" & Format(Now, "yyyy-MM-dd") & "at" & Format(Now, "HH-mm-ss") & pMap.TileServer.FileExtension
             If .ShowDialog = Windows.Forms.DialogResult.OK Then
                 pMap.SaveImageAs(.FileName)
             End If
@@ -230,6 +229,12 @@ Public Class frmMap
         pMap.TileServerName = lItemClicked.Text
     End Sub
 
+    Private Sub TransparentServer_Click(ByVal sender As System.Object, ByVal e As System.EventArgs)
+        Dim lItemClicked As ToolStripMenuItem = sender
+        lItemClicked.Checked = Not lItemClicked.Checked
+        pMap.EnableTransparentTileServer(lItemClicked.Text, lItemClicked.Checked)
+    End Sub
+
     Private Sub NewTileServerForm()
         If pTileServerForm IsNot Nothing Then
             Try
@@ -280,13 +285,19 @@ Public Class frmMap
 
     Private Sub BuildTileServerMenu()
         TileServerToolStripMenuItem.DropDownItems.Clear()
+        OverlayServerToolStripMenuItem.DropDownItems.Clear()
         EditTileServerMenuItem.DropDownItems.Clear()
         For Each lServer As clsServer In pMap.Servers.Values
             If Not String.IsNullOrEmpty(lServer.TilePattern) Then
                 Dim lNewItem As New ToolStripMenuItem(lServer.Name)
-                AddHandler lNewItem.Click, AddressOf TileServer_Click
-                If lServer.Name = pMap.TileServer.Name Then lNewItem.Checked = True
-                TileServerToolStripMenuItem.DropDownItems.Add(lNewItem)
+                If lServer.Transparent Then
+                    OverlayServerToolStripMenuItem.DropDownItems.Add(lNewItem)
+                    AddHandler lNewItem.Click, AddressOf TransparentServer_Click
+                Else
+                    TileServerToolStripMenuItem.DropDownItems.Add(lNewItem)
+                    AddHandler lNewItem.Click, AddressOf TileServer_Click
+                    If lServer.Name = pMap.TileServer.Name Then lNewItem.Checked = True
+                End If
 
                 Dim lNewEditItem As New ToolStripMenuItem(lServer.Name)
                 AddHandler lNewEditItem.Click, AddressOf EditTileServerMenuItem_Click
@@ -316,31 +327,31 @@ Public Class frmMap
         BuildTileServerMenu()
     End Sub
 
-    Private Sub OverlayMaplintToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles OverlayMaplintToolStripMenuItem.Click
-        'TODO:
-        'pMap.g_TileServerTransparentURL = "http://tah.openstreetmap.org/Tiles/maplint/"
-        'OverlayMaplintToolStripMenuItem.Checked = Not OverlayMaplintToolStripMenuItem.Checked
-        'If OverlayMaplintToolStripMenuItem.Checked Then
-        '    OverlayYahooLabelsToolStripMenuItem.Checked = False
-        '    pShowTransparentTiles = True
-        'Else
-        '    pShowTransparentTiles = OverlayYahooLabelsToolStripMenuItem.Checked
-        'End If
-        'Redraw()
-    End Sub
+    'Private Sub OverlayMaplintToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles OverlayMaplintToolStripMenuItem.Click
+    '    'TODO:
+    '    'pMap.g_TileServerTransparentURL = "http://tah.openstreetmap.org/Tiles/maplint/"
+    '    'OverlayMaplintToolStripMenuItem.Checked = Not OverlayMaplintToolStripMenuItem.Checked
+    '    'If OverlayMaplintToolStripMenuItem.Checked Then
+    '    '    OverlayYahooLabelsToolStripMenuItem.Checked = False
+    '    '    pShowTransparentTiles = True
+    '    'Else
+    '    '    pShowTransparentTiles = OverlayYahooLabelsToolStripMenuItem.Checked
+    '    'End If
+    '    'Redraw()
+    'End Sub
 
-    Private Sub OverlayYahooLabelsToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles OverlayYahooLabelsToolStripMenuItem.Click
-        ''TODO: manage transparent tile server like main tile server, add Transparent field to server type
-        ''pMap.g_TileServerTransparentURL = "..."
-        'OverlayYahooLabelsToolStripMenuItem.Checked = Not OverlayYahooLabelsToolStripMenuItem.Checked
-        'If OverlayYahooLabelsToolStripMenuItem.Checked Then
-        '    OverlayMaplintToolStripMenuItem.Checked = False
-        '    pShowTransparentTiles = True
-        'Else
-        '    pShowTransparentTiles = OverlayMaplintToolStripMenuItem.Checked
-        'End If
-        'Redraw()
-    End Sub
+    'Private Sub OverlayYahooLabelsToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles OverlayYahooLabelsToolStripMenuItem.Click
+    '    ''TODO: manage transparent tile server like main tile server, add Transparent field to server type
+    '    ''pMap.g_TileServerTransparentURL = "..."
+    '    'OverlayYahooLabelsToolStripMenuItem.Checked = Not OverlayYahooLabelsToolStripMenuItem.Checked
+    '    'If OverlayYahooLabelsToolStripMenuItem.Checked Then
+    '    '    OverlayMaplintToolStripMenuItem.Checked = False
+    '    '    pShowTransparentTiles = True
+    '    'Else
+    '    '    pShowTransparentTiles = OverlayMaplintToolStripMenuItem.Checked
+    '    'End If
+    '    'Redraw()
+    'End Sub
 
     Private Sub PanToGPXToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles PanToGPXToolStripMenuItem.Click
         pMap.GPXPanTo = Not pMap.GPXPanTo
@@ -635,7 +646,7 @@ Public Class frmMap
 
     Private Sub pMap_StatusChanged(ByVal aStatusMessage As String) Handles pMap.StatusChanged
         If String.IsNullOrEmpty(aStatusMessage) Then
-            Me.Text = g_AppName & " " & pMap.TileServer.Name
+            Me.Text = pMap.Text
         Else
             Me.Text = aStatusMessage
         End If
@@ -650,6 +661,10 @@ Public Class frmMap
             Else
                 lItem.Checked = False
             End If
+        Next
+
+        For Each lItem As ToolStripMenuItem In OverlayServerToolStripMenuItem.DropDownItems
+            lItem.Checked = pMap.TransparentTileServers.Contains(pMap.Servers.Item(lItem.Text))
         Next
 
         'Populate Zoom menu for the new tile server

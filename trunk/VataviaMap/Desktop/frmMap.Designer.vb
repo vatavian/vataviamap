@@ -67,8 +67,6 @@ Partial Class frmMap
         Me.EditTileServerMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.DefaultsTileServerMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.OverlayServerToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
-        Me.OverlayMaplintToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
-        Me.OverlayYahooLabelsToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.BuddiesToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.FindBuddyToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.SetBuddyAlarmToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
@@ -361,22 +359,9 @@ Partial Class frmMap
         '
         'OverlayServerToolStripMenuItem
         '
-        Me.OverlayServerToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.OverlayMaplintToolStripMenuItem, Me.OverlayYahooLabelsToolStripMenuItem})
         Me.OverlayServerToolStripMenuItem.Name = "OverlayServerToolStripMenuItem"
         Me.OverlayServerToolStripMenuItem.Size = New System.Drawing.Size(125, 23)
         Me.OverlayServerToolStripMenuItem.Text = "Overlay Server"
-        '
-        'OverlayMaplintToolStripMenuItem
-        '
-        Me.OverlayMaplintToolStripMenuItem.Name = "OverlayMaplintToolStripMenuItem"
-        Me.OverlayMaplintToolStripMenuItem.Size = New System.Drawing.Size(183, 24)
-        Me.OverlayMaplintToolStripMenuItem.Text = "Maplint"
-        '
-        'OverlayYahooLabelsToolStripMenuItem
-        '
-        Me.OverlayYahooLabelsToolStripMenuItem.Name = "OverlayYahooLabelsToolStripMenuItem"
-        Me.OverlayYahooLabelsToolStripMenuItem.Size = New System.Drawing.Size(183, 24)
-        Me.OverlayYahooLabelsToolStripMenuItem.Text = "YahooLabels"
         '
         'BuddiesToolStripMenuItem
         '
@@ -570,8 +555,6 @@ Partial Class frmMap
     Friend WithEvents WheelZoomToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents WheelTileServerToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents OverlayServerToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents OverlayMaplintToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
-    Friend WithEvents OverlayYahooLabelsToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents WheelLayerToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents HelpToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents VataviaMapProjectPageToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem

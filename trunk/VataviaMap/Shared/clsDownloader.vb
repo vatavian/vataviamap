@@ -473,7 +473,7 @@ SkipNotTile:
                             Dim lContentLength As String = lResponse.Headers.Item("Content-Length")
                             If lContentLength = "0" Then ' Nothing can be ok, but zero means there is no tile
                                 lError = True
-                            ElseIf lContentLength = g_BadTileSize Then ' Same size as "unavailable" tile, perhaps should check further but pretty sure this is a bad tile
+                            ElseIf aTileServer IsNot Nothing AndAlso lContentLength = aTileServer.BadTileSize Then ' Same size as "unavailable" tile, perhaps should check further but pretty sure this is a bad tile
                                 lError = True
                             Else
                                 Select Case lResponse.Headers.Item("Content-Type")
@@ -596,7 +596,7 @@ AfterDownload:
                     Try
                         If aTileServer IsNot Nothing Then
                             TileLastCheckedSet(lMoveTo, lNewLastChecked)
-                            If IsBadTile(lDownloadAs) Then
+                            If aTileServer.IsBadTile(lDownloadAs) Then
                                 IO.File.Delete(lDownloadAs)
                                 IO.File.Create(lMoveTo).Close()
                                 Return False
