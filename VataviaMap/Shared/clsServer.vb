@@ -184,7 +184,7 @@ Public Class clsServer
     Public Function BuildTileURL(ByVal aTilePoint As Drawing.Point, ByVal aZoom As Integer) As String
         Static lServerIndex As Integer = 0
         Static lServerWildcards() As String = {"{abc}", "{abcd}", _
-                                               "{123}", "{1234}"}
+                                               "{123}", "{1234}", "{0123}"}
 
         Dim lURL As String = TilePattern.Replace("{Zoom}", aZoom) _
                                         .Replace("{X}", aTilePoint.X) _
@@ -213,7 +213,24 @@ Public Class clsServer
         If lURL.IndexOf("{VersionYahooSatellite}") > 0 Then lURL = lURL.Replace("{VersionYahooSatellite}", "1.9")
         If lURL.IndexOf("{VersionYahooMap}") > 0 Then lURL = lURL.Replace("{VersionYahooMap}", "4.3")
         If lURL.IndexOf("{VersionYahooLabels}") > 0 Then lURL = lURL.Replace("{VersionYahooLabels}", "4.3")
+
+        If lURL.IndexOf("{VersionBing}") > 0 Then lURL = lURL.Replace("{VersionBing}", "671")
+        If lURL.IndexOf("{BingQuadKey}") > 0 Then lURL = lURL.Replace("{BingQuadKey}", BingQuadKey(aTilePoint, aZoom))
         Return lURL
+    End Function
+
+    Private Function BingQuadKey(ByVal aTilePoint As Drawing.Point, ByVal aZoom As Integer) As String
+        Dim lKey As String = ""
+        Dim lBit As Integer = 1 << aZoom - 1
+        While lBit > 0
+            Dim lCharacter As Integer = 0
+            If (aTilePoint.X And lBit) Then lCharacter += 1
+            If (aTilePoint.Y And lBit) Then lCharacter += 2
+            lKey &= lCharacter
+            lBit >>= 1
+        End While
+
+        Return lKey
     End Function
 
     Public Function BuildWebmapURL(ByVal aCenterLatitude As Double, ByVal aCenterLongitude As Double, _

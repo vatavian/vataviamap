@@ -595,6 +595,7 @@ Public Class ctlMap
             If aEnable Then
                 If Not TransparentTileServers.Contains(lServer) Then
                     TransparentTileServers.Add(lServer)
+                    FitToServer(lServer)
                 End If
             Else
                 If TransparentTileServers.Contains(lServer) Then
@@ -1242,20 +1243,24 @@ Public Class ctlMap
             CenterLon += 360
         End While
 
-        If CenterLat > TileServer.LatMax Then CenterLat = TileServer.LatMax
-        If CenterLat < TileServer.LatMin Then CenterLat = TileServer.LatMin
-
-        If CenterLon > TileServer.LonMax Then CenterLon = TileServer.LonMax
-        If CenterLon < TileServer.LonMin Then CenterLon = TileServer.LonMin
-
-        If pZoom > TileServer.ZoomMax Then Zoom = TileServer.ZoomMax
-        If pZoom < TileServer.ZoomMin Then Zoom = TileServer.ZoomMin
+        FitToServer(TileServer)
 
         LatMin = CenterLat - LatHeight / 2
         LatMax = CenterLat + LatHeight / 2
         LonMin = CenterLon - LonWidth / 2
         LonMax = CenterLon + LonWidth / 2
         RaiseEvent Panned()
+    End Sub
+
+    Private Sub FitToServer(ByVal aServer As clsServer)
+        If CenterLat > aServer.LatMax Then CenterLat = aServer.LatMax
+        If CenterLat < aServer.LatMin Then CenterLat = aServer.LatMin
+
+        If CenterLon > aServer.LonMax Then CenterLon = aServer.LonMax
+        If CenterLon < aServer.LonMin Then CenterLon = aServer.LonMin
+
+        If pZoom > aServer.ZoomMax Then Zoom = aServer.ZoomMax
+        If pZoom < aServer.ZoomMin Then Zoom = aServer.ZoomMin
     End Sub
 
     Private Sub MouseDownLeft(ByVal e As System.Windows.Forms.MouseEventArgs)
