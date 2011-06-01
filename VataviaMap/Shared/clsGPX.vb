@@ -45,7 +45,7 @@ Public Class clsGPX
         pRoutes = New Generic.List(Of clsGPXroute)
         pTracks = New Generic.List(Of clsGPXtrack)
         versionField = "1.1"
-        creatorField = ""
+        creatorField = "VataviaMap"
         Filename = ""
     End Sub
 
@@ -97,6 +97,7 @@ LoadedXML:
                         Next
                     Next
                 Next
+                'WriteTextFile(IO.Path.ChangeExtension(aFilename, ".bounds.gpx"), Me.ToString)
             End If
         Catch e As Exception
             If lTryAppend AndAlso e.Message.StartsWith("Unexpected end of file has occurred. The following elements are not closed: trkseg, trk, gpx") Then
@@ -122,18 +123,27 @@ LoadedXML:
     End Sub
 
     Public Overrides Function ToString() As String
-        Dim lXML As String = "<?xml version=""1.0"" encoding=""utf-8""?>" & vbLf _
-                           & "<gpx xmlns=""http://www.topografix.com/GPX/1/1"" version=""1.1"" creator=""" & creator & """>"
+        Dim lXML As New System.Text.StringBuilder("<?xml version=""1.0"" encoding=""utf-8""?>" & vbLf _
+          & "<gpx xmlns=""http://www.topografix.com/GPX/1/1"" version=""1.1"" creator=""" & g_AppName & """>" & vbLf _
+          & "<metadata>" & vbLf)
+        lXML.Append(XMLfragment("name", nameField))
+        lXML.Append(XMLfragment("desc", descField))
+        lXML.Append(XMLfragment("author", authorField))
+        If copyrightField IsNot Nothing Then lXML.Append(copyrightField.ToString)
+        lXML.Append(linkString)
+        If Me.timeFieldSpecified Then lXML.Append(XMLfragment("time", timeZ(timeField)))
+        lXML.Append(XMLfragment("keywords", Me.keywordsField))
+        If Me.boundsField IsNot Nothing Then lXML.Append(boundsField.ToString)
+        lXML.Append(extensionsString)
+        lXML.Append("</metadata>" & vbLf)
 
         For Each lWpt As clsGPXwaypoint In pWaypoints
-            lXML &= lWpt.ToString
+            lXML.Append(lWpt.ToString)
         Next
         For Each lTrack As clsGPXtrack In pTracks
-            lXML &= lTrack.ToString
+            lXML.Append(lTrack.ToString)
         Next
-        lXML &= extensionsString()
-        lXML &= linkString()
-        Return lXML & "</gpx>"
+        Return lXML.ToString & "</gpx>"
     End Function
 
     <System.Xml.Serialization.XmlElementAttribute("wpt")> _
@@ -538,36 +548,36 @@ Public Class clsGPXwaypoint
     End Function
 
     Public Overrides Function ToString() As String
-        Dim lXML As String = "<" & tagField _
+        Dim lXML As New System.Text.StringBuilder("<" & tagField _
             & " lat=""" & latField.ToString("#.#######") & """" _
-            & " lon=""" & lonField.ToString("#.#######") & """>" & ControlChars.Lf
-        If eleFieldSpecified Then lXML &= "<ele>" & Format(eleField, "0.###") & "</ele>" & ControlChars.Lf
-        If timeFieldSpecified Then lXML &= "<time>" & timeField.ToString("yyyy-MM-ddTHH:mm:ss.fff") & "Z</time>" & ControlChars.Lf
-        If nameField IsNot Nothing AndAlso nameField.Length > 0 Then lXML &= "<name>" & nameField & "</name>" & ControlChars.Lf
-        If cmtField IsNot Nothing AndAlso cmtField.Length > 0 Then lXML &= "<cmt>" & cmtField & "</cmt>" & ControlChars.Lf
-        If descField IsNot Nothing AndAlso descField.Length > 0 Then lXML &= "<desc>" & descField & "</desc>" & ControlChars.Lf
-        If srcField IsNot Nothing AndAlso srcField.Length > 0 Then lXML &= "<src>" & srcField & "</src>" & ControlChars.Lf
-        If symField IsNot Nothing AndAlso symField.Length > 0 Then lXML &= "<sym>" & symField & "</sym>" & ControlChars.Lf
-        If typeField IsNot Nothing AndAlso typeField.Length > 0 Then lXML &= "<type>" & typeField & "</type>" & ControlChars.Lf
-        If fixFieldSpecified Then lXML &= "<fix>" & fixField & "</fix>" & ControlChars.Lf
-        If satField IsNot Nothing AndAlso satField.Length > 0 Then lXML &= "<sat>" & satField & "</sat>" & ControlChars.Lf
-        If hdopFieldSpecified Then lXML &= "<hdop>" & Format(hdopField, "0.###") & "</hdop>" & ControlChars.Lf
-        If vdopFieldSpecified Then lXML &= "<vdop>" & Format(vdopField, "0.###") & "</vdop>" & ControlChars.Lf
-        If pdopFieldSpecified Then lXML &= "<pdop>" & Format(pdopField, "0.###") & "</pdop>" & ControlChars.Lf
-        If ageofdgpsdataFieldSpecified Then lXML &= "<ageofdgpsdata>" & Format(ageofdgpsdataField, "0.#") & "</ageofdgpsdata>" & ControlChars.Lf
-        If dgpsidField IsNot Nothing AndAlso dgpsidField.Length > 0 Then lXML &= "<dgpsid>" & dgpsidField & "</dgpsid>" & ControlChars.Lf
+            & " lon=""" & lonField.ToString("#.#######") & """>" & ControlChars.Lf)
+        If eleFieldSpecified Then lXML.Append(XMLfragment("ele", Format(eleField, "0.###")))
+        If timeFieldSpecified Then lXML.Append(XMLfragment("time", timeZ(timeField)))
+        lXML.Append(XMLfragment("name", nameField))
+        lXML.Append(XMLfragment("cmt", cmtField))
+        lXML.Append(XMLfragment("desc", descField))
+        lXML.Append(XMLfragment("src", srcField))
+        lXML.Append(XMLfragment("sym", symField))
+        lXML.Append(XMLfragment("type", typeField))
+        If fixFieldSpecified Then lXML.Append(XMLfragment("fix", fixField))
+        lXML.Append(XMLfragment("sat", satField))
+        If hdopFieldSpecified Then lXML.Append(XMLfragment("hdop", Format(hdopField, "0.###")))
+        If vdopFieldSpecified Then lXML.Append(XMLfragment("vdop", Format(vdopField, "0.###")))
+        If pdopFieldSpecified Then lXML.Append(XMLfragment("pdop", Format(pdopField, "0.###")))
+        If ageofdgpsdataFieldSpecified Then lXML.Append(XMLfragment("ageofdgpsdata", Format(ageofdgpsdataField, "0.#")))
+        lXML.Append(XMLfragment("dgpsid", dgpsidField))
         'If speedFieldSpecified OrElse courseFieldSpecified OrElse extensionsField IsNot Nothing Then
         '    lXML &= "<extensions>" & ControlChars.Lf
         '    If speedFieldSpecified Then lXML &= "<speed>" & Format(speedField, "0.###") & "</speed>" & ControlChars.Lf
         '    If courseFieldSpecified Then lXML &= "<course>" & Format(courseField, "0.###") & "</course>" & ControlChars.Lf
-        lXML &= extensionsString()
-        lXML &= linkString()
+        lXML.Append(extensionsString)
+        lXML.Append(linkString)
         'lXML &= "</extensions>" & ControlChars.Lf
         'End If
-        If urlField IsNot Nothing AndAlso urlField.Length > 0 Then lXML &= "<url>" & urlField & "</url>" & ControlChars.Lf
-        If urlnameField IsNot Nothing AndAlso urlnameField.Length > 0 Then lXML &= "<urlname>" & urlnameField & "</urlname>" & ControlChars.Lf
-        If cacheField IsNot Nothing Then lXML &= cacheField.ToString
-        Return lXML & "</" & tagField & ">" & ControlChars.Lf
+        lXML.Append(XMLfragment("url", urlField))
+        lXML.Append(XMLfragment("urlname", urlnameField))
+        If cacheField IsNot Nothing Then lXML.Append(cacheField.ToString)
+        Return lXML.ToString & "</" & tagField & ">" & ControlChars.Lf
     End Function
 
     Public Property tag() As String
@@ -993,7 +1003,7 @@ Public Class clsGPXlink
     End Function
 End Class
 
-Partial Public Class clsGPXtrack
+Public Class clsGPXtrack
     Inherits clsGPXbase
 
     Private nameField As String
@@ -1116,7 +1126,7 @@ Partial Public Class clsGPXtrack
 
 End Class
 
-Partial Public Class clsGPXroute
+Public Class clsGPXroute
     Inherits clsGPXbase
 
     Private nameField As String
@@ -1217,7 +1227,7 @@ Partial Public Class clsGPXroute
 
 End Class
 
-Partial Public Class clsGPXbounds
+Public Class clsGPXbounds
     Implements ICloneable
 
     Private minlatField As Double = 90
@@ -1282,45 +1292,29 @@ Partial Public Class clsGPXbounds
     End Sub
 
     Public Overrides Function ToString() As String
-        Return "(" & Format(minlonField, "0.000") & ", " & Format(minlatField, "0.000") & ") (" _
-                   & Format(maxlonField, "0.000") & ", " & Format(maxlatField, "0.000") & ")"
+        If maxlatField >= minlatField AndAlso maxlonField >= minlonField Then
+            Return "<bounds> minlat=" & Format(minlatField, "0.000") _
+                         & " minlon=" & Format(minlonField, "0.000") _
+                         & " maxlat=" & Format(maxlatField, "0.000") _
+                         & " maxlon=" & Format(maxlonField, "0.000") & " />" & vbLf
+        Else
+            Return String.Empty 'Bounds are not set
+        End If
     End Function
 End Class
 
-Partial Public Class clsGPXcopyright
+Public Class clsGPXcopyright
 
-    Private yearField As String
-    Private licenseField As String
-    Private authorField As String
+    Public year As String
+    Public license As String
+    Public author As String
 
-    <System.Xml.Serialization.XmlElementAttribute(DataType:="gYear")> _
-    Public Property year() As String
-        Get
-            Return Me.yearField
-        End Get
-        Set(ByVal value As String)
-            Me.yearField = value
-        End Set
-    End Property
-
-    <System.Xml.Serialization.XmlElementAttribute(DataType:="anyURI")> _
-    Public Property license() As String
-        Get
-            Return Me.licenseField
-        End Get
-        Set(ByVal value As String)
-            Me.licenseField = value
-        End Set
-    End Property
-
-    Public Property author() As String
-        Get
-            Return Me.authorField
-        End Get
-        Set(ByVal value As String)
-            Me.authorField = value
-        End Set
-    End Property
+    Public Overrides Function ToString() As String
+        Return "<copyright author=" & author & ">" _
+              & XMLfragment("year", year) _
+              & XMLfragment("license", license) _
+              & "</copyright>" & vbLf
+    End Function
 End Class
 
 Public Class clsGPXbase
@@ -1334,6 +1328,10 @@ Public Class clsGPXbase
         extensions = Nothing
         linkField = Nothing
     End Sub
+
+    Public Shared Function timeZ(ByVal aTime As Date) As String
+        Return aTime.ToString("yyyy-MM-ddTHH:mm:ss.fff") & "Z"
+    End Function
 
     Public Sub SetExtensions(ByVal aExtensionsNode As XmlElement)
         For Each lExtension As Xml.XmlElement In aExtensionsNode.ChildNodes
@@ -1353,7 +1351,23 @@ Public Class clsGPXbase
                 End If
             Next
         End If
-        extensions.Add(lOpenTag & aValue & "</" & aTag & ">")
+        extensions.Add(XMLfragment(aTag, aValue))
+    End Sub
+
+    Public Sub RemoveExtension(ByVal aTag As String)
+        If extensions IsNot Nothing Then
+            Dim lRemoveMe As String = Nothing
+            Dim lOpenTag As String = "<" & aTag.ToLower & ">"
+            For Each lExtension As String In extensions
+                If lExtension.ToLower.StartsWith(lOpenTag) Then
+                    lRemoveMe = lExtension
+                    Exit For
+                End If
+            Next
+            If lRemoveMe IsNot Nothing Then
+                extensions.Remove(lRemoveMe)
+            End If
+        End If
     End Sub
 
     Public Function GetExtension(ByVal aTag As String) As String
@@ -1361,7 +1375,11 @@ Public Class clsGPXbase
             Dim lOpenTag As String = "<" & aTag.ToLower & ">"
             For Each lExtension As String In extensions
                 If lExtension.ToLower.StartsWith(lOpenTag) Then
-                    Return lExtension.Substring(lOpenTag.Length, lExtension.Length - lOpenTag.Length * 2 - 1)
+                    Dim lCloseTag As String = "</" & aTag.ToLower & ">"
+                    Dim lStartClose As Integer = lExtension.ToLower.IndexOf(lCloseTag)
+                    If lStartClose > lOpenTag.Length Then
+                        Return lExtension.Substring(lOpenTag.Length, lStartClose - lOpenTag.Length)
+                    End If
                 End If
             Next
         End If
@@ -1406,3 +1424,44 @@ Public Class clsGPXbase
     End Function
 
 End Class
+
+Public Module XMLfunctions
+
+    'Public Function GetSomethingAsXML(ByRef aObject As Object, ByVal aFieldName As String) As String
+    '    Dim lType As Type = aObject.GetType
+    '    GetSomethingAsXML = ""
+    '    Try
+    '        Dim lValue As Object = Nothing
+    '        Dim lProperty As Reflection.PropertyInfo = lType.GetProperty(aFieldName)
+    '        If lProperty IsNot Nothing Then
+    '            lValue = lProperty.GetValue(aObject, Nothing).ToString()
+    '        Else
+    '            Dim lField As Reflection.FieldInfo = lType.GetField(aFieldName)
+    '            If lField IsNot Nothing Then
+    '                lValue = lField.GetValue(aObject)
+    '            End If
+    '        End If
+    '        If lValue IsNot Nothing Then
+    '            Dim lStringValue As String = lValue.ToString
+    '            Return XMLfragment(aFieldName, lStringValue)
+    '        End If
+    '    Catch ex As Exception
+    '        Dbg("SetSomething Exception: " & ex.Message)
+    '    End Try
+    '    Return ""
+    'End Function
+
+    Public Function XMLfragment(ByVal aTag As String, ByVal aValue As Object) As String
+        If aValue IsNot Nothing Then
+            Dim lStringValue As String = aValue.ToString
+            If lStringValue IsNot Nothing Then
+                lStringValue = lStringValue.Trim
+                If lStringValue.Length > 0 Then
+                    Return "<" & aTag & ">" & aValue & "</" & aTag & ">" & vbLf
+                End If
+            End If
+        End If
+        Return String.Empty
+    End Function
+
+End Module

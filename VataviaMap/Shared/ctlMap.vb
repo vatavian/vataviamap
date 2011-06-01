@@ -29,6 +29,7 @@ Public Class ctlMap
     Public Event TileServerChanged()
     Public Event StatusChanged(ByVal aStatusMessage As String)
 
+    Private pMagnify As Double = 1 ' Stretch the image by this much: 1=no stretch, 2=double size
     Private pZoom As Integer = 10 'varies from g_TileServer.ZoomMin to g_TileServer.ZoomMax
 
     Public Enum EnumWheelAction
@@ -91,7 +92,7 @@ Public Class ctlMap
     Public GPXFolder As String
     Public GPXLabelField As String = "name"
 
-    Private pBuddyTimer As System.Threading.Timer
+    Private pBuddyTimer As System.Threading.Timer  ' Check for new buddy information
 
     ' Alert when buddy location is within pBuddyAlarmMeters of (pBuddyAlarmLat, pBuddyAlarmLon)
     Private pBuddyAlarmEnabled As Boolean = False
@@ -156,6 +157,9 @@ Public Class ctlMap
     Private pRedrawPending As Boolean = False
     Private pRedrawWhenFinishedQueue As Boolean = False
 
+    Private pRedrawTimer As System.Threading.Timer ' Redraw every so often to be sure any dates displayed are recent
+    Private pLastRedrawTime As Date = Now
+
     ' Set to false when we have a first-guess background (e.g. when zooming from tiles we have to ones we don't)
     Private pClearDelayedTiles As Boolean = True
 
@@ -181,6 +185,17 @@ Public Class ctlMap
 
         'Start the download queue runner
         Downloader.Enabled = True
+        'TODO: background refresh without disturbing other windows: pRedrawTimer = New System.Threading.Timer(New Threading.TimerCallback(AddressOf RedrawTimeout), Nothing, 0, 10000)
+    End Sub
+
+    ''' <summary>
+    ''' Keep the device awake, also move map to a cell tower location if desired 
+    ''' </summary>
+    ''' <remarks>Periodically called by pKeepAwakeTimer</remarks>
+    Private Sub RedrawTimeout(ByVal o As Object)
+        If Now.Subtract(pLastRedrawTime).TotalSeconds >= 10 Then
+            NeedRedraw()
+        End If
     End Sub
 
     Public Property ImportOffsetFromUTC() As TimeSpan
@@ -639,6 +654,16 @@ Public Class ctlMap
             MsgBox("Copy a map website permanent link to the clipboard before using this menu", MsgBoxStyle.OkOnly, "Web Map URL")
         End If
     End Function
+
+    Public Property Magnify() As Double
+        Get
+            Return pMagnify
+        End Get
+        Set(ByVal value As Double)
+            pMagnify = value
+            NeedRedraw()
+        End Set
+    End Property
 
     ''' <summary>
     ''' OSM zoom level currently being displayed on the form
@@ -1360,8 +1385,17 @@ Public Class ctlMap
     Private Sub Event_Paint(ByVal sender As Object, ByVal e As System.Windows.Forms.PaintEventArgs) Handles Me.Paint
         If Not pBitmap Is Nothing Then
             pBitmapMutex.WaitOne()
-            With MapRectangle()
-                e.Graphics.DrawImage(pBitmap, .Left, .Top)
+            Dim lMapRectangle As System.Drawing.Rectangle = MapRectangle()
+            With lMapRectangle
+                If pMagnify = 1 Then
+                    e.Graphics.DrawImage(pBitmap, .Left, .Top)
+                Else
+                    Dim lMagnifiedWidth As Integer = .Width * pMagnify
+                    Dim lMagnifiedHeight As Integer = .Height * pMagnify
+                    Dim lMagnifiedLeft As Integer = .Left - (lMagnifiedWidth - .Width) / 2
+                    Dim lMagnifiedTop As Integer = .Top - (lMagnifiedHeight - .Height) / 2
+                    e.Graphics.DrawImage(pBitmap, New Rectangle(lMagnifiedLeft, lMagnifiedTop, lMagnifiedWidth, lMagnifiedHeight), lMapRectangle, GraphicsUnit.Pixel)
+                End If
             End With
             pBitmapMutex.ReleaseMutex()
         End If
@@ -1576,16 +1610,16 @@ Public Class ctlMap
                 lNewLayer = New clsLayerGPX(aFilename, Me)
                 With lNewLayer
                     .LabelField = GPXLabelField
-                    'If lNewLayer.GPX.bounds IsNot Nothing Then
-                    'With lNewLayer.GPX.bounds 'Skip loading this one if it is not in view
-                    'If .minlat > LatMax OrElse _
-                    '.maxlat < LatMin OrElse _
-                    '.minlon > LonMax OrElse _
-                    '.maxlon < LonMin Then                                
-                    'Return Nothing
-                    'End If
-                    'End With
-                    'End If
+                    If Not GPXPanTo AndAlso Not GPXZoomTo AndAlso lNewLayer.GPX.bounds IsNot Nothing Then
+                        With lNewLayer.GPX.bounds 'Skip loading this one if it is not in view
+                            If .minlat > LatMax OrElse _
+                            .maxlat < LatMin OrElse _
+                            .minlon > LonMax OrElse _
+                            .maxlon < LonMin Then
+                                Return Nothing
+                            End If
+                        End With
+                    End If
                 End With
                 If aInsertAt >= 0 Then
                     Layers.Insert(aInsertAt, lNewLayer)
@@ -2069,7 +2103,7 @@ RestartRedraw:
                         lGraphics.Clear(Color.Black)
                         lDetailsBrush = pBrushWhite
                     Else
-                        DrawTiles(lGraphics)
+                        DrawTiles(TileServer, lGraphics)
                     End If
                     If pShowGPSdetails Then
                         Dim lMaxWidth As Single = lGraphics.ClipBounds.Right - 10
@@ -2121,6 +2155,7 @@ RestartRedraw:
                     End If
                     ReleaseBitmapGraphics()
                     Refresh()
+                    pLastRedrawTime = Now
                 End If
             End If
             Application.DoEvents()
@@ -2433,7 +2468,7 @@ RestartRedraw:
             Try
                 Dim lURL As String = g_UploadPointURL
                 If lURL IsNot Nothing AndAlso lURL.Length > 0 Then
-                    BuildURL(lURL, "Time", GPS_POSITION.Time.ToString("yyyy-MM-ddTHH:mm:ss.fff") & "Z", "", GPS_POSITION.TimeValid)
+                    BuildURL(lURL, "Time", clsGPXbase.timeZ(GPS_POSITION.Time), "", GPS_POSITION.TimeValid)
                     BuildURL(lURL, "Lat", GPS_POSITION.Latitude.ToString("#.########"), "", GPS_POSITION.LatitudeValid)
                     BuildURL(lURL, "Lon", GPS_POSITION.Longitude.ToString("#.########"), "", GPS_POSITION.LongitudeValid)
 
@@ -2764,6 +2799,7 @@ RestartRedraw:
 
                 ReleaseBitmapGraphics()
                 Refresh()
+                pLastRedrawTime = Now
                 'TODO: If pCoordinatesForm IsNot Nothing Then pCoordinatesForm.Show(Me)
             End If
             Application.DoEvents()

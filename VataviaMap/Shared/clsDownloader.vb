@@ -98,7 +98,7 @@ Public Class clsDownloader
             End Try
 
             'Try tile with error again?
-            If lCanDownload AndAlso TileLastCheckedDate(aActualFilename).AddMinutes(5) < Date.UtcNow Then
+            If lCanDownload AndAlso TileNotJustChecked(aActualFilename) Then
                 Enqueue(aTileServer, aTilePoint, aZoom, aPriority, True) 'Request error tile replacement
             End If
 
@@ -204,19 +204,26 @@ CheckCache:
         Dim lActualFilename As String = LatestTileFileName(aTileFilename)
         If IO.File.Exists(lActualFilename) Then
 
-            'Possibly request a newer version of this tile
+            'Request a newer version of this tile if it is stale
             'Checking (TileCacheOldest > Date.MinValue) saves file system calls if we are not expiring
             If lCanDownload AndAlso _
               (aReplaceExisting OrElse _
-               (TileCacheOldest > Date.MinValue AndAlso TileLastCheckedDate(lActualFilename) < TileCacheOldest)) Then
+               (TileCacheOldest > Date.MinValue _
+                AndAlso TileLastCheckedDate(aTileFilename) < TileCacheOldest _
+                AndAlso TileLastCheckedDate(lActualFilename) < TileCacheOldest)) Then
                 Enqueue(aTileServer, aTilePoint, aZoom, aPriority + 1, True) 'Request stale tile replacement with lower priority
             End If
 
             Return lActualFilename
-        Else
+
+        ElseIf lCanDownload AndAlso TileNotJustChecked(lActualFilename) Then
             Enqueue(aTileServer, aTilePoint, aZoom, aPriority) 'Request missing tile
-            Return ""
         End If
+        Return ""
+    End Function
+
+    Private Function TileNotJustChecked(ByVal aActualFilename As String) As Boolean
+        Return TileLastCheckedDate(aActualFilename).AddMinutes(15).ToUniversalTime < Date.UtcNow
     End Function
 
     ''' <summary>
@@ -232,18 +239,21 @@ CheckCache:
     Private Function TileLastCheckedDate(ByVal aActualFilename As String) As Date
         If IO.File.Exists(aActualFilename & pLastCheckedExtension) Then
             Return Date.Parse(ReadTextFile(aActualFilename & pLastCheckedExtension))
-        Else
+        ElseIf IO.File.Exists(aActualFilename) Then
 #If Smartphone Then
             Return IO.Directory.GetLastWriteTime(aActualFilename).ToUniversalTime
 #Else
             Return IO.Directory.GetLastWriteTimeUtc(aActualFilename)
 #End If
+        Else
+            Return Date.MinValue
         End If
     End Function
 
     Private Sub TileLastCheckedSet(ByVal aTileFilename As String, ByVal aLastCheckedDate As String)
         Dim lExpires As String = FilenameDecodeExt(aTileFilename, pExpiresExt)
-        If lExpires.Length > 0 AndAlso Date.Parse(lExpires) > Date.Now Then
+        Dim lDate As Date
+        If DateTryParse(lExpires, lDate) AndAlso lDate > Date.Now Then
             'Already have a future expiration date, don't need to save when it was last checked
         Else
             'Dim lSavedModified As Boolean = False
@@ -462,6 +472,7 @@ SkipNotTile:
                 Try
                     Dim request As Net.HttpWebRequest = Net.WebRequest.Create(aUrl)
                     If request IsNot Nothing Then
+                        request.UserAgent = "VataviaMap/1.0"
                         request.Proxy.Credentials = Net.CredentialCache.DefaultCredentials
                         If lCachedETag.Length > 0 Then
                             request.Headers.Set("If-None-Match", """" & lCachedETag & """")
@@ -562,11 +573,8 @@ AfterDownload:
                     End Try
                 End If
                 If lError Then
-                    If aTileServer IsNot Nothing AndAlso lDownloadAs.Length > 0 AndAlso Not IO.File.Exists(aFileName) Then
-                        Try ' create placeholder empty file for tile with download error
-                            IO.File.Create(aFileName).Close()
-                        Catch
-                        End Try
+                    If aTileServer IsNot Nothing AndAlso lDownloadAs.Length > 0 Then
+                        TileLastCheckedSet(aFileName, lNewLastChecked)
                     End If
                     Return False
                 ElseIf lSkipped Then
@@ -598,7 +606,6 @@ AfterDownload:
                             TileLastCheckedSet(lMoveTo, lNewLastChecked)
                             If aTileServer.IsBadTile(lDownloadAs) Then
                                 IO.File.Delete(lDownloadAs)
-                                IO.File.Create(lMoveTo).Close()
                                 Return False
                             Else
                                 IO.File.Move(lDownloadAs, lMoveTo)

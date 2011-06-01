@@ -456,6 +456,7 @@ Public Class clsLayerGPX
                 Next
 
                 If GPX.trk.Count = 1 AndAlso (GPX.trk(0).trkseg.Count = 1) AndAlso (GPX.trk(0).trkseg(0).trkpt.Count = 1) Then
+                    'Draw a waypoint when we just have a 1-point track
                     DrawWaypoint(aTileServer, g, GPX.trk(0).trkseg(0).trkpt(0), aTopLeftTile, aOffsetToCenter)
                 Else
 
@@ -518,7 +519,8 @@ Public Class clsLayerGPX
                                   ByVal aTopLeftTile As Point, _
                                   ByVal aOffsetToCenter As Point) As Boolean
         With aWaypoint
-            If True Then 'MapForm.LatLonInView(.lat, .lon) Then
+            'If MapForm.LatLonInView(.lat, .lon) Then
+            If aWaypoint.GetExtension("hide").ToLower <> "true" Then
                 Dim lTileXY As Point 'Which tile this point belongs in
                 Dim lTileOffset As Point 'Offset within lTileXY in pixels
                 lTileXY = CalcTileXY(aTileServer, .lat, .lon, Map.Zoom, lTileOffset)

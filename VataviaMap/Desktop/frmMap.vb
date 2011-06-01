@@ -375,6 +375,17 @@ Public Class frmMap
         pMap.Zoom = CInt(sender.ToString)
     End Sub
 
+    Private Sub Magnify_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Magnify1.Click, Magnify2.Click, Magnify4.Click, Magnify8.Click
+        Static MagnifyItems() As ToolStripMenuItem = {Magnify1, Magnify2, Magnify4, Magnify8}
+        Dim lItem As ToolStripMenuItem = sender
+        For Each lOtherItem As ToolStripMenuItem In MagnifyItems
+            lOtherItem.Checked = False
+        Next
+        lItem.Checked = True
+        MagnifyToolStripMenuItem.Text = lItem.Text
+        pMap.Magnify = lItem.Name.Substring(7)
+    End Sub
+
     Private Sub UseMarkedTilesToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles UseMarkedTilesToolStripMenuItem.Click
         'TODO:
         'pMap.UseMarkedTiles = Not pMap.UseMarkedTiles
@@ -529,7 +540,7 @@ Public Class frmMap
         pBuddyListForm.AskUser(pMap.Buddies)
     End Sub
 
-    Private Sub pBuddyListForm_Center(ByVal aLatitude As Double, ByVal aLongitude As Double) Handles pBuddyListForm.Center
+    Private Sub pBuddyListForm_Center(ByVal aLatitude As Double, ByVal aLongitude As Double) Handles pBuddyListForm.Center, pWaypointsListForm.Center
         pMap.CenterLat = aLatitude
         pMap.CenterLon = aLongitude
         pMap.SanitizeCenterLatLon()
@@ -622,6 +633,10 @@ Public Class frmMap
             End Try
         Next
         pWaypointsListForm.AskUser(lAllWaypoints)
+    End Sub
+
+    Private Sub pWaypointsListForm_Ok() Handles pWaypointsListForm.Ok
+        pMap.NeedRedraw()
     End Sub
 
     Private Sub pLayersForm_ZoomTo(ByVal aBounds As clsGPXbounds) Handles pLayersForm.ZoomTo

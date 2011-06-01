@@ -89,12 +89,17 @@ Partial Class frmMap
         Me.LetterPortraitToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.LetterLandscapeToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.RefreshAllToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.MagnifyToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.Magnify1 = New System.Windows.Forms.ToolStripMenuItem
+        Me.Magnify2 = New System.Windows.Forms.ToolStripMenuItem
+        Me.Magnify4 = New System.Windows.Forms.ToolStripMenuItem
+        Me.Magnify8 = New System.Windows.Forms.ToolStripMenuItem
         Me.MenuStripMain.SuspendLayout()
         Me.SuspendLayout()
         '
         'MenuStripMain
         '
-        Me.MenuStripMain.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FileToolStripMenuItem, Me.ViewToolStripMenuItem, Me.ZoomToolStripMenuItem, Me.PlacesToolStripMenuItem, Me.TileServerToolStripMenuItem, Me.OverlayServerToolStripMenuItem, Me.BuddiesToolStripMenuItem, Me.WheelToolStripMenuItem, Me.CellTowerToolStripMenuItem, Me.WebsiteToolStripMenuItem, Me.HelpToolStripMenuItem})
+        Me.MenuStripMain.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.FileToolStripMenuItem, Me.ViewToolStripMenuItem, Me.ZoomToolStripMenuItem, Me.MagnifyToolStripMenuItem, Me.PlacesToolStripMenuItem, Me.TileServerToolStripMenuItem, Me.OverlayServerToolStripMenuItem, Me.BuddiesToolStripMenuItem, Me.WheelToolStripMenuItem, Me.CellTowerToolStripMenuItem, Me.WebsiteToolStripMenuItem, Me.HelpToolStripMenuItem})
         Me.MenuStripMain.Location = New System.Drawing.Point(0, 0)
         Me.MenuStripMain.Name = "MenuStripMain"
         Me.MenuStripMain.Size = New System.Drawing.Size(910, 27)
@@ -329,7 +334,7 @@ Partial Class frmMap
         'PlacesAddToolStripMenuItem
         '
         Me.PlacesAddToolStripMenuItem.Name = "PlacesAddToolStripMenuItem"
-        Me.PlacesAddToolStripMenuItem.Size = New System.Drawing.Size(152, 24)
+        Me.PlacesAddToolStripMenuItem.Size = New System.Drawing.Size(138, 24)
         Me.PlacesAddToolStripMenuItem.Text = "Add..."
         '
         'TileServerToolStripMenuItem
@@ -505,6 +510,39 @@ Partial Class frmMap
         Me.RefreshAllToolStripMenuItem.Size = New System.Drawing.Size(319, 24)
         Me.RefreshAllToolStripMenuItem.Text = "Refresh All From Server"
         '
+        'MagnifyToolStripMenuItem
+        '
+        Me.MagnifyToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.Magnify1, Me.Magnify2, Me.Magnify4, Me.Magnify8})
+        Me.MagnifyToolStripMenuItem.Name = "MagnifyToolStripMenuItem"
+        Me.MagnifyToolStripMenuItem.Size = New System.Drawing.Size(76, 23)
+        Me.MagnifyToolStripMenuItem.Text = "Magnify"
+        '
+        'Magnify1
+        '
+        Me.Magnify1.Checked = True
+        Me.Magnify1.CheckState = System.Windows.Forms.CheckState.Checked
+        Me.Magnify1.Name = "Magnify1"
+        Me.Magnify1.Size = New System.Drawing.Size(152, 24)
+        Me.Magnify1.Text = "1x"
+        '
+        'Magnify2
+        '
+        Me.Magnify2.Name = "Magnify2"
+        Me.Magnify2.Size = New System.Drawing.Size(152, 24)
+        Me.Magnify2.Text = "2x"
+        '
+        'Magnify4
+        '
+        Me.Magnify4.Name = "Magnify4"
+        Me.Magnify4.Size = New System.Drawing.Size(152, 24)
+        Me.Magnify4.Text = "4x"
+        '
+        'Magnify8
+        '
+        Me.Magnify8.Name = "Magnify8"
+        Me.Magnify8.Size = New System.Drawing.Size(152, 24)
+        Me.Magnify8.Text = "8x"
+        '
         'frmMap
         '
         Me.AllowDrop = True
@@ -588,4 +626,9 @@ Partial Class frmMap
     Friend WithEvents TimeSpanToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents RefreshAllToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents OpenTileCacheFolderToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents MagnifyToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents Magnify1 As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents Magnify2 As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents Magnify4 As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents Magnify8 As System.Windows.Forms.ToolStripMenuItem
 End Class
