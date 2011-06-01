@@ -2468,7 +2468,7 @@ RestartRedraw:
             Try
                 Dim lURL As String = g_UploadPointURL
                 If lURL IsNot Nothing AndAlso lURL.Length > 0 Then
-                    BuildURL(lURL, "Time", clsGPXbase.timeZ(GPS_POSITION.Time), "", GPS_POSITION.TimeValid)
+                    BuildURL(lURL, "Time", timeZ(GPS_POSITION.Time), "", GPS_POSITION.TimeValid)
                     BuildURL(lURL, "Lat", GPS_POSITION.Latitude.ToString("#.########"), "", GPS_POSITION.LatitudeValid)
                     BuildURL(lURL, "Lon", GPS_POSITION.Longitude.ToString("#.########"), "", GPS_POSITION.LongitudeValid)
 
