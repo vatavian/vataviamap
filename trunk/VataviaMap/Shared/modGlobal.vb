@@ -334,6 +334,19 @@ EndFound:
 
     Public Function DateTryParse(ByVal aDateString As String, ByRef aDate As Date) As Boolean
         If aDateString IsNot Nothing AndAlso aDateString.Length > 5 AndAlso aDateString <> "Fri, 01 Jan 1990 00:00:00 GMT" Then
+            Try 'First check for format that Date.Parse cannot handle: "Wed Apr  6 15:10:37 2011"
+                If aDateString.Length = 24 _
+                  AndAlso aDateString.Substring(13, 1) = ":" _
+                  AndAlso aDateString.Substring(16, 1) = ":" _
+                  AndAlso IsNumeric(aDateString.Substring(19)) Then
+                    aDate = Date.Parse(aDateString.Substring(0, 10) _
+                                     & aDateString.Substring(19) _
+                                     & aDateString.Substring(10, 9))
+                    Return True
+                End If
+            Catch
+            End Try
+
             Try
                 aDate = Date.Parse(aDateString)
                 Return True
