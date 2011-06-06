@@ -296,7 +296,7 @@ Public Class frmLayers
         If pRightClickedIndex > -1 Then
             If TypeOf (pLayers(pRightClickedIndex)) Is clsLayerGPX Then
                 Dim lGPX As clsLayerGPX = pLayers(pRightClickedIndex)
-                Dim lCenter As clsGPXwaypoint = lGPX.GPX.trkFirstPoint
+                Dim lCenter As clsGPXwaypoint = lGPX.GPX.FirstPoint
                 Dim lBounds As New clsGPXbounds
                 With lBounds
                     .maxlat = lCenter.lat + 0.01

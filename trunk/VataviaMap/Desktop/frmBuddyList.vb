@@ -5,7 +5,7 @@ Public Class frmBuddyList
 
     Public Event Ok(ByVal aBuddies As Generic.Dictionary(Of String, clsBuddy))
 
-    Public Event Center(ByVal aLatitude As Double, ByVal aLongitude As Double)
+    Public Event Center(ByVal aLatitude As Double, ByVal aLongitude As Double, ByVal aZoom As Integer)
 
     Public Sub AskUser(ByVal aBuddies As Generic.Dictionary(Of String, clsBuddy))
         pBuddies = New Generic.Dictionary(Of String, clsBuddy)
@@ -116,7 +116,7 @@ Public Class frmBuddyList
         Dim lBuddy As clsBuddy = SelectedBuddy()
         If lBuddy IsNot Nothing AndAlso lBuddy.Waypoint IsNot Nothing Then
             With lBuddy.Waypoint
-                RaiseEvent Center(.lat, .lon)
+                RaiseEvent Center(.lat, .lon, -1)
             End With
         End If
     End Sub

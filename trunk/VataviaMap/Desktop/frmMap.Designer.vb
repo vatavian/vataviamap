@@ -94,6 +94,7 @@ Partial Class frmMap
         Me.Magnify2 = New System.Windows.Forms.ToolStripMenuItem
         Me.Magnify4 = New System.Windows.Forms.ToolStripMenuItem
         Me.Magnify8 = New System.Windows.Forms.ToolStripMenuItem
+        Me.PlacesSaveToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.MenuStripMain.SuspendLayout()
         Me.SuspendLayout()
         '
@@ -326,7 +327,7 @@ Partial Class frmMap
         '
         'PlacesToolStripMenuItem
         '
-        Me.PlacesToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.PlacesAddToolStripMenuItem})
+        Me.PlacesToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.PlacesAddToolStripMenuItem, Me.PlacesSaveToolStripMenuItem})
         Me.PlacesToolStripMenuItem.Name = "PlacesToolStripMenuItem"
         Me.PlacesToolStripMenuItem.Size = New System.Drawing.Size(64, 23)
         Me.PlacesToolStripMenuItem.Text = "Places"
@@ -334,7 +335,7 @@ Partial Class frmMap
         'PlacesAddToolStripMenuItem
         '
         Me.PlacesAddToolStripMenuItem.Name = "PlacesAddToolStripMenuItem"
-        Me.PlacesAddToolStripMenuItem.Size = New System.Drawing.Size(138, 24)
+        Me.PlacesAddToolStripMenuItem.Size = New System.Drawing.Size(152, 24)
         Me.PlacesAddToolStripMenuItem.Text = "Add..."
         '
         'TileServerToolStripMenuItem
@@ -543,6 +544,12 @@ Partial Class frmMap
         Me.Magnify8.Size = New System.Drawing.Size(152, 24)
         Me.Magnify8.Text = "8x"
         '
+        'PlacesSaveToolStripMenuItem
+        '
+        Me.PlacesSaveToolStripMenuItem.Name = "PlacesSaveToolStripMenuItem"
+        Me.PlacesSaveToolStripMenuItem.Size = New System.Drawing.Size(152, 24)
+        Me.PlacesSaveToolStripMenuItem.Text = "Save..."
+        '
         'frmMap
         '
         Me.AllowDrop = True
@@ -631,4 +638,5 @@ Partial Class frmMap
     Friend WithEvents Magnify2 As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents Magnify4 As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents Magnify8 As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents PlacesSaveToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
 End Class

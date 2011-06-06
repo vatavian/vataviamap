@@ -163,6 +163,9 @@ LoadedXML:
         For Each lTrack As clsGPXtrack In pTracks
             lTrack.AppendTo(lXML)
         Next
+        For Each lRte As clsGPXroute In pRoutes
+            lRte.AppendTo(lXML)
+        Next
         Return lXML.ToString & "</gpx>"
     End Function
 
@@ -193,7 +196,7 @@ LoadedXML:
         End Set
     End Property
 
-    Public Function trkFirstPoint() As clsGPXwaypoint
+    Public Function FirstPoint() As clsGPXwaypoint
         If pTracks IsNot Nothing AndAlso pTracks.Count > 0 Then
             With pTracks(0)
                 If .trkseg IsNot Nothing AndAlso .trkseg.Count > 0 Then
@@ -204,6 +207,9 @@ LoadedXML:
                     End With
                 End If
             End With
+        End If
+        If pWaypoints IsNot Nothing AndAlso pWaypoints.Count > 0 Then
+            Return pWaypoints(0)
         End If
         Return Nothing
     End Function
@@ -999,37 +1005,28 @@ End Class
 Public Class clsGPXtrack
     Inherits clsGPXbase
 
-    Private nameField As String
-    Private cmtField As String
-    Private descField As String
-    Private srcField As String
-    Private numberField As String
-    Private typeField As String
-    Private trksegField As Generic.List(Of clsGPXtracksegment)
+    Public name As String
+    Public cmt As String
+    Public desc As String
+    Public src As String
+    Public number As String
+    Public type As String
+    Public trkseg As Generic.List(Of clsGPXtracksegment)
 
     Public Sub New(ByVal aName As String)
-        nameField = aName
-        trksegField = New Generic.List(Of clsGPXtracksegment)
+        name = aName
+        trkseg = New Generic.List(Of clsGPXtracksegment)
     End Sub
 
     Public Sub New(ByVal aXML As XmlNode)
-        trksegField = New Generic.List(Of clsGPXtracksegment)
+        trkseg = New Generic.List(Of clsGPXtracksegment)
         For Each lChild As XmlNode In aXML.ChildNodes
             Try
                 Select Case lChild.Name
-                    Case "extensions"
-                        SetExtensions(lChild)
-                    Case "trkseg"
-                        trksegField.Add(New clsGPXtracksegment(lChild))
-                    Case "link"
-                        AddLink(lChild)
-                    Case Else
-                        Dim lPropertyInfo As System.Reflection.PropertyInfo = Me.GetType.GetProperty(lChild.Name)
-                        If lPropertyInfo IsNot Nothing Then
-                            lPropertyInfo.SetValue(Me, lChild.InnerText, Nothing)
-                        Else
-                            'Logger.Dbg("Skipped unknown node type: " & lChild.Name)
-                        End If
+                    Case "extensions" : SetExtensions(lChild)
+                    Case "trkseg" : trkseg.Add(New clsGPXtracksegment(lChild))
+                    Case "link" : AddLink(lChild)
+                    Case Else : SetSomething(Me, lChild.Name, lChild.InnerXml)
                 End Select
             Catch e As Exception
                 'Logger.Dbg("Unable to set " & lChild.Name & " = " & lChild.InnerXml)
@@ -1039,15 +1036,15 @@ Public Class clsGPXtrack
 
     Public Sub AppendTo(ByVal aBuilder As System.Text.StringBuilder)
         aBuilder.Append("<trk>" & ControlChars.Lf)
-        If nameField IsNot Nothing AndAlso nameField.Length > 0 Then aBuilder.Append("<name>" & nameField & "</name>" & vbLf)
-        If cmtField IsNot Nothing AndAlso cmtField.Length > 0 Then aBuilder.Append("<cmt>" & cmtField & "</cmt>" & vbLf)
-        If descField IsNot Nothing AndAlso descField.Length > 0 Then aBuilder.Append("<desc>" & descField & "</desc>" & vbLf)
-        If srcField IsNot Nothing AndAlso srcField.Length > 0 Then aBuilder.Append("<src>" & srcField & "</src>" & vbLf)
-        If numberField IsNot Nothing AndAlso numberField.Length > 0 Then aBuilder.Append("<number>" & numberField & "</number>" & vbLf)
-        If typeField IsNot Nothing AndAlso typeField.Length > 0 Then aBuilder.Append("<type>" & typeField & "</type>" & vbLf)
+        If name IsNot Nothing AndAlso name.Length > 0 Then aBuilder.Append("<name>" & name & "</name>" & vbLf)
+        If cmt IsNot Nothing AndAlso cmt.Length > 0 Then aBuilder.Append("<cmt>" & cmt & "</cmt>" & vbLf)
+        If desc IsNot Nothing AndAlso desc.Length > 0 Then aBuilder.Append("<desc>" & desc & "</desc>" & vbLf)
+        If src IsNot Nothing AndAlso src.Length > 0 Then aBuilder.Append("<src>" & src & "</src>" & vbLf)
+        If number IsNot Nothing AndAlso number.Length > 0 Then aBuilder.Append("<number>" & number & "</number>" & vbLf)
+        If type IsNot Nothing AndAlso type.Length > 0 Then aBuilder.Append("<type>" & type & "</type>" & vbLf)
         aBuilder.Append(extensionsString)
         aBuilder.Append(linkString)
-        For Each lSeg As clsGPXtracksegment In trksegField
+        For Each lSeg As clsGPXtracksegment In trkseg
             lSeg.AppendTo(aBuilder)
         Next
         aBuilder.Append("</trk>" & vbLf)
@@ -1059,100 +1056,37 @@ Public Class clsGPXtrack
         Return lXML.ToString
     End Function
 
-    Public Property name() As String
-        Get
-            Return Me.nameField
-        End Get
-        Set(ByVal value As String)
-            Me.nameField = value
-        End Set
-    End Property
-
-    Public Property cmt() As String
-        Get
-            Return Me.cmtField
-        End Get
-        Set(ByVal value As String)
-            Me.cmtField = value
-        End Set
-    End Property
-
-    Public Property desc() As String
-        Get
-            Return Me.descField
-        End Get
-        Set(ByVal value As String)
-            Me.descField = value
-        End Set
-    End Property
-
-    Public Property src() As String
-        Get
-            Return Me.srcField
-        End Get
-        Set(ByVal value As String)
-            Me.srcField = value
-        End Set
-    End Property
-
-    Public Property number() As String
-        Get
-            Return Me.numberField
-        End Get
-        Set(ByVal value As String)
-            Me.numberField = value
-        End Set
-    End Property
-
-    Public Property type() As String
-        Get
-            Return Me.typeField
-        End Get
-        Set(ByVal value As String)
-            Me.typeField = value
-        End Set
-    End Property
-
-    Public Property trkseg() As Generic.List(Of clsGPXtracksegment)
-        Get
-            Return Me.trksegField
-        End Get
-        Set(ByVal value As Generic.List(Of clsGPXtracksegment))
-            Me.trksegField = value
-        End Set
-    End Property
-
 End Class
 
 Public Class clsGPXroute
     Inherits clsGPXbase
 
-    Private nameField As String
-    Private cmtField As String
-    Private descField As String
-    Private srcField As String
-    Private numberField As String
-    Private typeField As String
-    Private rteptField As Generic.List(Of clsGPXwaypoint)
+    Public name As String
+    Public cmt As String
+    Public desc As String
+    Public src As String
+    Public number As String
+    Public type As String
+    Public rtept As Generic.List(Of clsGPXwaypoint)
+
+    Public Sub New(ByVal aName As String)
+        name = aName
+        rtept = New Generic.List(Of clsGPXwaypoint)
+    End Sub
 
     Public Sub New(ByVal aXML As XmlNode)
-        rteptField = New Generic.List(Of clsGPXwaypoint)
+        rtept = New Generic.List(Of clsGPXwaypoint)
         For Each lChild As XmlNode In aXML.ChildNodes
             Try
                 Select Case lChild.Name
-                    Case "extensions"
-                        SetExtensions(lChild)
+                    Case "extensions" : SetExtensions(lChild)
+                    Case "rtept" : rtept.Add(New clsGPXwaypoint(lChild))
                     Case "rteseg"
-                        rteptField.Add(New clsGPXwaypoint(lChild))
-                    Case "link"
-                        AddLink(lChild)
-                    Case Else
-                        Dim lPropertyInfo As System.Reflection.PropertyInfo = Me.GetType.GetProperty(lChild.Name)
-                        If lPropertyInfo IsNot Nothing Then
-                            lPropertyInfo.SetValue(Me, lChild.InnerText, Nothing)
-                        Else
-                            'Logger.Dbg("Skipped unknown node type: " & lChild.Name)
-                        End If
+                        For Each lSegChild As XmlNode In lChild.ChildNodes
+                            If lSegChild.Name = "rtept" Then rtept.Add(New clsGPXwaypoint(lSegChild))
+                        Next
+                    Case "link" : AddLink(lChild)
+                    Case Else : SetSomething(Me, lChild.Name, lChild.InnerXml)
                 End Select
             Catch e As Exception
                 'Logger.Dbg("Unable to set " & lChild.Name & " = " & lChild.InnerXml)
@@ -1160,69 +1094,27 @@ Public Class clsGPXroute
         Next
     End Sub
 
-    Public Property name() As String
-        Get
-            Return Me.nameField
-        End Get
-        Set(ByVal value As String)
-            Me.nameField = value
-        End Set
-    End Property
+    Public Sub AppendTo(ByVal aBuilder As System.Text.StringBuilder)
+        aBuilder.Append("<rte>" & ControlChars.Lf)
+        If name IsNot Nothing AndAlso name.Length > 0 Then aBuilder.Append("<name>" & name & "</name>" & vbLf)
+        If cmt IsNot Nothing AndAlso cmt.Length > 0 Then aBuilder.Append("<cmt>" & cmt & "</cmt>" & vbLf)
+        If desc IsNot Nothing AndAlso desc.Length > 0 Then aBuilder.Append("<desc>" & desc & "</desc>" & vbLf)
+        If src IsNot Nothing AndAlso src.Length > 0 Then aBuilder.Append("<src>" & src & "</src>" & vbLf)
+        If number IsNot Nothing AndAlso number.Length > 0 Then aBuilder.Append("<number>" & number & "</number>" & vbLf)
+        If type IsNot Nothing AndAlso type.Length > 0 Then aBuilder.Append("<type>" & type & "</type>" & vbLf)
+        aBuilder.Append(extensionsString)
+        aBuilder.Append(linkString)
+        For Each lWpt As clsGPXwaypoint In rtept
+            lWpt.AppendTo(aBuilder)
+        Next
+        aBuilder.Append("</rte>" & vbLf)
+    End Sub
 
-    Public Property cmt() As String
-        Get
-            Return Me.cmtField
-        End Get
-        Set(ByVal value As String)
-            Me.cmtField = value
-        End Set
-    End Property
-
-    Public Property desc() As String
-        Get
-            Return Me.descField
-        End Get
-        Set(ByVal value As String)
-            Me.descField = value
-        End Set
-    End Property
-
-    Public Property src() As String
-        Get
-            Return Me.srcField
-        End Get
-        Set(ByVal value As String)
-            Me.srcField = value
-        End Set
-    End Property
-
-    Public Property number() As String
-        Get
-            Return Me.numberField
-        End Get
-        Set(ByVal value As String)
-            Me.numberField = value
-        End Set
-    End Property
-
-    Public Property type() As String
-        Get
-            Return Me.typeField
-        End Get
-        Set(ByVal value As String)
-            Me.typeField = value
-        End Set
-    End Property
-
-    Public Property rtept() As Generic.List(Of clsGPXwaypoint)
-        Get
-            Return Me.rteptField
-        End Get
-        Set(ByVal value As Generic.List(Of clsGPXwaypoint))
-            Me.rteptField = value
-        End Set
-    End Property
-
+    Public Overrides Function ToString() As String
+        Dim lXML As New System.Text.StringBuilder
+        Me.AppendTo(lXML)
+        Return lXML.ToString
+    End Function
 End Class
 
 Public Class clsGPXbounds
