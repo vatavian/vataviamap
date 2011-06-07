@@ -1,5 +1,4 @@
 ﻿Imports System.Collections.ObjectModel
-Imports atcUtility
 
 Public Class Tags
     Inherits KeyedCollection(Of String, Tag)

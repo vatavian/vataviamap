@@ -1,5 +1,4 @@
 ﻿Imports System.Collections.ObjectModel
-Imports atcUtility
 
 Public Module NodeVars
     Public Nodes As New NodeCollection
@@ -39,7 +38,7 @@ Public Class Node
                 Case "uid" : UId = lAttribute.Value
                 Case "changeset" : Changeset = lAttribute.Value
                 Case Else
-                    pSB.AppendLine("MissingAttribute " & lAttribute.Name & " forNode " & Id)
+                    pIssues.AppendLine("MissingAttribute " & lAttribute.Name & " forNode " & Id)
             End Select
         Next
 
@@ -48,7 +47,7 @@ Public Class Node
                 Case "tag"
                     Tags.Add(New Tag(lNode.Attributes))
                 Case Else
-                    pSB.AppendLine("MissingXmlTag " & lNode.Name & " forNode " & Id)
+                    pIssues.AppendLine("MissingXmlTag " & lNode.Name & " forNode " & Id)
             End Select
         Next
     End Sub
