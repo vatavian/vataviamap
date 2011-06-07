@@ -1,6 +1,6 @@
 ﻿Imports System.Collections.ObjectModel
+Imports System.Collections.Specialized
 Imports System.Text
-Imports atcUtility
 
 Public Module RelationVariables
     Public Relations As New RelationCollection
@@ -25,13 +25,13 @@ Public Class RelationCollection
             End If
             For Each lNodeKey As String In lRelation.NodeKeys
                 If Not Nodes.Contains(lNodeKey) Then
-                    lSB.AppendLine(vbTab & vbTab & "MissingNode " & lNodeKey)
+                    If Not pTerse Then pIssues.AppendLine(vbTab & vbTab & "MissingNode " & lNodeKey)
                     lIssues = True
                 End If
             Next
             For Each lWayKey As String In lRelation.WayKeys
                 If Not Ways.Contains(lWayKey) Then
-                    lSB.AppendLine(vbTab & vbTab & "MissingWay " & lWayKey)
+                    If Not pTerse Then pIssues.AppendLine(vbTab & vbTab & "MissingWay " & lWayKey)
                     lIssues = True
                 End If
             Next
@@ -54,6 +54,7 @@ Public Class Relation
     Public Changeset As Integer
     Public NodeKeys As New Collection(Of String)
     Public WayKeys As New Collection(Of String)
+    Public RelationKeys As New Collection(Of String)
     Public Tags As New Tags
 
     Public Sub New(ByVal aXmlNode As Xml.XmlNode)
@@ -69,7 +70,7 @@ Public Class Relation
                 Case "uid" : UId = lAttribute.Value
                 Case "changeset" : Changeset = lAttribute.Value
                 Case Else
-                    pSB.AppendLine("MissingAttribute " & lAttribute.Name & " forRelation " & Id)
+                    pIssues.AppendLine("MissingAttribute " & lAttribute.Name & " forRelation " & Id)
             End Select
         Next
 
@@ -77,6 +78,9 @@ Public Class Relation
             Users.AddReference(lUser, Me)
         End If
 
+        Dim lIssueCount As Integer = 0
+        Dim lIssueSB As New StringBuilder
+        Dim lIssueUsers As New SortedList(Of String, Integer)
         For Each lXmlNode As XmlNode In aXmlNode.ChildNodes
             Select Case lXmlNode.Name
                 Case "member"
@@ -86,19 +90,57 @@ Public Class Relation
                         Case "node"
                             If Nodes.Contains(lKey) Then
                                 NodeKeys.Add(lKey)
+                            Else
+                                lIssueCount += 1
+                                Blame(lIssueUsers, User)
+                                lIssueSB.AppendLine("Missing Node for key '" & lKey & "'")
                             End If
                         Case "way"
                             If Ways.Contains(lKey) Then
                                 WayKeys.Add(lKey)
+                            Else
+                                lIssueCount += 1
+                                Blame(lIssueUsers, User)
+                                lIssueSB.AppendLine("Missing Way for key '" & lKey & "'")
+                            End If
+                        Case "relation"
+                            If Relations.Contains(lKey) Then
+                                RelationKeys.Add(lKey)
+                            Else
+                                lIssueCount += 1
+                                Blame(lIssueUsers, User)
+                                lIssueSB.AppendLine("Missing Relation for key '" & lKey & "'")
                             End If
                         Case Else
-                            pSB.AppendLine("MissingMemberType " & lType)
+                            lIssueCount += 1
+                            Blame(lIssueUsers, User)
+                            lIssueSB.AppendLine("MissingMemberType '" & lType & "' with key '" & lKey & "'")
                     End Select
                 Case "tag"
                     Tags.Add(New Tag(lXmlNode.Attributes))
                 Case Else
-                    pSB.AppendLine("MissingXmlTag " & lXmlNode.Name & " forRelation " & Id)
+                    lIssueCount += 1
+                    Blame(lIssueUsers, User)
+                    lIssueSB.AppendLine("MissingXmlTag " & lXmlNode.Name & " forRelation " & Id)
             End Select
         Next
+
+        If lIssueCount > 0 Then
+            pSB.AppendLine(Now & " IssuesWithRelation " & Id & " Count " & lIssueCount)
+            For Each lIssueUser As KeyValuePair(Of String, Integer) In lIssueUsers
+                pSB.AppendLine(Now & "   User " & lIssueUser.Key & " " & lIssueUser.Value)
+            Next
+            If Not pTerse Then
+                pIssues.Append(lIssueSB)
+            End If
+        End If
+    End Sub
+
+    Sub Blame(ByVal aIssueUsers As SortedList(Of String, Integer), ByVal aId As String)
+        If aIssueUsers.ContainsKey(aId) Then
+            aIssueUsers.Item(aId) = aIssueUsers.Item(aId) + 1
+        Else
+            aIssueUsers.Add(aId, 1)
+        End If
     End Sub
 End Class

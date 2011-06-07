@@ -1,6 +1,5 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Text
-Imports atcUtility
 
 Module UserVars
     Public Users = New UserCollection
@@ -57,9 +56,13 @@ Public Class User
 
     Public Function Summary() As String
         Dim lSB As New StringBuilder
-        Dim lCounts As New atcCollection
+        Dim lCounts As New SortedList(Of String, Integer)
         For Each lUserObject In Me.Objects
-            lCounts.Increment(lUserObject.Value.GetType.ToString.Replace("OsmXmlViewer.", "").ToLower, 1)
+            Dim lKey As String = lUserObject.Value.GetType.ToString.Replace("OsmXmlViewer.", "").ToLower
+            If Not lCounts.ContainsKey(lKey) Then
+                lCounts.Add(lKey, 0)
+            End If
+            lCounts(lKey) = lCounts(lKey) + 1
         Next
         With Me
             lSB.Append(vbTab & .Name.PadRight(20) & _
@@ -70,7 +73,7 @@ Public Class User
                 If lXmlNodeType <> "bounds" Then
                     Dim lCount As Integer = 0
                     If lCounts.Keys.Contains(lXmlNodeType) Then
-                        lCount = lCounts.ItemByKey(lXmlNodeType)
+                        lCount = lCounts.Item(lXmlNodeType)
                     End If
                     lSB.Append(vbTab & lCount.ToString.PadLeft(8))
                 End If

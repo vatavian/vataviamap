@@ -1,6 +1,5 @@
 ﻿Imports System.Collections.ObjectModel
 Imports System.Text
-Imports atcUtility
 
 Public Module WayVariables
     Public Ways As New WayCollection
@@ -13,21 +12,25 @@ Public Class WayCollection
     End Function
 
     Public Function Summary() As String
-        Dim lIssues As Boolean = False
         Dim lSB As New StringBuilder
         lSB.AppendLine(vbCrLf & "Ways(" & Ways.Count & ")")
         If Not pTerse Then lSB.AppendLine(vbCrLf & "Id:Tags:Nodes")
+
+        Dim lIssueCount As Integer = 0
         For Each lWay As Way In Ways
             If Not pTerse Then lSB.AppendLine(vbTab & lWay.Id & ":" & lWay.Tags.Count & ":" & lWay.NodeKeys.Count)
             For Each lNodeKey As String In lWay.NodeKeys
                 If Not Nodes.Contains(lNodeKey) Then
-                    lSB.AppendLine(vbTab & vbTab & "MissingNode " & lNodeKey & " in Way " & lWay.Id)
-                    lIssues = True
+                    pIssues.AppendLine(vbTab & vbTab & "MissingNode " & lNodeKey & " in Way " & lWay.Id)
+                    lIssueCount += 1
                 End If
             Next
         Next
-        If Not lIssues Then
-            lSB.AppendLine(vbTab & "NoIssuesFound")
+
+        If lIssueCount = 0 Then
+            lSB.AppendLine(vbTab & "NoWayIssuesFound")
+        Else
+            lSB.AppendLine(vbTab & lIssueCount & " WayIssuesFound")
         End If
         Return lSB.ToString
     End Function
@@ -58,7 +61,7 @@ Public Class Way
                 Case "uid" : UId = lAttribute.Value
                 Case "changeset" : Changeset = lAttribute.Value
                 Case Else
-                    pSB.AppendLine("MissingAttribute " & lAttribute.Name & " forWay " & Id)
+                    pIssues.AppendLine("MissingAttribute " & lAttribute.Name & " forWay " & Id)
             End Select
         Next
 
@@ -76,7 +79,7 @@ Public Class Way
                 Case "tag"
                     Tags.Add(New Tag(lXmlNode.Attributes))
                 Case Else
-                    pSB.AppendLine("MissingXmlTag " & lXmlNode.Name & " forWay " & Id)
+                    pIssues.AppendLine("MissingXmlTag " & lXmlNode.Name & " forWay " & Id)
             End Select
         Next
     End Sub
