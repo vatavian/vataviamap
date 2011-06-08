@@ -4,11 +4,19 @@ Imports System.Collections
 Module modMain
     Public pLocation As String = "decatur" '"intownATL" '"dekalb", "metroATL", "intownATL" 
     Public pTerse As Boolean = True
-    Public pFolder As String = "C:\OSM\extracts\20110603\default"
+    Public pFolder As String = "C:\OSM\extracts\20110608\quick"
     Public pCreationString As String = "" 'Format(IO.File.GetCreationTime(pXmlFileName), "yyyy-MM-dd-hh-mm")
     Public pReferenceMax As Integer = 100000
 
     Public pWriteShapes As String = "highway"
+    Public pTagsWrite As New List(Of String) From {"highway", "name", "maxspeed", "width", "surface",
+                                                   "amenity", "access", "area", "bicycle", "bridge", "bridge:type",
+                                                   "capacity", "class:bicycle", "covered", "crossing", "cycleway", "FIXME", "foot", "ford",
+                                                   "junction", "lanes", "name_1", "name_2", "name_3", "note", "oneway", "public_transport",
+                                                   "railway", "service", "shelter", "supervised", "towards", "tunnel", "website"}
+    Public pTagsSkip As New List(Of String) From {"tiger:tlid", "tiger:name_base", "tiger:name_base_1", "tiger:name_base_2", "tiger:name_base_3", "tiger:name_base_4", "tiger:name_base_5",
+                                                  "DeKalb:id",
+                                                  "NHD:ComID", "NHD:way_id", "NHD:ReachCode", "NHD:Elevation", "NHD:GNIS_ID"}
 
     Public pSB As New StringBuilder
     Public pIssues As New StringBuilder
@@ -21,10 +29,6 @@ Module modMain
     Public pProcessAll As Boolean = False
     Public pXmlFileName As String
     Public pXmlNodeTypeCounts As New Dictionary(Of String, Integer)
-    Public pTagsSkip() As String = {"tiger:tlid", "tiger:name_base", "tiger:name_base_1", "tiger:name_base_2", "tiger:name_base_3", "tiger:name_base_4", "tiger:name_base_5", _
-                                    "gnis:feature_id", "gnis:id", _
-                                    "DeKalb:id", _
-                                    "NHD:ComID", "NHD:way_id", "NHD:ReachCode", "NHD:Elevation", "NHD:GNIS_ID"}
 
     Sub Initialize()
         IO.Directory.SetCurrentDirectory(pFolder)
@@ -167,13 +171,13 @@ Module modMain
             pSB.AppendLine(pBounds.Summary)
         End If
 
-        Dim lOutFileName As String = pLocation & pCreationString & "Summary.txt"
+        Dim lOutFileName As String = pLocation & pCreationString & "_Summary.txt"
         IO.File.WriteAllText(lOutFileName, pSB.ToString)
 
         If pWriteShapes.Length > 0 Then WriteShapes()
 
         If pIssues.Length > 0 Then
-            lOutFileName = pLocation & pCreationString & "Issues.txt"
+            lOutFileName = pLocation & pCreationString & "_Issues.txt"
             IO.File.WriteAllText(lOutFileName, pIssues.ToString)
         End If
     End Sub
@@ -243,8 +247,13 @@ Module modMain
                                         End If
                                     Next
                                     For lNodeIndex As Integer = 0 To lWay.NodeKeys.Count - 1
-                                        Dim lNode As Node = Nodes(lWay.NodeKeys(lNodeIndex))
-                                        lXmlSB.AppendLine(lNode.XML.OuterXml)
+                                        Dim lNodeKey As String = lWay.NodeKeys(lNodeIndex)
+                                        If Nodes.Contains(lNodeKey) Then
+                                            Dim lNode As Node = Nodes(lNodeKey)
+                                            lXmlSB.AppendLine(lNode.XML.OuterXml)
+                                        Else
+                                            pSB.AppendLine("MissingNode " & lNodeKey)
+                                        End If
                                     Next
                                 Case "Relation"
                                     'TODO: something here
@@ -277,51 +286,67 @@ Module modMain
                 lTagSummarySB.AppendLine(vbTab & vbTab & lWayTagValue.Key & "(" & lWayTagValue.Value & ")")
             Next
         Next
-        IO.File.WriteAllText(pLocation & pCreationString & pWriteShapes & "TagDetails.txt", lTagSummarySB.ToString)
+        IO.File.WriteAllText(pLocation & pCreationString & "_" & pWriteShapes & "_TagDetails.txt", lTagSummarySB.ToString)
 
-        Dim lOutFileName As String = pLocation & pCreationString & "Tags.txt"
+        Dim lOutFileName As String = pLocation & pCreationString & "_Tags.txt"
         IO.File.WriteAllText(lOutFileName, lSB.ToString)
         If lXmlSB.Length > 0 Then
-            lOutFileName = pLocation & pCreationString & pWriteShapes & ".xml"
+            lOutFileName = pLocation & pCreationString & "_" & pWriteShapes & ".xml"
             IO.File.WriteAllText(lOutFileName, lXmlSB.ToString)
         End If
 
         Dim lNodeFeatureSet As New DotSpatial.Data.FeatureSet(DotSpatial.Topology.FeatureType.Point)
-        For Each lNodeTag As KeyValuePair(Of String, SortedList) In lNodeTagValues
-            Dim lField As New System.Data.DataColumn(lNodeTag.Key)
-            lNodeFeatureSet.DataTable.Columns.Add(lField)
+        Dim lNodeField As New System.Data.DataColumn("Id")
+        lNodeFeatureSet.DataTable.Columns.Add(lNodeField)
+        For Each lTag As String In pTagsWrite
+            If lNodeTagValues.ContainsKey(lTag) Then
+                lNodeField = New System.Data.DataColumn(lTag)
+                lNodeFeatureSet.DataTable.Columns.Add(lNodeField)
+            End If
         Next
         For Each lNode As Node In lNodes
             Dim lNodePoint As New DotSpatial.Topology.Point(lNode.Lon, lNode.Lat)
             Dim lNodeFeature As DotSpatial.Data.IFeature = lNodeFeatureSet.AddFeature(lNodePoint)
+            lNodeFeature.DataRow("Id") = lNode.Id
             For Each lNodeTag In lNode.Tags
-                lNodeFeature.DataRow(lNodeTag.Key) = lNodeTag.Value
+                If pTagsWrite.Contains(lNodeTag.Key) Then
+                    lNodeFeature.DataRow(lNodeTag.Key) = lNodeTag.Value
+                End If
             Next
         Next
-        lNodeFeatureSet.SaveAs("Nodes.shp", True)
+        lNodeFeatureSet.SaveAs(pLocation & pCreationString & "_" & pWriteShapes & "_Nodes.shp", True)
 
         Dim lWayFeatureSet As New DotSpatial.Data.FeatureSet(DotSpatial.Topology.FeatureType.Line)
-        For Each lWayTag As KeyValuePair(Of String, SortedList) In lWayTagValues
-            If Not lWayTag.Key.Contains("tiger") Then
-                Dim lField As New System.Data.DataColumn(lWayTag.Key)
-                lWayFeatureSet.DataTable.Columns.Add(lField)
+        Dim lWayField As New System.Data.DataColumn("Id")
+        lWayFeatureSet.DataTable.Columns.Add(lWayField)
+        For Each lTag As String In pTagsWrite
+            If lWayTagValues.ContainsKey(lTag) Then
+                lWayField = New System.Data.DataColumn(lTag)
+                lWayFeatureSet.DataTable.Columns.Add(lWayField)
             End If
         Next
         For Each lWay As Way In lWays
             Dim lWayNodes As New List(Of DotSpatial.Topology.Coordinate)
             For Each lNodeKey As String In lWay.NodeKeys
-                Dim lNode As Node = Nodes.Item(lNodeKey)
-                lWayNodes.Add(New DotSpatial.Topology.Coordinate(lNode.Lon, lNode.Lat))
-            Next
-            Dim lWayGeometry As New DotSpatial.Topology.LineString(lWayNodes)
-            Dim lWayFeature As DotSpatial.Data.IFeature = lWayFeatureSet.AddFeature(lWayGeometry)
-            For Each lWayTag In lWay.Tags
-                If Not pTagsSkip.Contains(lWayTag.Key) AndAlso Not lWayTag.Key.Contains("tiger") Then
-                    lWayFeature.DataRow(lWayTag.Key) = lWayTag.Value
+                If Nodes.Contains(lNodeKey) Then
+                    Dim lNode As Node = Nodes.Item(lNodeKey)
+                    lWayNodes.Add(New DotSpatial.Topology.Coordinate(lNode.Lon, lNode.Lat))
                 End If
             Next
+            If lWayNodes.Count > 1 Then
+                Dim lWayGeometry As New DotSpatial.Topology.LineString(lWayNodes)
+                Dim lWayFeature As DotSpatial.Data.IFeature = lWayFeatureSet.AddFeature(lWayGeometry)
+                lWayFeature.DataRow("Id") = lWay.Id
+                For Each lWayTag In lWay.Tags
+                    If pTagsWrite.Contains(lWayTag.Key) Then
+                        lWayFeature.DataRow(lWayTag.Key) = lWayTag.Value
+                    End If
+                Next
+            Else
+                lSB.AppendLine("SkipWay " & lWay.Id & " NotEnoughNodes")
+            End If
         Next
-        lWayFeatureSet.SaveAs(IO.Directory.GetCurrentDirectory & "\Ways.shp", True)
+        lWayFeatureSet.SaveAs(IO.Directory.GetCurrentDirectory & "\" & pLocation & pCreationString & "_" & pWriteShapes & "_Ways.shp", True)
     End Sub
 
     Private Function MemUsage() As String
