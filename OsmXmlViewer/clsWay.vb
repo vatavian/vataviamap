@@ -71,12 +71,9 @@ Public Class Way
                     Dim lKey As String = "K" & lXmlNode.Attributes("ref").Value
                     If NodeKeys.Contains(lKey) Then
                         Closed = True
-                    Else
-                        If Nodes.Contains(lKey) Then
-                            NodeKeys.Add(lKey)
-                        End If
                     End If
-                Case "tag"
+                    NodeKeys.Add(lKey)
+                  Case "tag"
                     Tags.Add(New Tag(lXmlNode.Attributes))
                 Case Else
                     pIssues.AppendLine("MissingXmlTag " & lXmlNode.Name & " forWay " & Id)
