@@ -5,6 +5,7 @@ Public Class clsServer
     Public WebmapPattern As String = ""
     Public Copyright As String = ""
     Public Transparent As Boolean = False
+    Public Opacity As Single = 1
     Public FileExtension As String = ".png"
 
     'Top-level folder containing cached tiles for this server, must end with trailing IO.Path.DirectorySeparatorChar
