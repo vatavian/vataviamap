@@ -838,14 +838,25 @@ Public Class ctlMap
     End Sub
 
     ''' <summary>
-    ''' Draw all the visible tiles
+    ''' Draw all the visible tiles from all active tile servers
+    ''' </summary>
+    ''' <param name="g">Graphics object to be drawn into</param>
+    Public Sub DrawTiles(ByVal g As Graphics)
+        If TileServer.Transparent Then g.Clear(Color.White)
+        TileServer.Opacity = 1
+        DrawTiles(TileServer, g)
+
+        For Each lServer As clsServer In TransparentTileServers
+            If Not lServer.Transparent AndAlso lServer.Opacity = 1 Then lServer.Opacity = 0.5
+            DrawTiles(lServer, g)
+        Next
+    End Sub
+
+    ''' <summary>
+    ''' Draw all the visible tiles from the given tile server
     ''' </summary>
     ''' <param name="g">Graphics object to be drawn into</param>
     Private Sub DrawTiles(ByVal aServer As clsServer, ByVal g As Graphics)
-        If aServer.Transparent AndAlso aServer.Name.Equals(TileServer.Name) Then
-            g.Clear(Color.White)
-        End If
-
         Dim lOffsetToCenter As Point
         Dim lTopLeft As Point
         Dim lBotRight As Point
@@ -1176,10 +1187,22 @@ Public Class ctlMap
             If pShowTileImages Then
                 Dim lTileImage As Bitmap = TileBitmap(aServer, aTilePoint, aZoom, aPriority)
                 If lTileImage IsNot Nothing AndAlso lTileImage.Width > 1 Then
-                    Dim lDestRect As New Rectangle(aOffset.X, aOffset.Y, TileServer.TileSize, TileServer.TileSize)
-                    Dim lSrcRect As New Rectangle(0, 0, TileServer.TileSize, TileServer.TileSize)
+                    Dim lDestRect As New Rectangle(aOffset.X, aOffset.Y, aServer.TileSize, aServer.TileSize)
+#If Smartphone Then
+                    Dim lSrcRect As New Rectangle(0, 0, aServer.TileSize, aServer.TileSize)
                     g.DrawImage(lTileImage, lDestRect, lSrcRect, GraphicsUnit.Pixel)
+#Else
+                    If aServer.Opacity < 1 Then
+                        Dim cm As New System.Drawing.Imaging.ColorMatrix
+                        cm.Matrix33 = 0.5 ' aServer.Opacity
+                        Dim lAttrs As New System.Drawing.Imaging.ImageAttributes
+                        lAttrs.SetColorMatrix(cm)
+                        g.DrawImage(lTileImage, lDestRect, 0, 0, aServer.TileSize, aServer.TileSize, GraphicsUnit.Pixel, lAttrs)
+                    Else
+                        g.DrawImage(lTileImage, lDestRect, 0, 0, aServer.TileSize, aServer.TileSize, GraphicsUnit.Pixel)
+                    End If
                     lDrewImage = True
+#End If
                 End If
             End If
             If pClearDelayedTiles AndAlso Not lDrewImage AndAlso Not aServer.Transparent Then
@@ -1187,7 +1210,7 @@ Public Class ctlMap
             End If
             If pShowTileOutlines Then g.DrawRectangle(pPenBlack, aOffset.X, aOffset.Y, aServer.TileSize, aServer.TileSize)
             If pShowTileNames Then
-                Dim lTileFileName As String = TileServer.TileFilename(aTilePoint, aZoom, False)
+                Dim lTileFileName As String = aServer.TileFilename(aTilePoint, aZoom, False)
                 If lTileFileName.Length > 0 Then
                     g.DrawString(lTileFileName.Substring(aServer.CacheFolder.Length).Replace(aServer.FileExtension, ""), _
                                  pFontTileLabel, _
@@ -2103,7 +2126,7 @@ RestartRedraw:
                         lGraphics.Clear(Color.Black)
                         lDetailsBrush = pBrushWhite
                     Else
-                        DrawTiles(TileServer, lGraphics)
+                        DrawTiles(lGraphics)
                     End If
                     If pShowGPSdetails Then
                         Dim lMaxWidth As Single = lGraphics.ClipBounds.Right - 10
@@ -2780,23 +2803,7 @@ RestartRedraw:
         If Me.Visible Then 'TODO: AndAlso WindowState <> FormWindowState.Minimized Then
             Dim lGraphics As Graphics = GetBitmapGraphics()
             If lGraphics IsNot Nothing Then
-                DrawTiles(TileServer, lGraphics)
-
-                For Each lServer As clsServer In TransparentTileServers
-                    DrawTiles(lServer, lGraphics)
-                Next
-
-                'TODO: re-code transparent tile display
-                'If pShowTransparentTiles Then
-                '    Dim lSaveURL As String = g_TileServerURL
-                '    Dim lSaveCacheDir As String = g_TileCacheFolder
-                '    g_TileServerURL = g_TileServerTransparentURL
-                '    SetCacheFolderFromTileServer()
-                '    DrawTiles(lGraphics)
-                '    g_TileServerURL = lSaveURL
-                '    g_TileCacheFolder = lSaveCacheDir
-                'End If
-
+                DrawTiles(lGraphics)
                 ReleaseBitmapGraphics()
                 Refresh()
                 pLastRedrawTime = Now

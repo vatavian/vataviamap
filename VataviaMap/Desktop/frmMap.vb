@@ -289,15 +289,16 @@ Public Class frmMap
         EditTileServerMenuItem.DropDownItems.Clear()
         For Each lServer As clsServer In pMap.Servers.Values
             If Not String.IsNullOrEmpty(lServer.TilePattern) Then
+                'If lServer.Transparent Then
+                Dim lTransparentItem As New ToolStripMenuItem(lServer.Name)
+                OverlayServerToolStripMenuItem.DropDownItems.Add(lTransparentItem)
+                AddHandler lTransparentItem.Click, AddressOf TransparentServer_Click
+                'Else
                 Dim lNewItem As New ToolStripMenuItem(lServer.Name)
-                If lServer.Transparent Then
-                    OverlayServerToolStripMenuItem.DropDownItems.Add(lNewItem)
-                    AddHandler lNewItem.Click, AddressOf TransparentServer_Click
-                Else
-                    TileServerToolStripMenuItem.DropDownItems.Add(lNewItem)
-                    AddHandler lNewItem.Click, AddressOf TileServer_Click
-                    If lServer.Name = pMap.TileServer.Name Then lNewItem.Checked = True
-                End If
+                TileServerToolStripMenuItem.DropDownItems.Add(lNewItem)
+                AddHandler lNewItem.Click, AddressOf TileServer_Click
+                If lServer.Name = pMap.TileServer.Name Then lNewItem.Checked = True
+                'End If
 
                 Dim lNewEditItem As New ToolStripMenuItem(lServer.Name)
                 AddHandler lNewEditItem.Click, AddressOf EditTileServerMenuItem_Click
