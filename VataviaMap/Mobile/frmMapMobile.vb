@@ -293,7 +293,18 @@ Public Class frmMap
             .Owner = Me
             .Title = .DefaultFileName
             If ccd.ShowDialog() = Windows.Forms.DialogResult.OK Then
-                'Todo: geotag photo
+                'Todo: geotag inside .jpg, upload photo
+                Dim lWaypoint As clsGPXwaypoint = pMap.LatestPositionWaypoint("wpt")
+                If lWaypoint IsNot Nothing AndAlso Math.Abs(Now.ToUniversalTime.Subtract(lWaypoint.time).TotalSeconds) < 30 Then
+                    lWaypoint.sym = "photo"
+                    lWaypoint.name = IO.Path.GetFileNameWithoutExtension(ccd.FileName)
+                    lWaypoint.link.Add(New clsGPXlink(lWaypoint.name, "image/jpeg", IO.Path.GetFileName(ccd.FileName)))
+                    Dim lPhotoGPX As New clsGPX
+                    lPhotoGPX.wpt.Add(lWaypoint)
+                    WriteTextFile(ccd.FileName & ".gpx", lPhotoGPX.ToString)
+                Else
+                    If lWaypoint IsNot Nothing Then Debug.WriteLine(Math.Abs(Now.ToUniversalTime.Subtract(lWaypoint.time).TotalSeconds) & " > 30 seconds")
+                End If
             End If
         End With
     End Sub

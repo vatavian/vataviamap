@@ -2373,9 +2373,6 @@ RestartRedraw:
                     If pPendingUploadStart OrElse (UploadPeriodic AndAlso DateTime.UtcNow.Subtract(UploadMinInterval) >= pUploadLastTime) Then
                         UploadGpsPosition()
                     End If
-
-                    'If (GPS_POSITION.SeaLevelAltitudeValid) Then
-                    ' str &= "Elev " & GPS_POSITION.SeaLevelAltitude & "m"
                 End If
             End If
         Catch e As Exception
@@ -2418,39 +2415,10 @@ RestartRedraw:
     End Function
 
     Private Sub TrackAddPoint()
-        If GPS_POSITION IsNot Nothing _
-           AndAlso GPS_POSITION.TimeValid _
-           AndAlso GPS_POSITION.LatitudeValid _
-           AndAlso GPS_POSITION.LongitudeValid _
-           AndAlso GPS_POSITION.SatellitesInSolutionValid _
-           AndAlso GPS_POSITION.SatelliteCount > 2 Then
+        Dim lTrackPoint As clsGPXwaypoint = LatestPositionWaypoint("trkpt")
+        If lTrackPoint IsNot Nothing Then
             ' If subsequent track points vary this much, we don't believe it, don't log till they are closer
             If Math.Abs((GPS_POSITION.Latitude - pTrackLastLatitude)) + Math.Abs((GPS_POSITION.Longitude - pTrackLastLongitude)) < 0.5 Then
-                Dim lGPXheader As String = Nothing
-
-                Dim lTrackPoint As New clsGPXwaypoint("trkpt", GPS_POSITION.Latitude, GPS_POSITION.Longitude)
-                If GPS_POSITION.SeaLevelAltitudeValid Then
-                    lTrackPoint.ele = GPS_POSITION.SeaLevelAltitude
-                End If
-                lTrackPoint.time = GPS_POSITION.Time
-                lTrackPoint.sat = GPS_POSITION.SatelliteCount
-
-                If GPS_POSITION.SpeedValid Then
-                    lTrackPoint.speed = GPS_POSITION.Speed
-                End If
-                If GPS_POSITION.HeadingValid Then
-                    lTrackPoint.course = GPS_POSITION.Heading
-                End If
-
-                If pRecordCellID Then
-                    Dim lCurrentCellInfo As New clsCell(GPS_API.RIL.GetCellTowerInfo)
-                    If lCurrentCellInfo.IsValid Then
-                        'Original tag was celltower, order was ID LAC MCC MNC
-                        lTrackPoint.SetExtension("cellid", lCurrentCellInfo.ToString)
-                    End If
-                End If
-                lTrackPoint.SetExtension("phonesignal", Microsoft.WindowsMobile.Status.SystemState.PhoneSignalStrength)
-
                 If RecordTrack Then
                     AppendLog(pTrackLogFilename, lTrackPoint.ToString, "<?xml version=""1.0"" encoding=""UTF-8""?>" & vbLf & "<gpx xmlns=""http://www.topografix.com/GPX/1/1"" version=""1.1"" creator=""" & g_AppName & """ xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xsi:schemaLocation=""http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.topografix.com/GPX/gpx_overlay/0/3 http://www.topografix.com/GPX/gpx_overlay/0/3/gpx_overlay.xsd http://www.topografix.com/GPX/gpx_modified/0/1 http://www.topografix.com/GPX/gpx_modified/0/1/gpx_modified.xsd"">" & vbLf & "<trk>" & vbLf & "<name>" & g_AppName & " Log " & System.IO.Path.GetFileNameWithoutExtension(pTrackLogFilename) & " </name>" & vbLf & "<type>GPS Tracklog</type>" & vbLf & "<trkseg>" & vbLf)
                 End If
@@ -2464,6 +2432,44 @@ RestartRedraw:
             pTrackLastLongitude = GPS_POSITION.Longitude
         End If
     End Sub 'TrackAddPoint
+
+    ''' <summary>
+    ''' Create a GPX waypoint for the latest GPS position
+    ''' </summary>
+    ''' <param name="aTag">trkpt or wpt depending on whether this is part of a track or an independent waypoint</param>
+    ''' <returns></returns>
+    ''' <remarks></remarks>
+    Public Function LatestPositionWaypoint(ByVal aTag As String) As clsGPXwaypoint
+        Dim lTrackPoint As clsGPXwaypoint = Nothing
+        With GPS_POSITION
+            If GPS_POSITION IsNot Nothing _
+               AndAlso .TimeValid _
+               AndAlso .LatitudeValid _
+               AndAlso .LongitudeValid _
+               AndAlso .SatellitesInSolutionValid _
+               AndAlso .SatelliteCount > 2 Then
+                Dim lGPXheader As String = Nothing
+
+                lTrackPoint = New clsGPXwaypoint(aTag, GPS_POSITION.Latitude, GPS_POSITION.Longitude)
+
+                If GPS_POSITION.SeaLevelAltitudeValid Then lTrackPoint.ele = GPS_POSITION.SeaLevelAltitude
+                lTrackPoint.time = GPS_POSITION.Time
+                lTrackPoint.sat = GPS_POSITION.SatelliteCount
+
+                If GPS_POSITION.SpeedValid Then lTrackPoint.speed = GPS_POSITION.Speed
+                If GPS_POSITION.HeadingValid Then lTrackPoint.course = GPS_POSITION.Heading
+
+                If pRecordCellID Then
+                    Dim lCurrentCellInfo As New clsCell(GPS_API.RIL.GetCellTowerInfo)
+                    If lCurrentCellInfo.IsValid Then
+                        lTrackPoint.SetExtension("cellid", lCurrentCellInfo.ToString)
+                    End If
+                End If
+                lTrackPoint.SetExtension("phonesignal", Microsoft.WindowsMobile.Status.SystemState.PhoneSignalStrength)
+            End If
+        End With
+        Return lTrackPoint
+    End Function
 
     Private Sub AppendLog(ByVal aFilename As String, ByVal aAppend As String, ByVal aHeader As String)
         pTrackMutex.WaitOne()
