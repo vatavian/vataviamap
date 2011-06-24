@@ -951,9 +951,15 @@ End Class
 
 Public Class clsGPXlink
 
-    Private textField As String
-    Private typeField As String
-    Private hrefField As String
+    Public text As String
+    Public type As String
+    Public href As String
+
+    Public Sub New(ByVal aText As String, ByVal aType As String, ByVal aHref As String)
+        text = aText
+        type = aType
+        href = aHref
+    End Sub
 
     Public Sub New(ByVal aXML As XmlNode)
         For Each lChild As XmlNode In aXML.ChildNodes
@@ -970,35 +976,8 @@ Public Class clsGPXlink
         Next
     End Sub
 
-    Public Property text() As String
-        Get
-            Return Me.textField
-        End Get
-        Set(ByVal value As String)
-            Me.textField = value
-        End Set
-    End Property
-
-    Public Property type() As String
-        Get
-            Return Me.typeField
-        End Get
-        Set(ByVal value As String)
-            Me.typeField = value
-        End Set
-    End Property
-
-    Public Property href() As String
-        Get
-            Return Me.hrefField
-        End Get
-        Set(ByVal value As String)
-            Me.hrefField = value
-        End Set
-    End Property
-
     Public Overrides Function ToString() As String
-        Return "<link href=""" & hrefField & ">" & XMLfragment("text", textField) & XMLfragment("type", typeField) & "</link>"
+        Return "<link href=""" & href & """>" & XMLfragment("text", text) & XMLfragment("type", type) & "</link>"
     End Function
 End Class
 
@@ -1286,6 +1265,7 @@ Public Class clsGPXbase
 
     Public Property link() As Generic.List(Of clsGPXlink)
         Get
+            If linkField Is Nothing Then linkField = New Generic.List(Of clsGPXlink)
             Return Me.linkField
         End Get
         Set(ByVal value As Generic.List(Of clsGPXlink))
@@ -1294,14 +1274,13 @@ Public Class clsGPXbase
     End Property
 
     Protected Sub AddLink(ByVal aLink As XmlElement)
-        If linkField Is Nothing Then linkField = New Generic.List(Of clsGPXlink)
-        linkField.Add(New clsGPXlink(aLink))
+        link.Add(New clsGPXlink(aLink))
     End Sub
 
     Public Function linkString() As String
         Dim lString As String = ""
-        If link IsNot Nothing AndAlso link.Count > 0 Then
-            For Each lLink As clsGPXlink In link
+        If linkField IsNot Nothing AndAlso linkField.Count > 0 Then
+            For Each lLink As clsGPXlink In linkField
                 lString &= lLink.ToString & ControlChars.Lf
             Next
         End If
