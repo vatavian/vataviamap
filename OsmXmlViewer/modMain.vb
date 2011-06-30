@@ -4,11 +4,12 @@ Imports System.Collections
 Module modMain
     Public pLocation As String = "decatur" '"intownATL" '"dekalb", "metroATL", "intownATL" 
     Public pTerse As Boolean = True
-    Public pFolder As String = "C:\OSM\extracts\20110608\quick"
+    Public pFolder As String = "C:\OSM\extracts\20110624\quick"
     Public pCreationString As String = "" 'Format(IO.File.GetCreationTime(pXmlFileName), "yyyy-MM-dd-hh-mm")
     Public pReferenceMax As Integer = 100000
 
-    Public pWriteShapes As String = "highway"
+    Public pWriteShapes As String = "amenity" '"highway"
+    Public pWriteShapesValue As String = "bicycle_parking"
     Public pTagsWrite As New List(Of String) From {"highway", "name", "maxspeed", "width", "surface",
                                                    "amenity", "access", "area", "bicycle", "bridge", "bridge:type",
                                                    "capacity", "class:bicycle", "covered", "crossing", "cycleway", "FIXME", "foot", "ford",
@@ -301,20 +302,54 @@ Module modMain
         For Each lTag As String In pTagsWrite
             If lNodeTagValues.ContainsKey(lTag) Then
                 lNodeField = New System.Data.DataColumn(lTag)
+                If lTag = "capacity" Then 'TODO: make more generic, insure numeric!
+                    lNodeField.DataType = GetType(Integer)
+                End If
                 lNodeFeatureSet.DataTable.Columns.Add(lNodeField)
             End If
         Next
+
+        Dim lNodeHasValues As New Dictionary(Of String, Boolean)
         For Each lNode As Node In lNodes
-            Dim lNodePoint As New DotSpatial.Topology.Point(lNode.Lon, lNode.Lat)
-            Dim lNodeFeature As DotSpatial.Data.IFeature = lNodeFeatureSet.AddFeature(lNodePoint)
-            lNodeFeature.DataRow("Id") = lNode.Id
-            For Each lNodeTag In lNode.Tags
-                If pTagsWrite.Contains(lNodeTag.Key) Then
-                    lNodeFeature.DataRow(lNodeTag.Key) = lNodeTag.Value
-                End If
-            Next
+            If lNode.Tags(pWriteShapes).Value = pWriteShapesValue Then
+                Dim lNodePoint As New DotSpatial.Topology.Point(lNode.Lon, lNode.Lat)
+                Dim lNodeFeature As DotSpatial.Data.IFeature = lNodeFeatureSet.AddFeature(lNodePoint)
+                lNodeFeature.DataRow("Id") = lNode.Id
+                For Each lNodeTag In lNode.Tags
+                    If pTagsWrite.Contains(lNodeTag.Key) Then
+                        If lNodeTag.Value.Length > 0 Then
+                            If lNodeTag.Key = "capacity" Then
+                                If IsNumeric(lNodeTag.Value) Then
+                                    lNodeFeature.DataRow(lNodeTag.Key) = lNodeTag.Value
+                                Else
+                                    Debug.Print("Problem with numeric field!")
+                                End If
+                            Else
+                                lNodeFeature.DataRow(lNodeTag.Key) = lNodeTag.Value
+                            End If
+
+                            If Not lNodeHasValues.ContainsKey(lNodeTag.Key) Then
+                                lNodeHasValues.Add(lNodeTag.Key, True)
+                            End If
+                        End If
+                    End If
+                Next
+            End If
         Next
-        lNodeFeatureSet.SaveAs(pLocation & pCreationString & "_" & pWriteShapes & "_Nodes.shp", True)
+
+        For lNodeFieldIndex As Integer = lNodeFeatureSet.DataTable.Columns.Count - 1 To 0 Step -1
+            lNodeField = lNodeFeatureSet.DataTable.Columns(lNodeFieldIndex)
+            If Not lNodeHasValues.ContainsKey(lNodeField.ColumnName) Then
+                lNodeFeatureSet.DataTable.Columns.Remove(lNodeField)
+            End If
+        Next
+        Dim lNodeFeatureSetFileName As String = String.Empty
+        If pWriteShapesValue.Length = 0 Then
+            lNodeFeatureSetFileName = pLocation & pCreationString & "_" & pWriteShapes & "_Nodes.shp"
+        Else
+            lNodeFeatureSetFileName = pLocation & pCreationString & "_" & pWriteShapes & "_" & pWriteShapesValue & "_Nodes.shp"
+        End If
+        lNodeFeatureSet.SaveAs(lNodeFeatureSetFileName, True)
 
         Dim lWayFeatureSet As New DotSpatial.Data.FeatureSet(DotSpatial.Topology.FeatureType.Line)
         Dim lWayField As New System.Data.DataColumn("Id")
