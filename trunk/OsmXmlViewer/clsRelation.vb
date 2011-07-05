@@ -90,6 +90,7 @@ Public Class Relation
                         Case "node"
                             If Nodes.Contains(lKey) Then
                                 NodeKeys.Add(lKey)
+                                Nodes(lKey).RelationKeys.Add("K" & Id)
                             Else
                                 lIssueCount += 1
                                 Blame(lIssueUsers, User)
@@ -98,6 +99,7 @@ Public Class Relation
                         Case "way"
                             If Ways.Contains(lKey) Then
                                 WayKeys.Add(lKey)
+                                Ways(lKey).RelationKeys.Add("K" & Id)
                             Else
                                 lIssueCount += 1
                                 Blame(lIssueUsers, User)
@@ -106,6 +108,7 @@ Public Class Relation
                         Case "relation"
                             If Relations.Contains(lKey) Then
                                 RelationKeys.Add(lKey)
+                                Relations(lKey).RelationKeys.Add("K" & Id)
                             Else
                                 lIssueCount += 1
                                 Blame(lIssueUsers, User)
