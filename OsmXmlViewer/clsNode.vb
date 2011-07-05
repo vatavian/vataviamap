@@ -23,6 +23,7 @@ Public Class Node
     Public Visible As Boolean = True
     Public Timestamp As Date
     Public Tags As New Tags
+    Public RelationKeys As New Collection(Of String)
 
     Public Sub New(ByVal aXmlNode As Xml.XmlNode)
         For Each lAttribute As XmlAttribute In aXmlNode.Attributes

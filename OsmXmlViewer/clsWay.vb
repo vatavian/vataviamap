@@ -47,6 +47,7 @@ Public Class Way
     Public UId As Integer
     Public Changeset As Integer
     Public NodeKeys As New Collection(Of String)
+    Public RelationKeys As New Collection(Of String)
     Public Tags As New Tags
 
     Public Sub New(ByVal aXmlNode As Xml.XmlNode)
