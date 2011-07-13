@@ -5,6 +5,8 @@ Public Class frmMap
     WithEvents pLayersForm As frmOptionsMobileGPX
     WithEvents pActiveState As New Microsoft.WindowsMobile.Status.SystemState(Microsoft.WindowsMobile.Status.SystemProperty.ActiveApplication)
 
+    Const pNoOverlayLabel As String = "No Overlay"
+
     Private Sub pActiveState_Changed(ByVal sender As Object, ByVal args As Microsoft.WindowsMobile.Status.ChangeEventArgs) Handles pActiveState.Changed
         pMap.Active = CStr(args.NewValue).EndsWith(Chr(27) & Me.Text)
     End Sub
@@ -71,10 +73,21 @@ Public Class frmMap
         With pDownloadForm
             On Error Resume Next
             .comboTileServer.Items.Clear()
-            For Each lTileServerName As String In pMap.Servers.Keys
-                .comboTileServer.Items.Add(lTileServerName)
+            .comboOverlayServer.Items.Clear()
+            .comboOverlayServer.Items.Add(pNoOverlayLabel)
+            For Each lTileServer As clsServer In pMap.Servers.Values
+                If lTileServer.Transparent Then
+                    .comboOverlayServer.Items.Add(lTileServer.Name)
+                Else
+                    .comboTileServer.Items.Add(lTileServer.Name)
+                End If
             Next
             .comboTileServer.Text = pMap.TileServerName
+            If pMap.TransparentTileServers.Count = 0 Then
+                .comboOverlayServer.Text = pNoOverlayLabel
+            Else
+                .comboOverlayServer.Text = pMap.TransparentTileServers.Item(0).Name
+            End If
             .DegreeFormat = g_DegreeFormat
             .txtTileFolder.Text = pMap.TileCacheFolder
             .Latitude = pMap.CenterLat
@@ -92,6 +105,15 @@ Public Class frmMap
                 On Error Resume Next 'Ignore dysfunctional (e.g. non-numeric) settings
                 pMap.TileCacheFolder = .txtTileFolder.Text
                 pMap.TileServerName = .comboTileServer.Text
+                If .comboOverlayServer.Text = pNoOverlayLabel Then
+                    pMap.TransparentTileServers.Clear()
+                Else
+                    If pMap.TransparentTileServers.Count > 0 _
+                      AndAlso pMap.TransparentTileServers(0).Name <> .comboOverlayServer.Text Then
+                        pMap.TransparentTileServers.Clear()
+                    End If
+                    pMap.EnableTransparentTileServer(.comboOverlayServer.Text, True)
+                End If
                 g_DegreeFormat = .DegreeFormat
                 pMap.CenterLat = .Latitude
                 pMap.CenterLon = .Longitude
