@@ -1185,25 +1185,8 @@ Public Class ctlMap
         Try
             Dim lDrewImage As Boolean = False
             If pShowTileImages Then
-                Dim lTileImage As Bitmap = TileBitmap(aServer, aTilePoint, aZoom, aPriority)
-                If lTileImage IsNot Nothing AndAlso lTileImage.Width > 1 Then
-                    Dim lDestRect As New Rectangle(aOffset.X, aOffset.Y, aServer.TileSize, aServer.TileSize)
-#If Smartphone Then
-                    Dim lSrcRect As New Rectangle(0, 0, aServer.TileSize, aServer.TileSize)
-                    g.DrawImage(lTileImage, lDestRect, lSrcRect, GraphicsUnit.Pixel)
-#Else
-                    If aServer.Opacity < 1 Then
-                        Dim cm As New System.Drawing.Imaging.ColorMatrix
-                        cm.Matrix33 = 0.5 ' aServer.Opacity
-                        Dim lAttrs As New System.Drawing.Imaging.ImageAttributes
-                        lAttrs.SetColorMatrix(cm)
-                        g.DrawImage(lTileImage, lDestRect, 0, 0, aServer.TileSize, aServer.TileSize, GraphicsUnit.Pixel, lAttrs)
-                    Else
-                        g.DrawImage(lTileImage, lDestRect, 0, 0, aServer.TileSize, aServer.TileSize, GraphicsUnit.Pixel)
-                    End If
-                    lDrewImage = True
-#End If
-                End If
+                Dim lDestRect As New Rectangle(aOffset.X, aOffset.Y, aServer.TileSize, aServer.TileSize)
+                lDrewImage = DrawTile(aServer, aTilePoint, aZoom, g, lDestRect, aServer.TileSizeRect, 0)
             End If
             If pClearDelayedTiles AndAlso Not lDrewImage AndAlso Not aServer.Transparent Then
                 g.FillRectangle(pBrushWhite, aOffset.X, aOffset.Y, aServer.TileSize, aServer.TileSize)
@@ -1240,8 +1223,27 @@ Public Class ctlMap
 
             Dim lTileImage As Bitmap = TileBitmap(aServer, aTilePoint, aZoom, aPriority)
 
-            If lTileImage IsNot Nothing Then
-                g.DrawImage(lTileImage, aDrawRect, aImageRect, GraphicsUnit.Pixel)
+            If lTileImage IsNot Nothing AndAlso lTileImage.Width > 1 Then
+
+#If Smartphone Then
+                If aServer.Transparent Then
+                    Dim imageAttr As New Drawing.Imaging.ImageAttributes
+                    imageAttr.SetColorKey(Color.White, Color.White)
+                    g.DrawImage(lTileImage, aDrawRect, aImageRect.X, aImageRect.Y, aImageRect.Width, aImageRect.Height, GraphicsUnit.Pixel, imageAttr)
+                Else
+                    g.DrawImage(lTileImage, aDrawRect, aImageRect, GraphicsUnit.Pixel)
+                End If
+#Else
+                If aServer.Opacity < 1 Then
+                    Dim cm As New System.Drawing.Imaging.ColorMatrix
+                    cm.Matrix33 = 0.5 ' aServer.Opacity
+                    Dim lAttrs As New System.Drawing.Imaging.ImageAttributes
+                    lAttrs.SetColorMatrix(cm)
+                    g.DrawImage(lTileImage, aDrawRect, aImageRect.X, aImageRect.Y, aImageRect.Width, aImageRect.Height, GraphicsUnit.Pixel, lAttrs)
+                Else
+                    g.DrawImage(lTileImage, aDrawRect, aImageRect.X, aImageRect.Y, aImageRect.Width, aImageRect.Height, GraphicsUnit.Pixel)
+                End If
+#End If
                 Return True
             End If
         Catch
@@ -2277,23 +2279,28 @@ RestartRedraw:
 
             SetPowerRequirement(DeviceGPS, True)
 
-            Dim lLogIndex As Integer = 0
-            Dim lBaseFilename As String = IO.Path.Combine(GPXFolder, DateTime.Now.ToString("yyyy-MM-dd_HH-mm"))
-
-            pTrackMutex.WaitOne()
-            pTrackLogFilename = lBaseFilename & ".gpx"
-            While System.IO.File.Exists(pTrackLogFilename)
-                pTrackLogFilename = lBaseFilename & "_" & ++lLogIndex & ".gpx"
-            End While
-            CloseLog(pWaypointLogFilename, "</gpx>" & vbLf)
-            pWaypointLogFilename = IO.Path.ChangeExtension(pTrackLogFilename, ".wpt.gpx")
-            pTrackMutex.ReleaseMutex()
+            NewLogFilename()
 
             Application.DoEvents()
             GPS.Open()
             GPS_Listen = True
             pPendingUploadStart = UploadOnStart
         End If
+    End Sub
+
+    Private Sub NewLogFilename(Optional ByVal aNeedMutex As Boolean = True)
+        If aNeedMutex Then pTrackMutex.WaitOne()
+        CloseLog(pWaypointLogFilename, "</gpx>" & vbLf)
+        CloseLog(pTrackLogFilename, "</trkseg>" & vbLf & "</trk>" & vbLf & "</gpx>" & vbLf)
+        Dim lBaseFilename As String = IO.Path.Combine(GPXFolder, DateTime.Now.ToString("yyyy-MM-dd_HH-mm"))
+        pTrackLogFilename = lBaseFilename & ".gpx"
+
+        Dim lLogIndex As Integer = 1
+        While System.IO.File.Exists(pTrackLogFilename)
+            pTrackLogFilename = lBaseFilename & "_" & ++lLogIndex & ".gpx"
+        End While
+        pWaypointLogFilename = IO.Path.ChangeExtension(pTrackLogFilename, ".wpt.gpx")
+        If aNeedMutex Then pTrackMutex.ReleaseMutex()
     End Sub
 
     Public Sub StopGPS()
@@ -2328,18 +2335,27 @@ RestartRedraw:
         StopKeepAwake()
     End Sub
 
+    ''' <summary>
+    ''' Close a GPX file
+    ''' </summary>
+    ''' <param name="aFilename">File to close</param>
+    ''' <param name="aAppend">Closing tags to append at end of file</param>
+    ''' <remarks>Only call between pTrackMutex.WaitOne and pTrackMutex.ReleaseMutex</remarks>
     Private Sub CloseLog(ByRef aFilename As String, ByVal aAppend As String)
-        If IO.File.Exists(aFilename) Then
-            If aAppend IsNot Nothing AndAlso aAppend.Length > 0 Then
-                Dim lFile As System.IO.StreamWriter = System.IO.File.AppendText(aFilename)
-                lFile.Write(aAppend)
-                lFile.Close()
+        Try
+            If IO.File.Exists(aFilename) Then
+                If aAppend IsNot Nothing AndAlso aAppend.Length > 0 Then
+                    Dim lFile As System.IO.StreamWriter = System.IO.File.AppendText(aFilename)
+                    lFile.Write(aAppend)
+                    lFile.Close()
+                End If
+                If UploadTrackOnStop AndAlso Uploader.Enabled Then
+                    Uploader.Enqueue(g_UploadTrackURL, aFilename, QueueItemType.FileItem, 0)
+                End If
             End If
-            If UploadTrackOnStop AndAlso Uploader.Enabled Then
-                Uploader.Enqueue(g_UploadTrackURL, aFilename, QueueItemType.FileItem, 0)
-            End If
-        End If
-        aFilename = ""
+            aFilename = ""
+        Catch ex As System.IO.IOException
+        End Try
     End Sub
 
     Private updateDataHandler As EventHandler
@@ -2473,6 +2489,8 @@ RestartRedraw:
 
     Private Sub AppendLog(ByVal aFilename As String, ByVal aAppend As String, ByVal aHeader As String)
         pTrackMutex.WaitOne()
+        Dim lTries As Integer = 0
+TryAgain:
         Try
             Dim lNeedHeader As Boolean = Not IO.File.Exists(aFilename)
             If lNeedHeader Then IO.Directory.CreateDirectory(IO.Path.GetDirectoryName(aFilename))
@@ -2481,7 +2499,12 @@ RestartRedraw:
             lFile.Write(aAppend)
             lFile.Close()
         Catch ex As Exception
-            Windows.Forms.MessageBox.Show("Could not save " & vbLf & pTrackLogFilename & vbLf & ex.Message)
+            'Windows.Forms.MessageBox.Show("Could not save " & vbLf & pTrackLogFilename & vbLf & ex.Message)
+            If lTries < 1 Then
+                lTries += 1
+                NewLogFilename()
+                GoTo TryAgain
+            End If
         End Try
         pTrackMutex.ReleaseMutex()
     End Sub
@@ -2699,9 +2722,11 @@ RestartRedraw:
         Dim lWayPoint As New clsGPXwaypoint("wpt", aLatitude, aLongitude)
         lWayPoint.time = aTime
         lWayPoint.name = aName
+        pTrackMutex.WaitOne()
         If pWaypointLogFilename Is Nothing OrElse pWaypointLogFilename.Length = 0 Then
             pWaypointLogFilename = IO.Path.Combine(GPXFolder, DateTime.Now.ToString("yyyy-MM-dd_HH-mm")) & ".wpt.gpx"
         End If
+        pTrackMutex.ReleaseMutex()
         AppendLog(pWaypointLogFilename, lWayPoint.ToString, "<?xml version=""1.0"" encoding=""UTF-8""?>" & vbLf & "<gpx xmlns=""http://www.topografix.com/GPX/1/1"" version=""1.1"" creator=""" & g_AppName & """ xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xsi:schemaLocation=""http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.topografix.com/GPX/gpx_overlay/0/3 http://www.topografix.com/GPX/gpx_overlay/0/3/gpx_overlay.xsd http://www.topografix.com/GPX/gpx_modified/0/1 http://www.topografix.com/GPX/gpx_modified/0/1/gpx_modified.xsd"">" & vbLf)
     End Sub
 #End Region 'Smartphone

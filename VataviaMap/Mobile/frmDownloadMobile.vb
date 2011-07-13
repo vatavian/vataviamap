@@ -137,7 +137,9 @@ Public Class frmDownloadMobile
                 comboDegreeFormat.SelectedIndex = 2
         End Select
         Dim lRightWidth As Integer = Screen.PrimaryScreen.Bounds.Width - txtTileFolder.Left - 2
-        comboTileServer.Width = lRightWidth
+        comboTileServer.Width = lRightWidth / 2
+        comboOverlayServer.Width = comboTileServer.Width
+        comboOverlayServer.Left = comboTileServer.Left + comboTileServer.Width
         txtTileFolder.Width = lRightWidth
         comboDegreeFormat.Width = lRightWidth
         txtLat.Width = lRightWidth

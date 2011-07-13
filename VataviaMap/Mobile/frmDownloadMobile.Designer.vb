@@ -43,6 +43,7 @@ Partial Public Class frmDownloadMobile
         Me.txtLonMin = New System.Windows.Forms.TextBox
         Me.lblUploadURL = New System.Windows.Forms.Label
         Me.comboTileServer = New System.Windows.Forms.ComboBox
+        Me.comboOverlayServer = New System.Windows.Forms.ComboBox
         Me.SuspendLayout()
         '
         'mnuMain
@@ -224,8 +225,17 @@ Partial Public Class frmDownloadMobile
                     Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
         Me.comboTileServer.Location = New System.Drawing.Point(73, 3)
         Me.comboTileServer.Name = "comboTileServer"
-        Me.comboTileServer.Size = New System.Drawing.Size(154, 22)
+        Me.comboTileServer.Size = New System.Drawing.Size(64, 22)
         Me.comboTileServer.TabIndex = 74
+        '
+        'comboOverlayServer
+        '
+        Me.comboOverlayServer.Anchor = CType(((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Left) _
+                    Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.comboOverlayServer.Location = New System.Drawing.Point(143, 3)
+        Me.comboOverlayServer.Name = "comboOverlayServer"
+        Me.comboOverlayServer.Size = New System.Drawing.Size(64, 22)
+        Me.comboOverlayServer.TabIndex = 81
         '
         'frmDownloadMobile
         '
@@ -234,6 +244,7 @@ Partial Public Class frmDownloadMobile
         Me.AutoScroll = True
         Me.AutoValidate = System.Windows.Forms.AutoValidate.Disable
         Me.ClientSize = New System.Drawing.Size(176, 180)
+        Me.Controls.Add(Me.comboOverlayServer)
         Me.Controls.Add(Me.comboTileServer)
         Me.Controls.Add(Me.lblUploadURL)
         Me.Controls.Add(Me.comboDegreeFormat)
@@ -282,4 +293,5 @@ Partial Public Class frmDownloadMobile
     Friend WithEvents txtLonMin As System.Windows.Forms.TextBox
     Friend WithEvents lblUploadURL As System.Windows.Forms.Label
     Friend WithEvents comboTileServer As System.Windows.Forms.ComboBox
+    Friend WithEvents comboOverlayServer As System.Windows.Forms.ComboBox
 End Class
