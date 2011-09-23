@@ -535,8 +535,8 @@ Public Class clsGPXwaypoint
                 Case "extensions"
                     For Each lExtension As Xml.XmlElement In lChild.ChildNodes
                         Select Case lExtension.Name.ToLower
-                            Case "speed" : speed = lExtension.InnerText
-                            Case "course" : course = lExtension.InnerText
+                            Case "speed" : speed = Double.Parse(lExtension.InnerText, System.Globalization.CultureInfo.InvariantCulture)
+                            Case "course" : course = Double.Parse(lExtension.InnerText, System.Globalization.CultureInfo.InvariantCulture)
                             Case Else : SetExtension(lExtension.Name, lExtension.InnerXml)
                         End Select
                     Next
@@ -558,8 +558,8 @@ Public Class clsGPXwaypoint
                         name = lChild.Attributes("id").InnerText
                         urlname = lChild.ChildNodes(0).InnerText
                     Case "coord"
-                        lat = lChild.Attributes("lat").InnerText
-                        lon = lChild.Attributes("lon").InnerText
+                        lat = Double.Parse(lChild.Attributes("lat").InnerText, System.Globalization.CultureInfo.InvariantCulture)
+                        lon = Double.Parse(lChild.Attributes("lon").InnerText, System.Globalization.CultureInfo.InvariantCulture)
                     Case "link"
                         url = lChild.InnerText
                 End Select
@@ -573,9 +573,9 @@ Public Class clsGPXwaypoint
 
     Public Sub AppendTo(ByVal aBuilder As System.Text.StringBuilder)
         aBuilder.Append("<" & tagField _
-            & " lat=""" & latField.ToString("#.#######") & """" _
-            & " lon=""" & lonField.ToString("#.#######") & """>" & ControlChars.Lf)
-        If eleFieldSpecified Then aBuilder.Append(XMLfragment("ele", Format(eleField, "0.###")))
+            & " lat=""" & latField.ToString("#.#######", System.Globalization.CultureInfo.InvariantCulture) & """" _
+            & " lon=""" & lonField.ToString("#.#######", System.Globalization.CultureInfo.InvariantCulture) & """>" & ControlChars.Lf)
+        If eleFieldSpecified Then aBuilder.Append(XMLfragment("ele", eleField.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)))
         If timeFieldSpecified Then aBuilder.Append(XMLfragment("time", timeZ(timeField)))
         aBuilder.Append(XMLfragment("name", nameField))
         aBuilder.Append(XMLfragment("cmt", cmtField))
@@ -585,10 +585,10 @@ Public Class clsGPXwaypoint
         aBuilder.Append(XMLfragment("type", typeField))
         If fixFieldSpecified Then aBuilder.Append(XMLfragment("fix", fixField))
         aBuilder.Append(XMLfragment("sat", satField))
-        If hdopFieldSpecified Then aBuilder.Append(XMLfragment("hdop", Format(hdopField, "0.###")))
-        If vdopFieldSpecified Then aBuilder.Append(XMLfragment("vdop", Format(vdopField, "0.###")))
-        If pdopFieldSpecified Then aBuilder.Append(XMLfragment("pdop", Format(pdopField, "0.###")))
-        If ageofdgpsdataFieldSpecified Then aBuilder.Append(XMLfragment("ageofdgpsdata", Format(ageofdgpsdataField, "0.#")))
+        If hdopFieldSpecified Then aBuilder.Append(XMLfragment("hdop", hdopField.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)))
+        If vdopFieldSpecified Then aBuilder.Append(XMLfragment("vdop", vdopField.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)))
+        If pdopFieldSpecified Then aBuilder.Append(XMLfragment("pdop", pdopField.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)))
+        If ageofdgpsdataFieldSpecified Then aBuilder.Append(XMLfragment("ageofdgpsdata", ageofdgpsdataField.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)))
         aBuilder.Append(XMLfragment("dgpsid", dgpsidField))
         'If speedFieldSpecified OrElse courseFieldSpecified OrElse extensionsField IsNot Nothing Then
         '    lXML &= "<extensions>" & ControlChars.Lf
@@ -914,7 +914,7 @@ Public Class clsGPXwaypoint
         Set(ByVal value As Double)
             Me.speedField = value
             speedSpecified = True
-            SetExtension("speed", Format(value, "0.###"))
+            SetExtension("speed", value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture))
         End Set
     End Property
 
@@ -934,7 +934,7 @@ Public Class clsGPXwaypoint
         Set(ByVal value As Double)
             Me.courseField = value
             courseSpecified = True
-            SetExtension("course", Format(value, "0.###"))
+            SetExtension("course", value.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture))
         End Set
     End Property
 
@@ -1254,11 +1254,11 @@ Public Class clsGPXbase
     Public Function extensionsString() As String
         Dim lString As String = ""
         If extensions IsNot Nothing AndAlso extensions.Count > 0 Then
-            lString = "<extensions>" & vbLf
+            lString = "<extensions>" & ControlChars.Lf
             For Each lExtension As String In extensions
-                lString &= lExtension.TrimEnd(vbLf) & vbLf
+                lString &= lExtension.TrimEnd(ControlChars.Lf) & ControlChars.Lf
             Next
-            lString &= "</extensions>" & vbLf
+            lString &= "</extensions>" & ControlChars.Lf
         End If
         Return lString
     End Function
