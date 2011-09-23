@@ -66,7 +66,7 @@ Public Class clsBuddy
     Public Waypoint As clsGPXwaypoint
     Public Selected As Boolean = True
 
-    Public Function LoadFile(ByVal aFilename As String) As Boolean
+    Public Function LoadFile(ByVal aFilename As String, Optional ByVal aCacheFolder As String = Nothing) As Boolean
         Dim lFileContents As String = ReadTextFile(aFilename)
         If lFileContents.IndexOf("<UserInfo>") > -1 Then
             Return LoadNavizonXML(lFileContents)
@@ -75,7 +75,7 @@ Public Class clsBuddy
         ElseIf lFileContents.IndexOf("<?xml") = 0 Then
             Return LoadLatitudeKML(lFileContents)
         ElseIf lFileContents.IndexOf("google.com/latitude/") > 0 Then
-            Return LoadLatitudeJSON(lFileContents)
+            Return LoadLatitudeJSON(lFileContents, aCacheFolder)
         ElseIf lFileContents.IndexOf("InstaMapper API") = 0 Then
             Return LoadInstaMapperCSV(lFileContents)
         ElseIf lFileContents.IndexOf("device_label") > 0 Then
@@ -159,7 +159,7 @@ Public Class clsBuddy
     ''' <param name="aFileContents">Contents of downloaded point</param>
     ''' <returns>True if able to parse buddy location</returns>
     ''' <remarks>If buddy does not yet have an icon, also try downloading the buddy icon</remarks>
-    Public Function LoadLatitudeJSON(ByVal aFileContents As String) As Boolean
+    Public Function LoadLatitudeJSON(ByVal aFileContents As String, Optional ByVal aCacheFolder As String = Nothing) As Boolean
         Dim lcoords() As String = GetJSONTagContents(aFileContents, "coordinates").TrimStart("[").TrimEnd("]", "}").Split(",")
         If lcoords.Length = 2 Then
             Dim lLongitude As Double, lLatitude As Double
@@ -172,10 +172,11 @@ Public Class clsBuddy
                     If Not IO.File.Exists(IconFilename) Then
                         IconURL = GetJSONTagContents(aFileContents, "photoUrl")
                         If IconURL.Length > 0 Then
-                            IconFilename = IO.Path.Combine(IO.Path.GetTempPath, Name & ".png")
+                            If aCacheFolder Is Nothing OrElse aCacheFolder.Length = 0 Then aCacheFolder = IO.Path.GetTempPath
+                            IconFilename = IO.Path.Combine(aCacheFolder, Name & ".jpg")
                         End If
                     End If
-                    .sym = IconFilename
+                    .sym = "buddy|" & Name.ToLower
                     .name = Name
 
                     Dim lValue As String
@@ -588,6 +589,9 @@ Public Class clsLayerGPX
                         g.DrawLine(PenGeocache, lX, lY - 8, lX, lY + 8)
                         g.DrawLine(PenGeocache, lX - 8, lY, lX + 8, lY)
                     End If
+                    'Put label below bitmap
+                    lX -= lBitmap.Width / 2
+                    lY += lBitmap.Height / 2
                 End If
                 DrawLabel(g, aWaypoint, lX, lY)
                 Return True

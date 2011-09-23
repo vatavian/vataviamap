@@ -1082,7 +1082,7 @@ Public Class ctlMap
                     Dim lCacheIconFolder As String = (pTileCacheFolder & "Icons").ToLower & g_PathChar
                     If aItem.Filename.ToLower.StartsWith(lCacheIconFolder) Then 'Geocache or other icon that lives in "Icons" folder in pTileCacheFolder
                         Dim lIconName As String = IO.Path.ChangeExtension(aItem.Filename, "").TrimEnd(".").Substring(lCacheIconFolder.Length).Replace(g_PathChar, "|")
-                        g_WaypointIcons.Add(lIconName, lBitmap)
+                        g_WaypointIcons.Add(lIconName.ToLower, lBitmap)
                     Else
                         g_WaypointIcons.Add(aItem.Filename.ToLower, lBitmap)
                     End If
@@ -1091,10 +1091,9 @@ Public Class ctlMap
                 End Try
             Case QueueItemType.PointItem
                 Try
-                    Dim lFileNameOnly As String = IO.Path.GetFileNameWithoutExtension(aItem.Filename)
                     Dim lBuddy As clsBuddy = aItem.ItemObject
                     If lBuddy IsNot Nothing Then
-                        If lBuddy.LoadFile(aItem.Filename) Then
+                        If lBuddy.LoadFile(aItem.Filename, pTileCacheFolder & "Icons" & g_PathChar & "Buddy") Then
                             If lBuddy.IconFilename.Length > 0 AndAlso Not IO.File.Exists(lBuddy.IconFilename) AndAlso lBuddy.IconURL.Length > 0 Then
                                 Downloader.Enqueue(lBuddy.IconURL, lBuddy.IconFilename, QueueItemType.IconItem, , False, lBuddy)
                             End If
@@ -1166,6 +1165,7 @@ Public Class ctlMap
             If lWaypoints.Count > 0 Then
                 Dim lLayer As New clsLayerGPX(lWaypoints, Me)
                 lLayer.LabelField = "name"
+                lLayer.LabelMinZoom = 0 'Always label buddies
                 lLayer.Render(TileServer, g, aTopLeftTile, aOffsetToCenter)
             End If
         End If
