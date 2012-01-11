@@ -15,6 +15,7 @@ Public Class frmMap
         InitializeComponent()
 
         mnuRecordTrack.Checked = pMap.RecordTrack
+        mnuViewDark.Checked = pMap.Dark
         mnuViewTrack.Checked = pMap.DisplayTrack
         mnuViewMapTiles.Checked = pMap.ShowTileImages
         mnuViewGPSdetails.Checked = pMap.ShowGPSdetails
