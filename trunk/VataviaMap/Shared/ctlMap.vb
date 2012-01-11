@@ -416,6 +416,7 @@ Public Class ctlMap
                     GPXFolder = .GetValue("GPXFolder", GPXFolder)
                     GPXLabelField = .GetValue("GPXLabelField", GPXLabelField)
 
+                    Dark = .GetValue("Dark", pDark)
                     pShowTileImages = .GetValue("TileImages", pShowTileImages)
                     pShowTileNames = .GetValue("TileNames", pShowTileNames)
                     pShowTileOutlines = .GetValue("TileOutlines", pShowTileOutlines)
@@ -538,6 +539,7 @@ Public Class ctlMap
                     .SetValue("GPXFolder", GPXFolder)
                     .SetValue("GPXLabelField", GPXLabelField)
 
+                    .SetValue("Dark", pDark)
                     .SetValue("TileImages", pShowTileImages)
                     .SetValue("TileNames", pShowTileNames)
                     .SetValue("TileOutlines", pShowTileOutlines)

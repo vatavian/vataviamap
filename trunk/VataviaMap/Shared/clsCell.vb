@@ -25,10 +25,12 @@ Public Class clsCell
     Public Sub New(ByVal aTowerInfo As GPS_API.RIL.RILCELLTOWERINFO)
         Try
             With aTowerInfo
-                MCC = .dwMobileCountryCode
-                MNC = .dwMobileNetworkCode
-                LAC = .dwLocationAreaCode
-                ID = .dwCellID
+                If .dwCellID <> 0 Then
+                    MCC = .dwMobileCountryCode
+                    MNC = .dwMobileNetworkCode
+                    LAC = .dwLocationAreaCode
+                    ID = .dwCellID
+                End If
             End With
         Catch e As Exception 'Probably an invalid cell tower
             Clear()
