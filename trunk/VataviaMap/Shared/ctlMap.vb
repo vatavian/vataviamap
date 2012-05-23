@@ -41,7 +41,6 @@ Public Class ctlMap
 
     'Top-level tile cache folder. 
     'We name a folder inside here after the tile server, then zoom/x/y.png
-    'Changing the tile server also changes g_TileCacheFolder
     Private pTileCacheFolder As String = ""
 
     Private pShowTileImages As Boolean = True
@@ -579,8 +578,8 @@ Public Class ctlMap
         Set(ByVal value As String)
             If Servers IsNot Nothing AndAlso Servers.ContainsKey(value) Then
                 Dim lServer As clsServer = Servers(value)
-                SetServerCacheFolder(TileServer)
-                TileServer = Servers(value)
+                SetServerCacheFolder(lServer)
+                TileServer = lServer
                 If Downloader IsNot Nothing Then Downloader.ClearQueue(QueueItemType.TileItem, -1)
 
                 'If new server does not cover the area we were looking at, pan to center of area new server covers
@@ -750,7 +749,7 @@ Public Class ctlMap
     ''' <param name="aOffsetToCenter">Pixel offset from corner of tile to allow accurate pCenterLat, pCenterLon</param>
     ''' <param name="aTopLeft">OSM coordinates of northwestmost visible tile</param>
     ''' <param name="aBotRight">OSM coordinates of southeastmost visible tile</param>
-    ''' <remarks></remarks>
+    ''' <remarks>Also sets LatHeight, LonWidth</remarks>
     Private Sub FindTileBounds(ByVal aServer As clsServer, _
                                ByVal aBounds As RectangleF, _
                                ByRef aOffsetToCenter As Point, _
@@ -1410,7 +1409,7 @@ Public Class ctlMap
     End Sub
 
     Private Sub Event_Paint(ByVal sender As Object, ByVal e As System.Windows.Forms.PaintEventArgs) Handles Me.Paint
-        If Not pBitmap Is Nothing Then
+        If pBitmap IsNot Nothing Then
             pBitmapMutex.WaitOne()
             Dim lMapRectangle As System.Drawing.Rectangle = MapRectangle()
             With lMapRectangle
@@ -2833,17 +2832,17 @@ TryAgain:
     End Function
 
     Public Sub Redraw()
-        If Me.Visible Then 'TODO: AndAlso WindowState <> FormWindowState.Minimized Then
-            Dim lGraphics As Graphics = GetBitmapGraphics()
-            If lGraphics IsNot Nothing Then
-                DrawTiles(lGraphics)
-                ReleaseBitmapGraphics()
-                Refresh()
-                pLastRedrawTime = Now
-                'TODO: If pCoordinatesForm IsNot Nothing Then pCoordinatesForm.Show(Me)
-            End If
-            Application.DoEvents()
+        'If Me.Visible Then 'TODO: AndAlso WindowState <> FormWindowState.Minimized Then
+        Dim lGraphics As Graphics = GetBitmapGraphics()
+        If lGraphics IsNot Nothing Then
+            DrawTiles(lGraphics)
+            ReleaseBitmapGraphics()
+            Refresh()
+            pLastRedrawTime = Now
+            'TODO: If pCoordinatesForm IsNot Nothing Then pCoordinatesForm.Show(Me)
         End If
+        Application.DoEvents()
+        'End If
     End Sub
 
     Private Sub Event_MouseDown(ByVal sender As Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles Me.MouseDown
