@@ -263,10 +263,10 @@ Public Class clsServer
     End Function
 
     Public Function ParseWebmapURL(ByVal aURL As String, _
-                                          ByRef aCenterLatitude As Double, ByRef aCenterLongitude As Double, _
-                                          ByRef aZoom As Integer, _
-                                          ByRef aNorth As Double, ByRef aWest As Double, _
-                                          ByRef aSouth As Double, ByRef aEast As Double) As Boolean
+                                   ByRef aCenterLatitude As Double, ByRef aCenterLongitude As Double, _
+                                   ByRef aZoom As Integer, _
+                                   ByRef aNorth As Double, ByRef aWest As Double, _
+                                   ByRef aSouth As Double, ByRef aEast As Double) As Boolean
         Try
             Dim lURL As String = aURL.ToLower
             Dim lArgs() As String = lURL.Split("&"c, "?"c)
@@ -325,7 +325,7 @@ Public Class clsServer
     End Function
 
     ''' <summary>
-    ''' Return the full path for a cached tile from g_TileCacheFolder and OSM X, Y and Zoom
+    ''' Return the full path for a cached tile from OSM X, Y and Zoom
     ''' </summary>
     ''' <param name="aTilePoint">OSM Tile X and Y</param>
     ''' <param name="aZoom">OSM zoom level (0-17)</param>
