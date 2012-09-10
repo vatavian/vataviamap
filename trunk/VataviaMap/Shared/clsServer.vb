@@ -268,6 +268,7 @@ Public Class clsServer
                                    ByRef aNorth As Double, ByRef aWest As Double, _
                                    ByRef aSouth As Double, ByRef aEast As Double) As Boolean
         Try
+            Dim lBounds As Boolean = False
             Dim lURL As String = aURL.ToLower
             Dim lArgs() As String = lURL.Split("&"c, "?"c)
             For Each lArg As String In lArgs
@@ -297,15 +298,22 @@ Public Class clsServer
                                 aCenterLongitude = Double.Parse(ll(1))
                             End If
                         Case "lvl" : aZoom = lArgPart(1)
-                        Case "starttop" : aNorth = Double.Parse(lArgPart(1))
+                        Case "starttop" : aNorth = Double.Parse(lArgPart(1)) : lBounds = True
                         Case "startbottom" : aSouth = Double.Parse(lArgPart(1))
                         Case "startleft" : aWest = Integer.Parse(lArgPart(1))
                         Case "startright" : aEast = Integer.Parse(lArgPart(1))
-
+                        Case "bbox"
+                            Dim bbox() As String = lArgPart(1).Split(",")
+                            If bbox.Length = 4 Then
+                                lBounds = DoubleTryParse(bbox(0), aWest) _
+                                  AndAlso DoubleTryParse(bbox(1), aSouth) _
+                                  AndAlso DoubleTryParse(bbox(2), aEast) _
+                                  AndAlso DoubleTryParse(bbox(3), aNorth)
+                            End If
                     End Select
                 End If
             Next
-            If lArgs(0).IndexOf("seamless.usgs.gov") >= 0 Then
+            If lBounds Then
                 aCenterLatitude = (aNorth + aSouth) / 2
                 aCenterLongitude = (aWest + aEast) / 2
                 'TODO: compute zoom from (aNorth - aSouth) and/or (aWest - aEast)                    
