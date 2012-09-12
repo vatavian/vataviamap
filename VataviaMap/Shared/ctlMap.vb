@@ -306,22 +306,26 @@ Public Class ctlMap
     End Property
 
     Private Sub LoadCachedIcons()
-        Dim lIconFileExts() As String = {"gif", "png", "jpg", "bmp"}
-        Dim lCacheIconFolder As String = pTileCacheFolder & "Icons"
-        If IO.Directory.Exists(lCacheIconFolder) Then
-            For Each lFolder As String In IO.Directory.GetDirectories(lCacheIconFolder)
-                Dim lFolderName As String = IO.Path.GetFileName(lFolder).ToLower
-                For Each lExt As String In lIconFileExts
-                    For Each lFilename As String In IO.Directory.GetFiles(lFolder, "*." & lExt)
-                        Try
-                            Dim lBitmap As New Drawing.Bitmap(lFilename)
-                            g_WaypointIcons.Add(lFolderName & "|" & IO.Path.GetFileNameWithoutExtension(lFilename).ToLower, lBitmap)
-                        Catch
-                        End Try
+        Try
+            Dim lIconFileExts() As String = {"gif", "png", "jpg", "bmp"}
+            Dim lCacheIconFolder As String = pTileCacheFolder & "Icons"
+            If IO.Directory.Exists(lCacheIconFolder) Then
+                For Each lFolder As String In IO.Directory.GetDirectories(lCacheIconFolder)
+                    Dim lFolderName As String = IO.Path.GetFileName(lFolder).ToLower
+                    For Each lExt As String In lIconFileExts
+                        For Each lFilename As String In IO.Directory.GetFiles(lFolder, "*." & lExt)
+                            Try
+                                Dim lBitmap As New Drawing.Bitmap(lFilename)
+                                g_WaypointIcons.Add(lFolderName & "|" & IO.Path.GetFileNameWithoutExtension(lFilename).ToLower, lBitmap)
+                            Catch
+                            End Try
+                        Next
                     Next
                 Next
-            Next
-        End If
+            End If
+        Catch e As Exception
+            MsgBox("Exception opening " & pTileCacheFolder & "Icons: " & e.Message, MsgBoxStyle.OkOnly, "LoadCachedIcons")
+        End Try
         'TODO: move this to only get geocaching icons when they are absent and user wants them
         'If Not g_WaypointIcons.ContainsKey("geocache|webcam cache") Then
         '    'get geocaching icons from http://www.geocaching.com/about/cache_types.aspx
