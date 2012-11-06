@@ -2477,16 +2477,19 @@ RestartRedraw:
                 lTrackPoint.time = GPS_POSITION.Time
                 lTrackPoint.sat = GPS_POSITION.SatelliteCount
 
-                If GPS_POSITION.SpeedValid Then lTrackPoint.speed = GPS_POSITION.Speed
+                If GPS_POSITION.SpeedValid AndAlso GPS_POSITION.Speed > 0.01 Then lTrackPoint.speed = GPS_POSITION.Speed
                 If GPS_POSITION.HeadingValid Then lTrackPoint.course = GPS_POSITION.Heading
 
                 If pRecordCellID Then
                     Dim lCurrentCellInfo As New clsCell(GPS_API.RIL.GetCellTowerInfo)
                     If lCurrentCellInfo.IsValid Then
                         lTrackPoint.SetExtension("cellid", lCurrentCellInfo.ToString)
+                        Dim lSignalStrength As Integer = Microsoft.WindowsMobile.Status.SystemState.PhoneSignalStrength
+                        If lSignalStrength > 0 Then
+                            lTrackPoint.SetExtension("phonesignal", lSignalStrength)
+                        End If
                     End If
                 End If
-                lTrackPoint.SetExtension("phonesignal", Microsoft.WindowsMobile.Status.SystemState.PhoneSignalStrength)
             End If
         End With
         Return lTrackPoint

@@ -185,6 +185,6 @@
   </Target>
   -->
   <PropertyGroup>
-    <PostBuildEvent>copy S:\devNotMW\VataviaMap\bin\Release\VataviaMap.exe \\Heron\pub\misc\VataviaMap</PostBuildEvent>
+    <PostBuildEvent>copy S:\devNotMW\VataviaMap\bin\Release\VataviaMap.exe \\HSPF\pub\misc\VataviaMap</PostBuildEvent>
   </PropertyGroup>
 </Project>
