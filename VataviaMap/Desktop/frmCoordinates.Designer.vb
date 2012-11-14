@@ -28,6 +28,7 @@ Partial Class frmCoordinates
         Me.lblCenter = New System.Windows.Forms.Label
         Me.txtEastSouth = New System.Windows.Forms.TextBox
         Me.lblEastSouth = New System.Windows.Forms.Label
+        Me.btnSet = New System.Windows.Forms.Button
         Me.SuspendLayout()
         '
         'lblWestNorth
@@ -43,6 +44,7 @@ Partial Class frmCoordinates
         '
         Me.txtWestNorth.Anchor = CType(((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Left) _
                     Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
+        Me.txtWestNorth.BackColor = System.Drawing.SystemColors.InactiveCaptionText
         Me.txtWestNorth.Location = New System.Drawing.Point(94, 12)
         Me.txtWestNorth.Name = "txtWestNorth"
         Me.txtWestNorth.Size = New System.Drawing.Size(186, 20)
@@ -52,43 +54,54 @@ Partial Class frmCoordinates
         '
         Me.txtCenter.Anchor = CType(((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Left) _
                     Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.txtCenter.Location = New System.Drawing.Point(94, 38)
+        Me.txtCenter.Location = New System.Drawing.Point(94, 64)
         Me.txtCenter.Name = "txtCenter"
-        Me.txtCenter.Size = New System.Drawing.Size(186, 20)
-        Me.txtCenter.TabIndex = 3
+        Me.txtCenter.Size = New System.Drawing.Size(132, 20)
+        Me.txtCenter.TabIndex = 5
         '
         'lblCenter
         '
         Me.lblCenter.AutoSize = True
-        Me.lblCenter.Location = New System.Drawing.Point(12, 41)
+        Me.lblCenter.Location = New System.Drawing.Point(12, 67)
         Me.lblCenter.Name = "lblCenter"
         Me.lblCenter.Size = New System.Drawing.Size(38, 13)
-        Me.lblCenter.TabIndex = 2
+        Me.lblCenter.TabIndex = 4
         Me.lblCenter.Text = "Center"
         '
         'txtEastSouth
         '
         Me.txtEastSouth.Anchor = CType(((System.Windows.Forms.AnchorStyles.Top Or System.Windows.Forms.AnchorStyles.Left) _
                     Or System.Windows.Forms.AnchorStyles.Right), System.Windows.Forms.AnchorStyles)
-        Me.txtEastSouth.Location = New System.Drawing.Point(94, 64)
+        Me.txtEastSouth.BackColor = System.Drawing.SystemColors.InactiveCaptionText
+        Me.txtEastSouth.Location = New System.Drawing.Point(94, 38)
         Me.txtEastSouth.Name = "txtEastSouth"
         Me.txtEastSouth.Size = New System.Drawing.Size(186, 20)
-        Me.txtEastSouth.TabIndex = 5
+        Me.txtEastSouth.TabIndex = 3
         '
         'lblEastSouth
         '
         Me.lblEastSouth.AutoSize = True
-        Me.lblEastSouth.Location = New System.Drawing.Point(12, 67)
+        Me.lblEastSouth.Location = New System.Drawing.Point(12, 41)
         Me.lblEastSouth.Name = "lblEastSouth"
         Me.lblEastSouth.Size = New System.Drawing.Size(62, 13)
-        Me.lblEastSouth.TabIndex = 4
+        Me.lblEastSouth.TabIndex = 2
         Me.lblEastSouth.Text = "East, South"
+        '
+        'btnSet
+        '
+        Me.btnSet.Location = New System.Drawing.Point(232, 64)
+        Me.btnSet.Name = "btnSet"
+        Me.btnSet.Size = New System.Drawing.Size(48, 20)
+        Me.btnSet.TabIndex = 6
+        Me.btnSet.Text = "Set"
+        Me.btnSet.UseVisualStyleBackColor = True
         '
         'frmCoordinates
         '
         Me.AutoScaleDimensions = New System.Drawing.SizeF(6.0!, 13.0!)
         Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
         Me.ClientSize = New System.Drawing.Size(292, 101)
+        Me.Controls.Add(Me.btnSet)
         Me.Controls.Add(Me.txtEastSouth)
         Me.Controls.Add(Me.lblEastSouth)
         Me.Controls.Add(Me.txtCenter)
@@ -107,4 +120,5 @@ Partial Class frmCoordinates
     Friend WithEvents lblCenter As System.Windows.Forms.Label
     Friend WithEvents txtEastSouth As System.Windows.Forms.TextBox
     Friend WithEvents lblEastSouth As System.Windows.Forms.Label
+    Friend WithEvents btnSet As System.Windows.Forms.Button
 End Class

@@ -552,6 +552,17 @@ Public Class frmMap
         End If
     End Sub
 
+    Private Sub pCoordinatesForm_Center(ByVal aLatitude As Double, ByVal aLongitude As Double) Handles pCoordinatesForm.Center
+        pMap.CenterLat = aLatitude
+        pMap.CenterLon = aLongitude
+        pMap.SanitizeCenterLatLon()
+        pMap.NeedRedraw()
+    End Sub
+
+    Private Sub pCoordinatesForm_FormClosing(ByVal sender As Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles pCoordinatesForm.FormClosing
+        pCoordinatesForm = Nothing
+    End Sub
+
     Private Sub pWaypointsListForm_SelectionChanged() Handles pWaypointsListForm.SelectionChanged
         pMap.NeedRedraw()
     End Sub
@@ -616,10 +627,6 @@ Public Class frmMap
         pOpenCellIDForm = New frmOpenCellID
         pOpenCellIDForm.Icon = Me.Icon
         pOpenCellIDForm.AskUser(pMap, pMap.Downloader)
-    End Sub
-
-    Private Sub pCoordinatesForm_FormClosing(ByVal sender As Object, ByVal e As System.Windows.Forms.FormClosingEventArgs) Handles pCoordinatesForm.FormClosing
-        pCoordinatesForm = Nothing
     End Sub
 
     Private Function FindAllWaypoints() As Generic.List(Of clsGPXwaypoint)
