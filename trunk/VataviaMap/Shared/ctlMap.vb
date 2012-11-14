@@ -2695,28 +2695,6 @@ TryAgain:
         End Set
     End Property
 
-    Public Sub SetTime()
-        Dim lDetails As String = Nothing
-        Try
-            If GPS Is Nothing Then
-                lDetails = "GPS not started"
-            ElseIf Not GPS.Opened Then
-                lDetails = "GPS not yet open"
-            ElseIf GPS_POSITION Is Nothing Then
-                lDetails = "No GPS fix"
-            ElseIf Not GPS_POSITION.TimeValid Then
-                lDetails = "GPS Time not valid"
-            Else
-                SetSystemTime(GPS_POSITION.Time.ToLocalTime())
-            End If
-        Catch ex As Exception
-            lDetails = ex.Message
-        End Try
-        If lDetails IsNot Nothing Then
-            MsgBox(lDetails)
-        End If
-    End Sub
-
     Public Property ClickMakeWaypoint() As Boolean
         Get
             Return pClickWaypoint

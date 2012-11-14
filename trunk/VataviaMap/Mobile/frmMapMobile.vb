@@ -5,7 +5,10 @@ Public Class frmMap
     WithEvents pLayersForm As frmOptionsMobileGPX
     WithEvents pActiveState As New Microsoft.WindowsMobile.Status.SystemState(Microsoft.WindowsMobile.Status.SystemProperty.ActiveApplication)
 
-    Const pNoOverlayLabel As String = "No Overlay"
+    Private Const pNoOverlayLabel As String = "No Overlay"
+    Private Const pStartGPS As String = "Start GPS"
+
+    Private pSetTimePending As Boolean = False 'True if waiting to set system time from next GPS time
 
     Private Sub pActiveState_Changed(ByVal sender As Object, ByVal args As Microsoft.WindowsMobile.Status.ChangeEventArgs) Handles pActiveState.Changed
         pMap.Active = CStr(args.NewValue).EndsWith(Chr(27) & Me.Text)
@@ -44,13 +47,13 @@ Public Class frmMap
     End Sub
 
     Private Sub mnuStartStopGPS_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuStartStopGPS.Click
-        If (mnuStartStopGPS.Text.Equals("Start GPS")) Then
+        If (mnuStartStopGPS.Text.Equals(pStartGPS)) Then
             mnuStartStopGPS.Text = "Starting GPS..." : Application.DoEvents()
             pMap.StartGPS()
         Else
             mnuStartStopGPS.Text = "Stopping..." : Application.DoEvents()
             pMap.StopGPS()
-            mnuStartStopGPS.Text = "Start GPS" : Application.DoEvents()
+            mnuStartStopGPS.Text = pStartGPS : Application.DoEvents()
         End If
     End Sub
 
@@ -333,7 +336,10 @@ Public Class frmMap
     End Sub
 
     Private Sub mnuSetTime_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuSetTime.Click
-        pMap.SetTime()
+        pSetTimePending = True
+        If (mnuStartStopGPS.Text.Equals(pStartGPS)) Then
+            mnuStartStopGPS_Click(Nothing, Nothing)
+        End If
     End Sub
 
     Private Sub mnuWaypoint_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles mnuWaypoint.Click
@@ -350,6 +356,10 @@ Public Class frmMap
     End Sub
 
     Private Sub pMap_LocationChanged(ByVal aPosition As GPS_API.GpsPosition) Handles pMap.LocationChanged
+        If pSetTimePending AndAlso aPosition.TimeValid Then
+            pSetTimePending = False
+            SetSystemTime(aPosition.Time.ToLocalTime())
+        End If
         mnuStartStopGPS.Text = "Stop GPS " & aPosition.SatelliteCount & "/" & aPosition.SatellitesInViewCount
         Application.DoEvents()
     End Sub
