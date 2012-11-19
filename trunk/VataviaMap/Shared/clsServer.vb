@@ -32,6 +32,9 @@ Public Class clsServer
     Public HalfTileSize As Integer = TileSize >> 1
     Public TileSizeRect As New Rectangle(0, 0, TileSize, TileSize)
 
+    Private Const OSMshortlinkPrefix As String = "http://osm.org/go/"
+    Private Const OSMshortlinkEncoding As String = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_~"
+
     Public Sub New()
     End Sub
 
@@ -270,6 +273,9 @@ Public Class clsServer
         Try
             Dim lBounds As Boolean = False
             Dim lURL As String = aURL.ToLower
+            If lURL.StartsWith(OSMshortlinkPrefix) Then
+                Return ParseOSMshortlink(aURL.Substring(OSMshortlinkPrefix.Length), aCenterLatitude, aCenterLongitude, aZoom)
+            End If
             Dim lArgs() As String = lURL.Split("&"c, "?"c)
             For Each lArg As String In lArgs
                 Dim lArgPart() As String = lArg.Split("=")
@@ -327,6 +333,61 @@ Public Class clsServer
             If aZoom > ZoomMax Then aZoom = ZoomMax
             If aZoom < ZoomMin Then aZoom = ZoomMin
             Return aCenterLatitude <> 0 AndAlso aCenterLongitude <> 0
+        Catch
+            Return False
+        End Try
+    End Function
+
+    ''' <summary>
+    ''' Parse an OpenStreetMap shortlink code into Latitude, Longitude and Zoom
+    ''' </summary>
+    ''' <param name="aCode">OpenStreetMap shortlink code</param>
+    ''' <param name="aCenterLatitude">returns latitude at center of area</param>
+    ''' <param name="aCenterLongitude">returns longitude at center of area</param>
+    ''' <param name="aZoom">returns zoom level</param>
+    ''' <returns>True if link was parsed and reasonable values for the ByRef arguments were found</returns>
+    ''' <remarks>Based on http://git.openstreetmap.org/?p=rails.git;a=blob_plain;f=lib/short_link.rb;hb=HEAD
+    ''' see also https://help.openstreetmap.org/questions/9566/shortlink-class-in-c</remarks>
+    Private Function ParseOSMshortlink(ByVal aCode As String, _
+                                       ByRef aCenterLatitude As Double, _
+                                       ByRef aCenterLongitude As Double, _
+                                       ByRef aZoom As Integer) As Boolean
+        'http://osm.org/go/0MbEUuTq = http://www.openstreetmap.org/?lat=52.50547&lon=13.36932&zoom=16
+        Dim x As Long = 0
+        Dim y As Long = 0
+        Dim z As Long = 0
+        Dim z_offset As Long = 0
+
+        Try
+            ' replace @ in old shortlinks with ~
+            aCode = aCode.Replace("@", "~")
+
+            For Each ch As Char In aCode.ToCharArray
+                Dim t As Integer = OSMshortlinkEncoding.IndexOf(ch)
+                If t < 0 Then
+                    z_offset -= 1
+                Else
+                    For index As Integer = 1 To 3
+                        x <<= 1
+                        If t And 32 Then x += 1
+                        t <<= 1
+                        y <<= 1
+                        If t And 32 Then y += 1
+                        t <<= 1
+                    Next
+                    z += 3
+                End If
+            Next
+            ' pack the coordinates out to their original 32 bits.
+            x <<= (32 - z)
+            y <<= (32 - z)
+
+            ' project the parameters back to their coordinate ranges.
+            aCenterLongitude = (x * 360.0 / 2 ^ 32) - 180.0
+            aCenterLatitude = (y * 180.0 / 2 ^ 32) - 90.0
+            aZoom = z - 8 - (z_offset Mod 3)
+            Return aCenterLatitude > -90 AndAlso aCenterLatitude < 90 AndAlso _
+                aCenterLongitude >= -180 AndAlso aCenterLongitude <= 180
         Catch
             Return False
         End Try
