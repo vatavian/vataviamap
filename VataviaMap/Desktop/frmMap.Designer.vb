@@ -95,6 +95,7 @@ Partial Class frmMap
         Me.Magnify4 = New System.Windows.Forms.ToolStripMenuItem
         Me.Magnify8 = New System.Windows.Forms.ToolStripMenuItem
         Me.PlacesSaveToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.PlacesLoadToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.MenuStripMain.SuspendLayout()
         Me.SuspendLayout()
         '
@@ -327,7 +328,7 @@ Partial Class frmMap
         '
         'PlacesToolStripMenuItem
         '
-        Me.PlacesToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.PlacesAddToolStripMenuItem, Me.PlacesSaveToolStripMenuItem})
+        Me.PlacesToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.PlacesAddToolStripMenuItem, Me.PlacesSaveToolStripMenuItem, Me.PlacesLoadToolStripMenuItem})
         Me.PlacesToolStripMenuItem.Name = "PlacesToolStripMenuItem"
         Me.PlacesToolStripMenuItem.Size = New System.Drawing.Size(64, 23)
         Me.PlacesToolStripMenuItem.Text = "Places"
@@ -550,6 +551,12 @@ Partial Class frmMap
         Me.PlacesSaveToolStripMenuItem.Size = New System.Drawing.Size(152, 24)
         Me.PlacesSaveToolStripMenuItem.Text = "Save..."
         '
+        'PlacesLoadToolStripMenuItem
+        '
+        Me.PlacesLoadToolStripMenuItem.Name = "PlacesLoadToolStripMenuItem"
+        Me.PlacesLoadToolStripMenuItem.Size = New System.Drawing.Size(152, 24)
+        Me.PlacesLoadToolStripMenuItem.Text = "Load..."
+        '
         'frmMap
         '
         Me.AllowDrop = True
@@ -639,4 +646,5 @@ Partial Class frmMap
     Friend WithEvents Magnify4 As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents Magnify8 As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents PlacesSaveToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents PlacesLoadToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
 End Class

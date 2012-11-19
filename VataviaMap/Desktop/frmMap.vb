@@ -42,7 +42,7 @@ Public Class frmMap
 
         BuildWebsiteMenu()
         BuildTileServerMenu()
-        BuildBookmarksMenu()
+        BuildPlacesMenuFromRegistry()
 
         PanToGPXToolStripMenuItem.Checked = pMap.GPXPanTo
         ZoomToGPXToolStripMenuItem.Checked = pMap.GPXZoomTo
@@ -805,7 +805,7 @@ Public Class frmMap
     End Sub
 
 #Region "Bookmarks"
-    Private Sub BuildBookmarksMenu()
+    Private Sub BuildPlacesMenuFromRegistry()
         For lBookmarkIndex As Integer = 0 To 50
             Dim lBookmarkKey As String = "Bookmark" & PlacesToolStripMenuItem.DropDownItems.Count
             Dim lBookmarkSetting As String = GetAppSetting(lBookmarkKey, "")
@@ -821,38 +821,66 @@ Public Class frmMap
         Next
     End Sub
 
-    Private Sub BookmarksAddToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles PlacesAddToolStripMenuItem.Click
+    Private Sub PlacesAddToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles PlacesAddToolStripMenuItem.Click
+        Dim lPlaceName As String = InputBox("Name for this Place", "New Place", "Place " & PlacesToolStripMenuItem.DropDownItems.Count + 1)
+        If Not String.IsNullOrEmpty(lPlaceName) Then
+            AddPlace(lPlaceName, pMap.CenterLon, pMap.CenterLat, pMap.Zoom)
+        End If
+    End Sub
+
+    Private Sub AddPlace(ByVal aPlaceName As String, ByVal aLongitude As Double, ByVal aLatitude As Double, ByVal aZoom As String)
         Dim lBookmarkKey As String = "Bookmark" & PlacesToolStripMenuItem.DropDownItems.Count
-        Dim lBookmarkText As String = InputBox("Name of bookmark", "New Bookmark", lBookmarkKey)
-        Dim lNewBookmark As New ToolStripMenuItem(lBookmarkText, Nothing, New EventHandler(AddressOf BookmarkItem_Click))
-        lNewBookmark.Tag = pMap.CenterLon.ToString("#.#######") & "|" & pMap.CenterLat.ToString("#.#######") & "|" & pMap.Zoom
-        lNewBookmark.ToolTipText = pMap.CenterLon.ToString("#.#######") & ", " & pMap.CenterLat.ToString("#.#######") & " Zoom " & pMap.Zoom
+        Dim lNewBookmark As New ToolStripMenuItem(aPlaceName, Nothing, New EventHandler(AddressOf BookmarkItem_Click))
+        If Not IsNumeric(aZoom) Then aZoom = 12
+        lNewBookmark.Tag = aLongitude.ToString("#.#######") & "|" & aLatitude.ToString("#.#######") & "|" & aZoom
+        lNewBookmark.ToolTipText = aLongitude.ToString("#.#######") & ", " & aLatitude.ToString("#.#######") & " Zoom " & aZoom
         PlacesToolStripMenuItem.DropDownItems.Add(lNewBookmark)
         SaveAppSetting(lBookmarkKey, lNewBookmark.Tag & "|" & lNewBookmark.Text)
     End Sub
 
-    Private Sub BookmarksSaveToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles PlacesSaveToolStripMenuItem.Click
-        Dim lBookmarksGPX As New clsGPX
-        Dim lLat As Double
-        Dim lLon As Double
-        For Each lBookmark As ToolStripMenuItem In PlacesToolStripMenuItem.DropDownItems
-            If lBookmark IsNot Nothing AndAlso Not String.IsNullOrEmpty(lBookmark.Tag) Then
-                Dim lCoordinates() As String = lBookmark.Tag.Split("|")
-                If lCoordinates.Length > 1 AndAlso _
-                   Double.TryParse(lCoordinates(0), lLon) AndAlso _
-                   Double.TryParse(lCoordinates(1), lLat) Then
-                    Dim lWaypoint As New clsGPXwaypoint("wpt", lLat, lLon)
-                    lWaypoint.name = lBookmark.Text
-                    If lCoordinates.Length > 2 Then lWaypoint.SetExtension("zoom", CInt(lCoordinates(2)))
-                    lBookmarksGPX.wpt.Add(lWaypoint)
+    Private Property PlacesGPX() As clsGPX
+        Get
+            Dim lBookmarksGPX As New clsGPX
+            Dim lLat As Double
+            Dim lLon As Double
+            For Each lBookmark As ToolStripMenuItem In PlacesToolStripMenuItem.DropDownItems
+                If lBookmark IsNot Nothing AndAlso Not String.IsNullOrEmpty(lBookmark.Tag) Then
+                    Dim lCoordinates() As String = lBookmark.Tag.Split("|")
+                    If lCoordinates.Length > 1 AndAlso _
+                       Double.TryParse(lCoordinates(0), lLon) AndAlso _
+                       Double.TryParse(lCoordinates(1), lLat) Then
+                        Dim lWaypoint As New clsGPXwaypoint("wpt", lLat, lLon)
+                        lWaypoint.name = lBookmark.Text
+                        If lCoordinates.Length > 2 Then lWaypoint.SetExtension("zoom", CInt(lCoordinates(2)))
+                        lBookmarksGPX.wpt.Add(lWaypoint)
+                    End If
                 End If
+            Next
+            Return lBookmarksGPX
+        End Get
+        Set(ByVal newGPX As clsGPX)
+            If newGPX IsNot Nothing AndAlso newGPX.wpt.Count > 0 Then
+                For lLastItemIndex As Integer = PlacesToolStripMenuItem.DropDownItems.Count - 1 To 3 Step -1
+                    PlacesToolStripMenuItem.DropDownItems.RemoveAt(lLastItemIndex)
+                Next
+                For lBookmarkIndex As Integer = 0 To 50
+                    Dim lBookmarkKey As String = "Bookmark" & lBookmarkIndex
+                    SaveAppSetting(lBookmarkKey, "")
+                Next
+                For Each lWaypoint As clsGPXwaypoint In newGPX.wpt
+                    AddPlace(lWaypoint.name, lWaypoint.lon, lWaypoint.lat, lWaypoint.GetExtension("zoom"))
+                Next
             End If
-        Next
+        End Set
+    End Property
+
+    Private Sub PlacesSaveToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles PlacesSaveToolStripMenuItem.Click
+        Dim lBookmarksGPX As clsGPX = PlacesGPX()
         If lBookmarksGPX.wpt.Count > 0 Then
             Dim lSaveDialog As New Windows.Forms.SaveFileDialog
             With lSaveDialog
                 .Title = "Save " & lBookmarksGPX.wpt.Count & " Places As..."
-                .Filter = "GPX|*.gpx"
+                .Filter = "GPX|*.gpx|All Files|*.*"
                 .FilterIndex = 0
                 .DefaultExt = ".gpx"
                 If .ShowDialog = Windows.Forms.DialogResult.OK Then
@@ -860,6 +888,25 @@ Public Class frmMap
                 End If
             End With
         End If
+    End Sub
+
+    Private Sub PlacesLoadToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles PlacesLoadToolStripMenuItem.Click
+        Dim lSaveDialog As New Windows.Forms.OpenFileDialog
+        With lSaveDialog
+            .Title = "Load: Places menu will be replaced with loaded waypoints"
+            .Filter = "GPX|*.gpx|All Files|*.*"
+            .FilterIndex = 0
+            .DefaultExt = ".gpx"
+            If .ShowDialog = Windows.Forms.DialogResult.OK Then
+                Dim lGPX As New clsGPX()
+                lGPX.LoadFile(.FileName)
+                If lGPX.wpt.Count > 0 Then
+                    PlacesGPX = lGPX
+                Else
+                    MsgBox("No waypoints found in " & .FileName)
+                End If
+            End If
+        End With
     End Sub
 
     Private Sub BookmarkItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs)
