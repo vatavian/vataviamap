@@ -273,62 +273,73 @@ Public Class clsServer
         Try
             Dim lBounds As Boolean = False
             Dim lURL As String = aURL.ToLower
+            Dim lArgs() As String
             If lURL.StartsWith(OSMshortlinkPrefix) Then
                 Return ParseOSMshortlink(aURL.Substring(OSMshortlinkPrefix.Length), aCenterLatitude, aCenterLongitude, aZoom)
-            End If
-            Dim lArgs() As String = lURL.Split("&"c, "?"c)
-            For Each lArg As String In lArgs
-                Dim lArgPart() As String = lArg.Split("=")
-                If lArgPart.Length = 2 Then
-                    Select Case lArgPart(0)
-                        Case "latitude", "lat", "mlat"
-                            aCenterLatitude = Double.Parse(lArgPart(1))
-                        Case "longitude", "lon", "mlon", "lng", "mlng"
-                            aCenterLongitude = Double.Parse(lArgPart(1))
-                        Case "zoom", "z"
-                            aZoom = Integer.Parse(lArgPart(1))
-                        Case "ll", "q"
-                            Dim ll() As String = lArgPart(1).Split(",")
-                            If ll.Length = 2 AndAlso IsNumeric(ll(0)) Then
-                                'aSite = SiteEnum.GoogleMaps
-                                DoubleTryParse(ll(0), aCenterLatitude)
-                                DoubleTryParse(ll(1), aCenterLongitude)
-                            End If
-                        Case "spn"
-                            'TODO: parse Google's height,width into zoom
-                        Case "cp"
-                            'aSite = SiteEnum.Bing
-                            Dim ll() As String = lArgPart(1).Split("~")
-                            If ll.Length = 2 AndAlso IsNumeric(ll(0)) AndAlso IsNumeric(ll(1)) Then
-                                aCenterLatitude = Double.Parse(ll(0))
-                                aCenterLongitude = Double.Parse(ll(1))
-                            End If
-                        Case "lvl" : aZoom = lArgPart(1)
-                        Case "starttop" : aNorth = Double.Parse(lArgPart(1)) : lBounds = True
-                        Case "startbottom" : aSouth = Double.Parse(lArgPart(1))
-                        Case "startleft" : aWest = Integer.Parse(lArgPart(1))
-                        Case "startright" : aEast = Integer.Parse(lArgPart(1))
-                        Case "bbox"
-                            Dim bbox() As String = lArgPart(1).Split(",")
-                            If bbox.Length = 4 Then
-                                lBounds = DoubleTryParse(bbox(0), aWest) _
-                                  AndAlso DoubleTryParse(bbox(1), aSouth) _
-                                  AndAlso DoubleTryParse(bbox(2), aEast) _
-                                  AndAlso DoubleTryParse(bbox(3), aNorth)
-                            End If
-                    End Select
+            ElseIf lURL.StartsWith("http://maps.stamen.com/m2i/") Then
+                lArgs = lURL.Split("/")
+                If lArgs.Length > 3 AndAlso IsNumeric(lArgs(lArgs.Length - 3)) _
+                                    AndAlso IsNumeric(lArgs(lArgs.Length - 2)) _
+                                    AndAlso IsNumeric(lArgs(lArgs.Length - 1)) Then
+                    aZoom = Double.Parse(lArgs(lArgs.Length - 3))
+                    aCenterLatitude = Double.Parse(lArgs(lArgs.Length - 2))
+                    aCenterLongitude = Double.Parse(lArgs(lArgs.Length - 1))
                 End If
-            Next
+            ElseIf lURL.StartsWith("geo:") Then
+                lArgs = lURL.Substring(4).Split(",")
+                If lArgs.Length > 1 AndAlso IsNumeric(lArgs(0)) AndAlso IsNumeric(lArgs(1)) Then
+                    aCenterLatitude = Double.Parse(lArgs(0))
+                    aCenterLongitude = Double.Parse(lArgs(1))
+                End If
+            Else
+                lArgs = lURL.Split("&"c, "?"c)
+                For Each lArg As String In lArgs
+                    Dim lArgPart() As String = lArg.Split("=")
+                    If lArgPart.Length = 2 Then
+                        Select Case lArgPart(0)
+                            Case "latitude", "lat", "mlat"
+                                aCenterLatitude = Double.Parse(lArgPart(1))
+                            Case "longitude", "lon", "mlon", "lng", "mlng"
+                                aCenterLongitude = Double.Parse(lArgPart(1))
+                            Case "zoom", "z"
+                                aZoom = Integer.Parse(lArgPart(1))
+                            Case "ll", "q"
+                                Dim ll() As String = lArgPart(1).Split(",")
+                                If ll.Length = 2 AndAlso IsNumeric(ll(0)) Then
+                                    'aSite = SiteEnum.GoogleMaps
+                                    DoubleTryParse(ll(0), aCenterLatitude)
+                                    DoubleTryParse(ll(1), aCenterLongitude)
+                                End If
+                            Case "spn"
+                                'TODO: parse Google's height,width into zoom
+                            Case "cp"
+                                'aSite = SiteEnum.Bing
+                                Dim ll() As String = lArgPart(1).Split("~")
+                                If ll.Length = 2 AndAlso IsNumeric(ll(0)) AndAlso IsNumeric(ll(1)) Then
+                                    aCenterLatitude = Double.Parse(ll(0))
+                                    aCenterLongitude = Double.Parse(ll(1))
+                                End If
+                            Case "lvl" : aZoom = lArgPart(1)
+                            Case "starttop" : aNorth = Double.Parse(lArgPart(1)) : lBounds = True
+                            Case "startbottom" : aSouth = Double.Parse(lArgPart(1))
+                            Case "startleft" : aWest = Integer.Parse(lArgPart(1))
+                            Case "startright" : aEast = Integer.Parse(lArgPart(1))
+                            Case "bbox"
+                                Dim bbox() As String = lArgPart(1).Split(",")
+                                If bbox.Length = 4 Then
+                                    lBounds = DoubleTryParse(bbox(0), aWest) _
+                                      AndAlso DoubleTryParse(bbox(1), aSouth) _
+                                      AndAlso DoubleTryParse(bbox(2), aEast) _
+                                      AndAlso DoubleTryParse(bbox(3), aNorth)
+                                End If
+                        End Select
+                    End If
+                Next
+            End If
             If lBounds Then
                 aCenterLatitude = (aNorth + aSouth) / 2
                 aCenterLongitude = (aWest + aEast) / 2
                 'TODO: compute zoom from (aNorth - aSouth) and/or (aWest - aEast)                    
-            ElseIf lArgs(0).StartsWith("geo:") Then
-                Dim ll() As String = lArgs(0).Substring(4).Split(",")
-                If ll.Length > 1 AndAlso IsNumeric(ll(0)) AndAlso IsNumeric(ll(1)) Then
-                    aCenterLatitude = Double.Parse(ll(0))
-                    aCenterLongitude = Double.Parse(ll(1))
-                End If
             End If
             If aZoom > ZoomMax Then aZoom = ZoomMax
             If aZoom < ZoomMin Then aZoom = ZoomMin

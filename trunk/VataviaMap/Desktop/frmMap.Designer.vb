@@ -344,7 +344,7 @@ Partial Class frmMap
         Me.TileServerToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.AddTileServerMenuItem, Me.EditTileServerMenuItem, Me.DefaultsTileServerMenuItem})
         Me.TileServerToolStripMenuItem.Name = "TileServerToolStripMenuItem"
         Me.TileServerToolStripMenuItem.Size = New System.Drawing.Size(97, 23)
-        Me.TileServerToolStripMenuItem.Text = "Tile Server"
+        Me.TileServerToolStripMenuItem.Text = "Base Map"
         '
         'AddTileServerMenuItem
         '
@@ -368,7 +368,7 @@ Partial Class frmMap
         '
         Me.OverlayServerToolStripMenuItem.Name = "OverlayServerToolStripMenuItem"
         Me.OverlayServerToolStripMenuItem.Size = New System.Drawing.Size(125, 23)
-        Me.OverlayServerToolStripMenuItem.Text = "Overlay Server"
+        Me.OverlayServerToolStripMenuItem.Text = "Overlay Map"
         '
         'BuddiesToolStripMenuItem
         '
