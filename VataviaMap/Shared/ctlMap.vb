@@ -15,6 +15,7 @@ Public Class ctlMap
                                        "© OpenStreetMap")
 
     Public TransparentTileServers As New Generic.List(Of clsServer)
+    Public LabelServer As clsServer = Nothing
 
     Public LatHeight As Double 'Height of map display area in latitude degrees
     Public LonWidth As Double  'Width of map display area in longitude degrees
@@ -70,7 +71,6 @@ Public Class ctlMap
     Private pBrushCopyright As New SolidBrush(Color.Black)
     Private pShowCopyright As Boolean = True
     Private pShowDate As Boolean = False
-    Private pShowURL As String = ""
 
     Public MouseDragging As Boolean = False
     Public MouseDragStartLocation As Point
@@ -233,18 +233,6 @@ Public Class ctlMap
         Set(ByVal value As Boolean)
             If pShowDate <> value Then
                 pShowDate = value
-                NeedRedraw()
-            End If
-        End Set
-    End Property
-
-    Public Property ShowURL() As String
-        Get
-            Return pShowURL
-        End Get
-        Set(ByVal value As String)
-            If pShowURL <> value Then
-                pShowURL = value
                 NeedRedraw()
             End If
         End Set
@@ -632,7 +620,6 @@ Public Class ctlMap
     End Sub
 
     Public Function FollowWebsiteURL(ByVal aURL As String) As Boolean
-        ShowURL = aURL
         If aURL.IndexOf(":") >= 0 Then
             Dim lLat As Double = 0
             Dim lLon As Double = 0
@@ -646,6 +633,7 @@ Public Class ctlMap
                 CenterLat = lLat
                 CenterLon = lLon
                 SanitizeCenterLatLon()
+                'pShowURL = aURL
                 If lZoom <> Zoom Then
                     Zoom = lZoom
                 Else
@@ -968,10 +956,10 @@ Public Class ctlMap
             g.DrawString(aServer.Copyright, pFontCopyright, pBrushCopyright, 3, pBitmap.Height - 20)
         End If
 
-        If pShowDate OrElse pShowURL.Length > 0 Then
+        If pShowDate OrElse LabelServer IsNot Nothing Then
             Dim lHeader As String = ""
             If pShowDate Then lHeader &= DateTime.Now.ToString("yyyy-MM-dd HH:mm ")
-            If pShowURL.Length > 0 Then lHeader &= pShowURL 'CenterLon.ToString("#.#######") & ", " & CenterLat.ToString("#.#######")
+            If LabelServer IsNot Nothing Then lHeader &= LabelServer.BuildWebmapURL(CenterLat, CenterLon, Zoom, LatMax, LonMin, LatMin, LonMax) 'CenterLon.ToString("#.#######") & ", " & CenterLat.ToString("#.#######")
             g.DrawString(lHeader, pFontTileLabel, pBrushBlack, 3, 3)
         End If
 

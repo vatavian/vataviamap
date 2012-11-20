@@ -320,6 +320,7 @@ Public Class frmMap
                 lItem.DropDownItems.Add(New ToolStripMenuItem(pCopyPrefix & lServer.Name, Nothing, lWebsiteEventHandler))
             End If
         Next
+        Me.WebsiteToolStripMenuItem.DropDownItems.Add(New ToolStripMenuItem("None", Nothing, lWebsiteEventHandler))
     End Sub
 
     Private Sub DefaultsTileServerMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles DefaultsTileServerMenuItem.Click
@@ -789,14 +790,20 @@ Public Class frmMap
                 lServerName = lServerName.Substring(pCopyPrefix.Length)
                 lOpen = False
             End If
-            Dim lServer As clsServer = pMap.Servers(lServerName)
-            Dim lURL As String = lServer.BuildWebmapURL(pMap.CenterLat, pMap.CenterLon, pMap.Zoom, pMap.LatMax, pMap.LonMin, pMap.LatMin, pMap.LonMax)
-            If lURL IsNot Nothing AndAlso lURL.Length > 0 Then
-                pMap.ShowURL = lURL
-                If lOpen Then
-                    OpenFileOrURL(lURL, False)
-                Else
-                    Clipboard.SetText(lURL)
+
+            If lServerName = "None" Then
+                pMap.LabelServer = Nothing
+                pMap.NeedRedraw() 'Clear URL from map
+            Else
+                pMap.LabelServer = pMap.Servers(lServerName)
+                Dim lURL As String = pMap.LabelServer.BuildWebmapURL(pMap.CenterLat, pMap.CenterLon, pMap.Zoom, pMap.LatMax, pMap.LonMin, pMap.LatMin, pMap.LonMax)
+                If lURL IsNot Nothing AndAlso lURL.Length > 0 Then
+                    If lOpen Then
+                        OpenFileOrURL(lURL, False)
+                    Else
+                        Clipboard.SetText(lURL)
+                    End If
+                    pMap.NeedRedraw() 'Draw URL on map
                 End If
             End If
         Catch ex As System.ComponentModel.Win32Exception
