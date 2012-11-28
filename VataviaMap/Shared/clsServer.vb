@@ -119,8 +119,9 @@ Public Class clsServer
 
     Public Shared Function WriteServers(ByVal aServers As Generic.Dictionary(Of String, clsServer)) As String
         Dim lHTML As String = _
-          "<html><head><title>Web Tile Servers And Maps</title></head><body>" & vbLf _
-        & "<table>" & vbLf _
+          "<html><head>" & vbLf _
+        & "<meta http-equiv=""content-type"" content=""text/html; charset=ISO-8859-1""><title>Web Tile Servers And Maps</title></head><body>" & vbLf _
+        & "<table><tbody>" & vbLf _
         & "<tr><th>Server Name</th>" & vbLf _
         & "    <th>Link</th>" & vbLf _
         & "    <th>TileURLPattern</th>" & vbLf _
@@ -135,9 +136,9 @@ Public Class clsServer
         & "    <th>Transparent</th>" & vbLf _
         & "</tr>" & vbLf
         For Each lServer As clsServer In aServers.Values
-            lHTML &= "<tr><td>" & lServer.ToString.Replace(vbCr, "").TrimEnd(vbLf).Replace(vbLf, "</td>" & vbLf & "    <td>") & "</td>" & vbLf & "</tr>" & vbLf
+            lHTML &= "<tr><td>" & lServer.ToString.Replace(vbCr, "").TrimEnd(vbLf).Replace(vbLf, "</td>" & vbLf & "    <td>").Replace("&", "&amp;") & "</td>" & vbLf & "</tr>" & vbLf
         Next
-        lHTML &= "</table>" & vbLf & "</body>" & vbLf
+        lHTML &= "</tbody></table>" & vbLf & "</body></html>" & vbLf
         Return lHTML
     End Function
 
@@ -154,7 +155,7 @@ Public Class clsServer
         Dim lServers As New Generic.Dictionary(Of String, clsServer)
         Dim lServer As clsServer
         For Each lServerRow As String In SplitByTag(aHTML, "tr")
-            lServer = clsServer.FromFields(SplitByTag(lServerRow, "td").ToArray)
+            lServer = clsServer.FromFields(SplitByTag(lServerRow.Replace("&amp;", "&"), "td").ToArray)
             If lServer IsNot Nothing Then
                 If lServers.ContainsKey(lServer.Name) Then
                     Dbg("Duplicate server name found, ignoring new version of '" & lServer.Name & "'")

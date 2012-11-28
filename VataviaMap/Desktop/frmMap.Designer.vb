@@ -227,6 +227,7 @@ Partial Class frmMap
         Me.UseMarkedTilesToolStripMenuItem.Name = "UseMarkedTilesToolStripMenuItem"
         Me.UseMarkedTilesToolStripMenuItem.Size = New System.Drawing.Size(319, 24)
         Me.UseMarkedTilesToolStripMenuItem.Text = "Use Marked Tiles"
+        Me.UseMarkedTilesToolStripMenuItem.Visible = False
         '
         'CoordinatesToolStripMenuItem
         '
