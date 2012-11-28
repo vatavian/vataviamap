@@ -601,14 +601,18 @@ EndFound:
     End Function
 
     Public Function ReadTextFile(ByVal aFilename As String) As String
-        If Not IO.File.Exists(aFilename) Then Return ""
+        Try
+            If Not IO.File.Exists(aFilename) Then Return ""
 #If Smartphone Then
-        Dim lReader As IO.StreamReader = IO.File.OpenText(aFilename)
-        ReadTextFile = lReader.ReadToEnd()
-        lReader.Close()
+            Dim lReader As IO.StreamReader = IO.File.OpenText(aFilename)
+            ReadTextFile = lReader.ReadToEnd()
+            lReader.Close()
 #Else
         Return IO.File.ReadAllText(aFilename)
 #End If
+        Catch
+            Return ""
+        End Try
     End Function
 
     Public Sub WriteTextFile(ByVal aFilename As String, ByVal aContents As String)
