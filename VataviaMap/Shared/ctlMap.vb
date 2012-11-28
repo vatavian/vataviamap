@@ -350,6 +350,7 @@ Public Class ctlMap
     End Sub
 
     Private Sub GetSettings()
+        On Error Resume Next 'skip bad settings such as one that is not numeric but needs to be
         Dim lTileServerName As String = ""
         SetDefaultTileServers()
         Dim lSoftwareKey As Microsoft.Win32.RegistryKey = Microsoft.Win32.Registry.CurrentUser.OpenSubKey("Software")
@@ -357,8 +358,6 @@ Public Class ctlMap
             Dim lAppKey As Microsoft.Win32.RegistryKey = lSoftwareKey.OpenSubKey(g_AppName)
             If lAppKey IsNot Nothing Then
                 With lAppKey
-                    On Error Resume Next 'Maybe a registry setting is not numeric but needs to be, skip bad settings
-
                     Dim lKeyIndex As Integer = 1
                     'Not currently saving servers in registry, saving in text file instead which is read in SetDefaultTileServers
                     'Do
