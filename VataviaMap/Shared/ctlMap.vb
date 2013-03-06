@@ -15,6 +15,7 @@ Public Class ctlMap
                                        "© OpenStreetMap")
 
     Public TransparentTileServers As New Generic.List(Of clsServer)
+    Public TransparentOpacity As Double = 0.5
     Public LabelServer As clsServer = Nothing
 
     Public LatHeight As Double 'Height of map display area in latitude degrees
@@ -37,6 +38,7 @@ Public Class ctlMap
         Zoom = 0
         TileServer = 1
         Layer = 2
+        Transparency = 3
     End Enum
     Public MouseWheelAction As EnumWheelAction = EnumWheelAction.Zoom
 
@@ -839,7 +841,7 @@ Public Class ctlMap
         DrawTiles(TileServer, g)
 
         For Each lServer As clsServer In TransparentTileServers
-            If Not lServer.Transparent AndAlso lServer.Opacity = 1 Then lServer.Opacity = 0.5
+            If Not lServer.Transparent AndAlso lServer.Opacity = 1 Then lServer.Opacity = TransparentOpacity
             DrawTiles(lServer, g)
         Next
     End Sub
@@ -1228,7 +1230,7 @@ Public Class ctlMap
 #Else
                 If aServer.Opacity < 1 Then
                     Dim cm As New System.Drawing.Imaging.ColorMatrix
-                    cm.Matrix33 = 0.5 ' aServer.Opacity
+                    cm.Matrix33 = TransparentOpacity
                     Dim lAttrs As New System.Drawing.Imaging.ImageAttributes
                     lAttrs.SetColorMatrix(cm)
                     g.DrawImage(lTileImage, aDrawRect, aImageRect.X, aImageRect.Y, aImageRect.Width, aImageRect.Height, GraphicsUnit.Pixel, lAttrs)
@@ -2937,6 +2939,13 @@ TryAgain:
                         Layers(lIndex).Visible = False
                     End If
                 Next
+                NeedRedraw()
+            Case EnumWheelAction.Transparency
+                If e.Delta > 0 Then
+                    TransparentOpacity = Math.Min(TransparentOpacity + 0.1, 1)
+                Else
+                    TransparentOpacity = Math.Max(TransparentOpacity - 0.1, 0)
+                End If
                 NeedRedraw()
         End Select
     End Sub
