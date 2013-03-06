@@ -578,6 +578,7 @@ Public Class frmMap
         WheelTileServerToolStripMenuItem.Checked = True
         WheelZoomToolStripMenuItem.Checked = False
         WheelLayerToolStripMenuItem.Checked = False
+        OverlayTransparencyToolStripMenuItem.Checked = False
         pMap.MouseWheelAction = ctlMap.EnumWheelAction.TileServer
     End Sub
 
@@ -585,6 +586,7 @@ Public Class frmMap
         WheelTileServerToolStripMenuItem.Checked = False
         WheelZoomToolStripMenuItem.Checked = True
         WheelLayerToolStripMenuItem.Checked = False
+        OverlayTransparencyToolStripMenuItem.Checked = False
         pMap.MouseWheelAction = ctlMap.EnumWheelAction.Zoom
     End Sub
 
@@ -592,7 +594,16 @@ Public Class frmMap
         WheelTileServerToolStripMenuItem.Checked = False
         WheelZoomToolStripMenuItem.Checked = False
         WheelLayerToolStripMenuItem.Checked = True
+        OverlayTransparencyToolStripMenuItem.Checked = False
         pMap.MouseWheelAction = ctlMap.EnumWheelAction.Layer
+    End Sub
+
+    Private Sub OverlayTransparencyToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles OverlayTransparencyToolStripMenuItem.Click
+        WheelTileServerToolStripMenuItem.Checked = False
+        WheelZoomToolStripMenuItem.Checked = False
+        WheelLayerToolStripMenuItem.Checked = False
+        OverlayTransparencyToolStripMenuItem.Checked = True
+        pMap.MouseWheelAction = ctlMap.EnumWheelAction.Transparency
     End Sub
 
     Private Sub VataviaMapProjectPageToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles VataviaMapProjectPageToolStripMenuItem.Click

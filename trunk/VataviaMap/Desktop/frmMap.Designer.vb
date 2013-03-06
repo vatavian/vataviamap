@@ -96,6 +96,7 @@ Partial Class frmMap
         Me.Magnify8 = New System.Windows.Forms.ToolStripMenuItem
         Me.PlacesSaveToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.PlacesLoadToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
+        Me.OverlayTransparencyToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem
         Me.MenuStripMain.SuspendLayout()
         Me.SuspendLayout()
         '
@@ -185,7 +186,7 @@ Partial Class frmMap
         '
         'ViewToolStripMenuItem
         '
-        Me.ViewToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.TileOutlinesToolStripMenuItem, Me.TileNamesToolStripMenuItem, Me.TileImagesToolStripMenuItem, Me.PanToGPXToolStripMenuItem, Me.ZoomToGPXToolStripMenuItem, Me.UseMarkedTilesToolStripMenuItem, Me.CoordinatesToolStripMenuItem, Me.WaypointsToolStripMenuItem, Me.TimeSpanToolStripMenuItem, Me.TimestampToolStripMenuItem, Me.TransparencyToolStripMenuItem, Me.RefreshAllToolStripMenuItem})
+        Me.ViewToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.TileOutlinesToolStripMenuItem, Me.TileNamesToolStripMenuItem, Me.TileImagesToolStripMenuItem, Me.PanToGPXToolStripMenuItem, Me.ZoomToGPXToolStripMenuItem, Me.UseMarkedTilesToolStripMenuItem, Me.CoordinatesToolStripMenuItem, Me.WaypointsToolStripMenuItem, Me.TimeSpanToolStripMenuItem, Me.TimestampToolStripMenuItem, Me.OverlayTransparencyToolStripMenuItem, Me.RefreshAllToolStripMenuItem})
         Me.ViewToolStripMenuItem.Name = "ViewToolStripMenuItem"
         Me.ViewToolStripMenuItem.Size = New System.Drawing.Size(55, 23)
         Me.ViewToolStripMenuItem.Text = "View"
@@ -399,7 +400,7 @@ Partial Class frmMap
         '
         'WheelToolStripMenuItem
         '
-        Me.WheelToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.WheelZoomToolStripMenuItem, Me.WheelTileServerToolStripMenuItem, Me.WheelLayerToolStripMenuItem})
+        Me.WheelToolStripMenuItem.DropDownItems.AddRange(New System.Windows.Forms.ToolStripItem() {Me.WheelZoomToolStripMenuItem, Me.WheelTileServerToolStripMenuItem, Me.WheelLayerToolStripMenuItem, Me.OverlayTransparencyToolStripMenuItem})
         Me.WheelToolStripMenuItem.Name = "WheelToolStripMenuItem"
         Me.WheelToolStripMenuItem.Size = New System.Drawing.Size(64, 23)
         Me.WheelToolStripMenuItem.Text = "Wheel"
@@ -552,6 +553,12 @@ Partial Class frmMap
         Me.PlacesSaveToolStripMenuItem.Size = New System.Drawing.Size(152, 24)
         Me.PlacesSaveToolStripMenuItem.Text = "Save..."
         '
+        'OverlayTransparencyToolStripMenuItem
+        '
+        Me.OverlayTransparencyToolStripMenuItem.Name = "OverlayTransparencyToolStripMenuItem"
+        Me.OverlayTransparencyToolStripMenuItem.Size = New System.Drawing.Size(248, 24)
+        Me.OverlayTransparencyToolStripMenuItem.Text = "Overlay Transparency"
+        '
         'PlacesLoadToolStripMenuItem
         '
         Me.PlacesLoadToolStripMenuItem.Name = "PlacesLoadToolStripMenuItem"
@@ -648,4 +655,5 @@ Partial Class frmMap
     Friend WithEvents Magnify8 As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents PlacesSaveToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
     Friend WithEvents PlacesLoadToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
+    Friend WithEvents OverlayTransparencyToolStripMenuItem As System.Windows.Forms.ToolStripMenuItem
 End Class
