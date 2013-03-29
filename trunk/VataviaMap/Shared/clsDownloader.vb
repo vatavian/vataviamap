@@ -76,7 +76,7 @@ Public Class clsDownloader
                                          ByVal aReplaceExisting As Boolean) As Boolean
 
         Dim lBitmap As Bitmap = Nothing
-        Dim lCanDownload As Boolean = (aPriority > -1 AndAlso Enabled AndAlso aTileServer.TilePattern IsNot Nothing AndAlso aTileServer.TilePattern.Length > 0 AndAlso aTileServer.TilePattern.IndexOf("cacheonly") < 0)
+        Dim lCanDownload As Boolean = (aPriority > -1 AndAlso Enabled AndAlso Not aTileServer.CacheOnly)
         If aActualFilename Is Nothing Then 'OrElse Not IO.File.Exists(aActualFilename)
             aActualFilename = GetTileFilename(aTileServer, aTileFilename, aTilePoint, aZoom, aPriority, aReplaceExisting)
         End If
@@ -200,7 +200,7 @@ CheckCache:
                                     ByVal aPriority As Integer, _
                                     ByVal aReplaceExisting As Boolean) As String
         If aTileFilename Is Nothing Then Return ""
-        Dim lCanDownload As Boolean = (aPriority > -1 AndAlso Enabled AndAlso aTileServer.TilePattern IsNot Nothing AndAlso aTileServer.TilePattern.Length > 0 AndAlso aTileServer.TilePattern.IndexOf("cacheonly") < 0)
+        Dim lCanDownload As Boolean = (aPriority > -1 AndAlso Enabled AndAlso  Not aTileServer.CacheOnly)
         Dim lActualFilename As String = LatestTileFileName(aTileFilename)
         If IO.File.Exists(lActualFilename) Then
 
