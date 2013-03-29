@@ -54,7 +54,7 @@ Public Class frmServer
         With pServer
             .Name = txtName.Text
             .Link = txtLink.Text
-            .TilePattern = txtTilePattern.Text
+            .TilePattern = txtTilePattern.Text : .SetExtensionFromTilePattern()
             .WebmapPattern = txtWebmapPattern.Text
             .Copyright = txtCopyright.Text
             .ZoomMin = txtZoomMin.Text
