@@ -483,8 +483,12 @@ Public Class ctlMap
 
     Private Function TileServersFilename() As String
         Dim lTileServersFilename As String = pTileCacheFolder & "servers.html"
-        If IO.File.Exists(lTileServersFilename) OrElse _
-           Downloader.DownloadFile(Nothing, "http://vatavia.net/mark/VataviaMap/servers.html", lTileServersFilename, lTileServersFilename) Then
+        If IO.File.Exists(lTileServersFilename) Then Return lTileServersFilename
+
+        Dim lAdjacentFilename As String = IO.Path.Combine(CurDir, "servers.html")
+        If IO.File.Exists(lAdjacentFilename) Then Return lAdjacentFilename
+
+        If Downloader.DownloadFile(Nothing, "http://vatavia.net/mark/VataviaMap/servers.html", lTileServersFilename, lTileServersFilename) Then
             Return lTileServersFilename
         End If
         Return ""
@@ -616,7 +620,19 @@ Public Class ctlMap
     End Sub
 
     Private Sub SetServerCacheFolder(ByVal aTileServer As clsServer)
-        aTileServer.CacheFolder = pTileCacheFolder & SafeFilename(aTileServer.Name.Replace(" ", "")) & g_PathChar
+        aTileServer.CacheFolder = pTileCacheFolder & SafeFilename(aTileServer.Name.Replace(" ", ""))
+
+        If aTileServer.TilePattern Is Nothing OrElse aTileServer.TilePattern.Length = 0 OrElse aTileServer.TilePattern.IndexOf("cacheonly") > -1 Then
+            aTileServer.CacheOnly = True
+        Else        'If TilePattern is a folder, use it instead of the default cache location            
+            Dim lSplit() As String = aTileServer.TilePattern.Split("*")
+            If IO.Directory.Exists(lSplit(0)) Then
+                aTileServer.CacheOnly = True
+                aTileServer.CacheFolder = lSplit(0)
+            End If
+        End If
+
+        If Not aTileServer.CacheFolder.EndsWith(g_PathChar) Then aTileServer.CacheFolder &= g_PathChar
         aTileServer.BadTileSize = FileSize(aTileServer.CacheFolder & "unavailable") 'Look for example "bad tile" named "unavailable" in server's cache folder
     End Sub
 

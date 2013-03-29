@@ -10,6 +10,7 @@ Public Class clsServer
 
     'Top-level folder containing cached tiles for this server, must end with trailing IO.Path.DirectorySeparatorChar
     Public CacheFolder As String = ""
+    Public CacheOnly As Boolean = False
     Public BadTileSize As Integer = 0
 
     ''' <summary>
@@ -48,7 +49,7 @@ Public Class clsServer
           Optional ByVal aTransparent As Boolean = False)
         Name = aName
         Link = aLink
-        TilePattern = aTilePattern
+        TilePattern = aTilePattern : SetExtensionFromTilePattern()
         WebmapPattern = aWebmapPattern
         If aCopyright IsNot Nothing Then
             Copyright = aCopyright.Replace("(C)", "©")
@@ -68,7 +69,7 @@ Public Class clsServer
     Public Sub SetFields(ByVal aFields() As String)
         If aFields.Length > 0 Then Name = aFields(0)
         If aFields.Length > 1 AndAlso aFields(1).Length > 0 Then Link = aFields(1)
-        If aFields.Length > 2 AndAlso aFields(2).Length > 0 Then TilePattern = aFields(2)
+        If aFields.Length > 2 AndAlso aFields(2).Length > 0 Then TilePattern = aFields(2) : SetExtensionFromTilePattern()
         If aFields.Length > 3 AndAlso aFields(3).Length > 0 Then WebmapPattern = aFields(3)
         If aFields.Length > 4 AndAlso aFields(4).Length > 0 Then Copyright = aFields(4).Replace("(C)", "©")
         If aFields.Length > 5 AndAlso aFields(5).Length > 0 Then IntegerTryParse(aFields(5), ZoomMin)
@@ -88,6 +89,13 @@ Public Class clsServer
         End If
         Return lServer
     End Function
+
+    Public Sub SetExtensionFromTilePattern()
+        Dim lExtension As String = IO.Path.GetExtension(TilePattern)
+        If lExtension.Length > 1 AndAlso lExtension.Length < 6 Then
+            FileExtension = lExtension
+        End If
+    End Sub
 
     Public Overrides Function ToString() As String
         Dim lBuilder As New System.Text.StringBuilder
@@ -213,6 +221,7 @@ Public Class clsServer
             End If
         Next
 
+        If lURL.IndexOf("{-Y}") > 0 Then lURL = lURL.Replace("{-Y}", 1 << aZoom - 1 - aTilePoint.Y)
         If lURL.IndexOf("{YY}") > 0 Then lURL = lURL.Replace("{YY}", (((1 << aZoom) >> 1) - 1 - aTilePoint.Y))
         If lURL.IndexOf("{Zoom+1}") > 0 Then lURL = lURL.Replace("{Zoom+1}", aZoom + 1)
         If lURL.IndexOf("{VersionYahooSatellite}") > 0 Then lURL = lURL.Replace("{VersionYahooSatellite}", "1.9")
@@ -417,11 +426,17 @@ Public Class clsServer
                                  ByVal aUseMarkedTiles As Boolean) As String
         With aTilePoint
             If CacheFolder.Length > 0 AndAlso ValidTilePoint(aTilePoint, aZoom) Then
+                Dim lY As Integer
+                If TilePattern.Contains("{-Y}") Then
+                    lY = 1 << aZoom - 1 - .Y 'Convert OSM to TMS Y
+                Else
+                    lY = .Y
+                End If
                 Dim lMarked As String = ""
                 If aUseMarkedTiles Then lMarked = g_MarkedPrefix
                 Return CacheFolder & lMarked & aZoom _
                      & g_PathChar & .X _
-                     & g_PathChar & .Y 'other convention = (1 << aZoom) - .Y
+                     & g_PathChar & lY
             Else
                 Return ""
             End If
