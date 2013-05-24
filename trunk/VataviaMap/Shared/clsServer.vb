@@ -428,7 +428,7 @@ Public Class clsServer
         With aTilePoint
             If CacheFolder.Length > 0 AndAlso ValidTilePoint(aTilePoint, aZoom) Then
                 Dim lY As Integer
-                If TilePattern.Contains("{-Y}") Then
+                If TilePattern.IndexOf("{-Y}") > -1 Then
                     lY = 1 << aZoom - 1 - .Y 'Convert OSM to TMS Y
                 Else
                     lY = .Y

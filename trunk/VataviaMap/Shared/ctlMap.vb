@@ -485,7 +485,7 @@ Public Class ctlMap
         Dim lTileServersFilename As String = pTileCacheFolder & "servers.html"
         If IO.File.Exists(lTileServersFilename) Then Return lTileServersFilename
 
-        Dim lAdjacentFilename As String = IO.Path.Combine(CurDir, "servers.html")
+        Dim lAdjacentFilename As String = IO.Path.Combine(IO.Directory.GetCurrentDirectory, "servers.html")
         If IO.File.Exists(lAdjacentFilename) Then Return lAdjacentFilename
 
         If Downloader.DownloadFile(Nothing, "http://vatavia.net/mark/VataviaMap/servers.html", lTileServersFilename, lTileServersFilename) Then
