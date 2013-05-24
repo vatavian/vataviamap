@@ -287,8 +287,9 @@ Public Class frmMap
         TileServerToolStripMenuItem.DropDownItems.Clear()
         OverlayServerToolStripMenuItem.DropDownItems.Clear()
         EditTileServerMenuItem.DropDownItems.Clear()
+        If Not pMap.Servers.ContainsKey("White") Then pMap.Servers.Add("White", New clsServer("White", , , , , 0, 20, True))
         For Each lServer As clsServer In pMap.Servers.Values
-            If Not String.IsNullOrEmpty(lServer.TilePattern) Then
+            If Not String.IsNullOrEmpty(lServer.TilePattern) OrElse lServer.Name = "White" Then
                 'If lServer.Transparent Then
                 Dim lTransparentItem As New ToolStripMenuItem(lServer.Name)
                 OverlayServerToolStripMenuItem.DropDownItems.Add(lTransparentItem)

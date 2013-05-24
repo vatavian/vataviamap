@@ -21,20 +21,9 @@ Public Class frmTimeSpan
                 'End If
                 'lItem.Checked = lLayer.Visible
                 If lLayer.GetType.Name = "clsLayerGPX" Then
-                    Dim lFirstPoint As clsGPXwaypoint = Nothing
-                    Dim lLastPoint As clsGPXwaypoint = Nothing
                     Dim lGPX As clsLayerGPX = lLayer
-                    Dim lTracks As Generic.List(Of clsGPXtrack) = lGPX.GPX.trk
-                    If lTracks IsNot Nothing AndAlso lTracks.Count > 0 Then
-                        lFirstPoint = lTracks(0).trkseg(0).trkpt(0)
-                        Dim lLastTrackSeg As clsGPXtracksegment = lTracks(lTracks.Count - 1).trkseg(lTracks(lTracks.Count - 1).trkseg.Count - 1)
-                        lLastPoint = lLastTrackSeg.trkpt(lLastTrackSeg.trkpt.Count - 1)
-                    Else
-                        If lGPX.GPX.wpt IsNot Nothing AndAlso lGPX.GPX.wpt.Count > 0 Then
-                            lFirstPoint = lGPX.GPX.wpt(0)
-                            lLastPoint = lGPX.GPX.wpt(lGPX.GPX.wpt.Count - 1)
-                        End If
-                    End If
+                    Dim lFirstPoint As clsGPXwaypoint = lGPX.GPX.FirstPoint
+                    Dim lLastPoint As clsGPXwaypoint = Nothing
                     If lFirstPoint Is Nothing OrElse lFirstPoint.time.Year < 2 Then
                         'lItem.SubItems.Add("")
                     Else

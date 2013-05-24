@@ -500,6 +500,40 @@ Public Class clsLayerGPX
                             If Date.Now.Subtract(lStartTime).TotalSeconds > 2 Then Exit For
                         Next
                     Next
+
+                    For Each lTrack As clsGPXroute In GPX.rte
+                        Dim lLastX As Integer = -1
+                        Dim lLastY As Integer = -1
+                        For Each lTrackPoint As clsGPXwaypoint In lTrack.rtept
+                            If Not lTrackPoint.timeSpecified OrElse _
+                               (lTrackPoint.time >= OmitBefore AndAlso lTrackPoint.time <= OmitAfter) Then
+#If Not Smartphone Then
+                                If Not DrawTrackpoint(aTileServer, g, lTrackPoint, aTopLeftTile, aOffsetToCenter, lSymbolPath, lTrackPath, lLastX, lLastY) Then
+                                    If lTrackPath.PointCount > 0 Then 'Draw the path we already had accumulated for this track
+                                        g.DrawPath(PenTrack, lTrackPath)
+                                        lTrackPath.Reset()
+                                    End If
+#Else
+                                    If Not DrawTrackpoint(aTileServer, g, lTrackPoint, aTopLeftTile, aOffsetToCenter, lLastX, lLastY) Then
+#End If
+                                    lLastX = -1
+                                    lLastY = -1
+                                End If
+                            End If
+                        Next
+#If Not Smartphone Then
+                        If lSymbolPath.PointCount > 0 AndAlso SymbolPen IsNot Nothing Then
+                            g.DrawPath(SymbolPen, lSymbolPath)
+                            lSymbolPath.Reset()
+                        End If
+                        If lTrackPath.PointCount > 0 AndAlso PenTrack IsNot Nothing Then
+                            g.DrawPath(PenTrack, lTrackPath)
+                            lTrackPath.Reset()
+                        End If
+#End If
+                        If Date.Now.Subtract(lStartTime).TotalSeconds > 2 Then Exit For
+                    Next
+
                 End If
             End If
         End If

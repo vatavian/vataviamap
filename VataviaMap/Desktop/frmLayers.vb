@@ -86,22 +86,11 @@ Public Class frmLayers
                 End If
                 lItem.Checked = lLayer.Visible
                 If lLayer.GetType.Name = "clsLayerGPX" Then
-                    Dim lFirstPoint As clsGPXwaypoint = Nothing
-                    Dim lLastPoint As clsGPXwaypoint = Nothing
                     Dim lGPX As clsLayerGPX = lLayer
-                    Dim lTracks As Generic.List(Of clsGPXtrack) = lGPX.GPX.trk
-                    If lTracks IsNot Nothing AndAlso lTracks.Count > 0 Then
-                        lFirstPoint = lTracks(0).trkseg(0).trkpt(0)
-                        Dim lLastTrackSeg As clsGPXtracksegment = lTracks(lTracks.Count - 1).trkseg(lTracks(lTracks.Count - 1).trkseg.Count - 1)
-                        lLastPoint = lLastTrackSeg.trkpt(lLastTrackSeg.trkpt.Count - 1)
-                    Else
-                        If lGPX.GPX.wpt IsNot Nothing AndAlso lGPX.GPX.wpt.Count > 0 Then
-                            lFirstPoint = lGPX.GPX.wpt(0)
-                            lLastPoint = lGPX.GPX.wpt(lGPX.GPX.wpt.Count - 1)
-                        End If
-                    End If
+                    Dim lFirstPoint As clsGPXwaypoint = lGPX.GPX.FirstPoint
+                    Dim lLastPoint As clsGPXwaypoint = lGPX.GPX.LastPoint
                     If lFirstPoint Is Nothing OrElse lFirstPoint.time.Year < 2 Then
-                        lItem.SubItems.Add("")
+                        lItem.SubItems.Add(FileDateTime(lLayer.Filename))
                     Else
                         lItem.SubItems.Add(lFirstPoint.time.ToString)
                     End If
@@ -111,7 +100,7 @@ Public Class frmLayers
                         lItem.SubItems.Add(lLastPoint.time.Subtract(lFirstPoint.time).ToString)
                     End If
                 Else
-                    lItem.SubItems.Add("") 'TODO: get file date from lLayer.Filename
+                    lItem.SubItems.Add(FileDateTime(lLayer.Filename))
                     lItem.SubItems.Add("")
                 End If
                 If Not lLabelFieldsSet Then
@@ -313,7 +302,7 @@ Public Class frmLayers
         If pRightClickedIndex > -1 Then
             If TypeOf (pLayers(pRightClickedIndex)) Is clsLayerGPX Then
                 Dim lGPX As clsLayerGPX = pLayers(pRightClickedIndex)
-                Dim lCenter As clsGPXwaypoint = lGPX.GPX.trkLastPoint
+                Dim lCenter As clsGPXwaypoint = lGPX.GPX.LastPoint
                 Dim lBounds As New clsGPXbounds
                 With lBounds
                     .maxlat = lCenter.lat + 0.01
