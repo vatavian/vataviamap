@@ -79,6 +79,11 @@ LoadedXML:
                         Next
                     Next
                 Next
+                For Each lTrackSegment As clsGPXroute In rte
+                    For Each lTrackPoint As clsGPXwaypoint In lTrackSegment.rtept
+                        Me.boundsField.Expand(lTrackPoint.lat, lTrackPoint.lon)
+                    Next
+                Next
             End If
 
             'Debugging: if folder "rewrite" exists in same folder with our .gpx, rewrite it in there
@@ -208,13 +213,20 @@ LoadedXML:
                 End If
             End With
         End If
+        If pRoutes IsNot Nothing AndAlso pRoutes.Count > 0 Then
+            With pRoutes(0)
+                If .rtept IsNot Nothing AndAlso .rtept.Count > 0 Then
+                    Return .rtept(0)
+                End If
+            End With
+        End If
         If pWaypoints IsNot Nothing AndAlso pWaypoints.Count > 0 Then
             Return pWaypoints(0)
         End If
         Return Nothing
     End Function
 
-    Public Function trkLastPoint() As clsGPXwaypoint
+    Public Function LastPoint() As clsGPXwaypoint
         If pTracks IsNot Nothing AndAlso pTracks.Count > 0 Then
             With pTracks(pTracks.Count - 1)
                 If .trkseg IsNot Nothing AndAlso .trkseg.Count > 0 Then
@@ -225,6 +237,16 @@ LoadedXML:
                     End With
                 End If
             End With
+        End If
+        If pRoutes IsNot Nothing AndAlso pRoutes.Count > 0 Then
+            With pRoutes(pRoutes.Count - 1)
+                If .rtept IsNot Nothing AndAlso .rtept.Count > 0 Then
+                    Return .rtept(.rtept.Count - 1)
+                End If
+            End With
+        End If
+        If pWaypoints IsNot Nothing AndAlso pWaypoints.Count > 0 Then
+            Return pWaypoints(pWaypoints.Count - 1)
         End If
         Return Nothing
     End Function

@@ -40,9 +40,9 @@ Public Class clsServer
     End Sub
 
     Public Sub New(ByVal aName As String, _
-          Optional ByVal aLink As String = Nothing, _
-          Optional ByVal aTilePattern As String = Nothing, _
-          Optional ByVal aWebmapPattern As String = Nothing, _
+          Optional ByVal aLink As String = "", _
+          Optional ByVal aTilePattern As String = "", _
+          Optional ByVal aWebmapPattern As String = "", _
           Optional ByVal aCopyright As String = Nothing, _
           Optional ByVal aZoomMin As Integer = 0, _
           Optional ByVal aZoomMax As Integer = 17, _
@@ -223,6 +223,7 @@ Public Class clsServer
 
         If lURL.IndexOf("{-Y}") > 0 Then lURL = lURL.Replace("{-Y}", 1 << aZoom - 1 - aTilePoint.Y)
         If lURL.IndexOf("{YY}") > 0 Then lURL = lURL.Replace("{YY}", (((1 << aZoom) >> 1) - 1 - aTilePoint.Y))
+        If lURL.IndexOf("{-Z}") > 0 Then lURL = lURL.Replace("{-Z}", 8 - aZoom)
         If lURL.IndexOf("{Zoom+1}") > 0 Then lURL = lURL.Replace("{Zoom+1}", aZoom + 1)
         If lURL.IndexOf("{VersionYahooSatellite}") > 0 Then lURL = lURL.Replace("{VersionYahooSatellite}", "1.9")
         If lURL.IndexOf("{VersionYahooMap}") > 0 Then lURL = lURL.Replace("{VersionYahooMap}", "4.3")
