@@ -276,6 +276,18 @@ Public Class clsServer
         Return lURL
     End Function
 
+    ''' <summary>
+    ''' Given a web map URL, look for the center latitude/longitude, zoom, and bounding box
+    ''' </summary>
+    ''' <param name="aURL">Web map URL to examine</param>
+    ''' <param name="aCenterLatitude">returns latitude at center of area</param>
+    ''' <param name="aCenterLongitude">returns longitude at center of area</param>
+    ''' <param name="aZoom">returns zoom level</param>
+    ''' <param name="aNorth">returns north latitude of bounding box</param>
+    ''' <param name="aWest">returns west longitude of bounding box</param>
+    ''' <param name="aSouth">returns south latitude of bounding box</param>
+    ''' <param name="aEast">returns east longitude of bounding box</param>
+    ''' <returns>True if link was parsed and reasonable values for the center latitude and longitude were found</returns>
     Public Function ParseWebmapURL(ByVal aURL As String, _
                                    ByRef aCenterLatitude As Double, ByRef aCenterLongitude As Double, _
                                    ByRef aZoom As Integer, _
