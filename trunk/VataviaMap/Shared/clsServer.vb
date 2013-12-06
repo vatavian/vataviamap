@@ -299,6 +299,13 @@ Public Class clsServer
             Dim lArgs() As String
             If lURL.StartsWith(OSMshortlinkPrefix) Then
                 Return ParseOSMshortlink(aURL.Substring(OSMshortlinkPrefix.Length), aCenterLatitude, aCenterLongitude, aZoom)
+            ElseIf lURL.IndexOf("openstreetmap.org/#map=") > -1 Then
+                lArgs = lURL.Substring(lURL.IndexOf("openstreetmap.org/#map=") + 23).Split("/"c, "&"c)
+                If lArgs.Length > 2 AndAlso IsNumeric(lArgs(0)) AndAlso IsNumeric(lArgs(1)) AndAlso IsNumeric(lArgs(2)) Then
+                    aZoom = Double.Parse(lArgs(0))
+                    aCenterLatitude = Double.Parse(lArgs(1))
+                    aCenterLongitude = Double.Parse(lArgs(2))
+                End If
             ElseIf lURL.StartsWith("http://maps.stamen.com/m2i/") Then
                 lArgs = lURL.Split("/")
                 If lArgs.Length > 3 AndAlso IsNumeric(lArgs(lArgs.Length - 3)) _
