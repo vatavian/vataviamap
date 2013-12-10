@@ -95,6 +95,7 @@
     <Compile Include="Desktop\frmServer.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Shared\clsBuddy.vb" />
     <Compile Include="Shared\clsCache.vb" />
     <Compile Include="Shared\clsCell.vb" />
     <Compile Include="Shared\clsCellLayer.vb" />
@@ -103,6 +104,7 @@
     <Compile Include="Shared\clsDownloader.vb" />
     <Compile Include="Shared\clsGPX.vb" />
     <Compile Include="Shared\clsLayer.vb" />
+    <Compile Include="Shared\clsLayerGPX.vb" />
     <Compile Include="Shared\clsQueueManager.vb" />
     <Compile Include="Shared\clsServer.vb" />
     <Compile Include="Shared\clsTrip.vb" />

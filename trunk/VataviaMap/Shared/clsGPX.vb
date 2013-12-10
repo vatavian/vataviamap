@@ -35,6 +35,16 @@ Public Class clsGPX
     Private keywordsField As String
     Private boundsField As clsGPXbounds
 
+    Public Fields() As String = {"name", _
+                               "urlname", _
+                               "desc", _
+                               "container", _
+                               "difficulty", _
+                               "terrain", _
+                               "encoded_hints", _
+                               "hints", _
+                               "time", _
+                               "age"}
     Public Sub New()
         Clear()
     End Sub
@@ -119,6 +129,12 @@ LoadedXML:
                     End Try
                 End If
             End If
+            Try
+                LoadLeafSpyFile(aFilename)
+                Exit Sub
+            Catch exLeaf As Exception
+                'Did not manage to open as that format either
+            End Try
             Throw New ApplicationException("Error opening '" & aFilename & "': " & e.Message, e)
         End Try
     End Sub
@@ -341,6 +357,118 @@ LoadedXML:
             Me.boundsField = value
         End Set
     End Property
+
+
+#Region "LeafSpy"
+
+    Private Sub LoadLeafSpyFile(ByVal aFilename As String)
+        Dim lDateField As Integer = 0
+        Dim lLatField As Integer = 1
+        Dim lLonField As Integer = 2
+
+        Dim lNeedFields As Boolean = True
+
+        Dim lValues() As String
+        Dim lCurrentTrack As New clsGPXtrack(aFilename)
+        Dim lCurrentTrackSegment As clsGPXtracksegment = Nothing
+        Dim lCurrentWaypoint As clsGPXwaypoint
+        Dim lPreviousWaypoint As clsGPXwaypoint = Nothing
+
+        Dim lLongitude As Double, lLatitude As Double
+        For Each lLine As String In ReadTextFile(aFilename).Replace(vbCr, vbLf).Replace(vbLf & vbLf, vbLf).Split(vbLf)
+            lValues = lLine.Split(","c)
+            If lValues.Length > 2 Then
+                If lNeedFields Then
+                    lNeedFields = False
+                    Fields = lValues
+                    Dim lFieldIndex As Integer = 0
+                    For Each lFieldName As String In Fields
+                        Select Case lFieldName.ToLower
+                            Case "date/time", "date", "time"
+                                lDateField = lFieldIndex
+                            Case "lat", "latitude"
+                                lLatField = lFieldIndex
+                            Case "lon", "long", "longitude"
+                                lLonField = lFieldIndex
+                        End Select
+                        lFieldIndex += 1
+                    Next
+                    'pValues = New Generic.List(Of String())
+                    trk = New Generic.List(Of clsGPXtrack)
+                    trk.Add(lCurrentTrack)
+                    boundsField = New clsGPXbounds
+                Else
+                    lLongitude = Double.NaN
+                    lLatitude = Double.NaN
+                    Try
+                        If lLonField > -1 AndAlso lLonField < lValues.Length Then
+                            lLongitude = ParseLeafSpyCoordinate(lValues(lLonField))
+                        End If
+                        If lLatField > -1 AndAlso lLatField < lValues.Length Then
+                            lLatitude = ParseLeafSpyCoordinate(lValues(lLatField))
+                        End If
+                        boundsField.Expand(lLatitude, lLongitude)
+                    Catch ex As Exception
+                        Dbg(ex.Message)
+                    End Try
+
+                    lCurrentWaypoint = New clsGPXwaypoint("trkpt", lLatitude, lLongitude)
+                    With lCurrentWaypoint
+                        If lDateField > -1 Then
+                            .time = Date.Parse(lValues(lDateField)).ToUniversalTime
+                        End If
+                        Dim lLastField As Integer = Math.Min(Fields.Length, lValues.Length) - 1
+                        For lFieldIndex As Integer = 0 To lLastField
+                            .SetExtension(Fields(lFieldIndex), lValues(lFieldIndex))
+                        Next
+                    End With
+
+                    If lCurrentTrackSegment Is Nothing OrElse lPreviousWaypoint IsNot Nothing AndAlso _
+                        lCurrentWaypoint.timeSpecified AndAlso lPreviousWaypoint.timeSpecified AndAlso _
+                        lCurrentWaypoint.time.Subtract(lPreviousWaypoint.time).TotalHours > 2 Then
+                        lCurrentTrackSegment = New clsGPXtracksegment
+                        lCurrentTrack.trkseg.Add(lCurrentTrackSegment)
+                    End If
+
+                    lCurrentTrackSegment.trkpt.Add(lCurrentWaypoint)
+
+                    If lCurrentWaypoint.timeSpecified Then
+                        lPreviousWaypoint = lCurrentWaypoint
+                    End If
+
+                    'Also add as a waypoint so it will be easy to label
+                    wpt.Add(lCurrentWaypoint)
+
+                    'pValues.Add(lLine.Split(","c))
+                End If
+            End If
+        Next
+    End Sub
+
+    ''' <summary>
+    ''' Parse coordinates in either decimal degrees or degrees:decimal minutes
+    ''' </summary>
+    ''' <param name="aCoordinate">formatted coordinate</param>
+    ''' <returns>Double version of coordinate in degrees</returns>
+    Private Function ParseLeafSpyCoordinate(ByVal aCoordinate As String) As Double
+        If String.IsNullOrEmpty(aCoordinate) Then
+            Return 0 ' Double.NaN
+        End If
+        Dim lColonPos As Integer = aCoordinate.IndexOf(":")
+        If lColonPos > 0 Then
+            Dim lDegrees As Double = Double.Parse(aCoordinate.Substring(0, lColonPos))
+            Dim lMinutes As Double = Double.Parse(aCoordinate.Substring(lColonPos + 1))
+            If lDegrees >= 0 Then
+                Return lDegrees + lMinutes / 60
+            Else
+                Return lDegrees - lMinutes / 60
+            End If
+        Else
+            Return Double.Parse(aCoordinate)
+        End If
+    End Function
+
+#End Region
 
 End Class
 
