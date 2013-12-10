@@ -917,8 +917,7 @@ Public Class frmMap
             .FilterIndex = 0
             .DefaultExt = ".gpx"
             If .ShowDialog = Windows.Forms.DialogResult.OK Then
-                Dim lGPX As New clsGPX()
-                lGPX.LoadFile(.FileName)
+                Dim lGPX As clsGPX = clsGPX.FromFile(.FileName)
                 If lGPX.wpt.Count > 0 Then
                     PlacesGPX = lGPX
                 Else
