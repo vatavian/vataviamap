@@ -49,6 +49,31 @@ Public Class clsGPX
         Clear()
     End Sub
 
+    Public Shared Function FromFile(ByVal aFilename As String) As clsGPX
+        Try
+            Select Case IO.Path.GetExtension(aFilename).ToLower
+                Case ".kml"
+                    Dim lKML As New clsKML
+                    lKML.LoadFile(aFilename)
+                    Return lKML
+
+                Case Else
+                    Dim lGPX As New clsGPX
+                    lGPX.LoadFile(aFilename)
+                    Return lGPX
+            End Select
+        Catch e1 As Exception
+            Try
+                Dim lLeaf As New clsLeafSpy
+                lLeaf.LoadFile(aFilename)
+                Return lLeaf
+            Catch exLeaf As Exception
+                'Did not manage to open as that format either
+            End Try
+            Throw New ApplicationException("Error opening '" & aFilename & "': " & e1.Message, e1)
+        End Try
+    End Function
+
     Overrides Sub Clear()
         MyBase.Clear()
         pWaypoints = New Generic.List(Of clsGPXwaypoint)
@@ -59,56 +84,29 @@ Public Class clsGPX
         Filename = ""
     End Sub
 
+    ''' <summary>
+    ''' Load a GPX file.
+    ''' </summary>
+    ''' <param name="aFilename">File to load</param>
+    ''' <remarks>To load different file types, use clsGPX.FromFile instead</remarks>
     Overridable Sub LoadFile(ByVal aFilename As String)
         Dim lTryAppend As Boolean = pTryAppend
-        Dim lXMLdoc As New XmlDocument
+        Dim lTryLoadLeafSpyFile As Boolean = True
 
-        'TryAgain:
+        Clear()
+        Filename = aFilename
+
+        Dim lXMLdoc As New XmlDocument
         Try
-            Clear()
-            Filename = aFilename
             'TODO: only read header at first (including bounding box) - delay reading the rest until needed
             lXMLdoc.Load(aFilename)
-LoadedXML:
-            For Each lTopChild As XmlNode In lXMLdoc.ChildNodes
-                Select Case lTopChild.Name.ToLower
-                    Case "gpx", "loc"
-                        LoadChildNodes(lTopChild.ChildNodes)
-                End Select
-            Next
-            If Me.boundsField Is Nothing Then
-                Me.boundsField = New clsGPXbounds
-                For Each lWaypoint As clsGPXwaypoint In wpt
-                    Me.boundsField.Expand(lWaypoint.lat, lWaypoint.lon)
-                Next
-
-                For Each lTrack As clsGPXtrack In trk
-                    For Each lTrackSegment As clsGPXtracksegment In lTrack.trkseg
-                        For Each lTrackPoint As clsGPXwaypoint In lTrackSegment.trkpt
-                            Me.boundsField.Expand(lTrackPoint.lat, lTrackPoint.lon)
-                        Next
-                    Next
-                Next
-                For Each lTrackSegment As clsGPXroute In rte
-                    For Each lTrackPoint As clsGPXwaypoint In lTrackSegment.rtept
-                        Me.boundsField.Expand(lTrackPoint.lat, lTrackPoint.lon)
-                    Next
-                Next
-            End If
-
-            'Debugging: if folder "rewrite" exists in same folder with our .gpx, rewrite it in there
-            Dim lWriteIn As String = IO.Path.Combine(IO.Path.GetDirectoryName(aFilename), "rewrite")
-            If IO.Directory.Exists(lWriteIn) Then
-                WriteTextFile(IO.Path.Combine(lWriteIn, IO.Path.GetFileName(aFilename)), Me.ToString)
-            End If
-
-        Catch e As Exception
+        Catch eLoad As Exception
             'See if closing some tags allows the file to load (sometimes a logger does not finish writing the log)
-            If lTryAppend AndAlso e.Message.StartsWith("Unexpected end of file has occurred.") Then
+            If lTryAppend AndAlso eLoad.Message.StartsWith("Unexpected end of file has occurred.") Then
                 Dim lAppendThis As String = ""
-                If e.Message.IndexOf("not closed: trkseg, trk, gpx") > 0 Then
+                If eLoad.Message.IndexOf("not closed: trkseg, trk, gpx") > 0 Then
                     lAppendThis = "</trkseg></trk></gpx>"
-                ElseIf e.Message.IndexOf("not closed: gpx.") > 0 Then
+                ElseIf eLoad.Message.IndexOf("not closed: gpx.") > 0 Then
                     lAppendThis = "</gpx>"
                 End If
                 If lAppendThis.Length > 0 Then
@@ -129,14 +127,40 @@ LoadedXML:
                     End Try
                 End If
             End If
-            Try
-                LoadLeafSpyFile(aFilename)
-                Exit Sub
-            Catch exLeaf As Exception
-                'Did not manage to open as that format either
-            End Try
-            Throw New ApplicationException("Error opening '" & aFilename & "': " & e.Message, e)
+            Throw eLoad
         End Try
+LoadedXML:
+        For Each lTopChild As XmlNode In lXMLdoc.ChildNodes
+            Select Case lTopChild.Name.ToLower
+                Case "gpx", "loc"
+                    LoadChildNodes(lTopChild.ChildNodes)
+            End Select
+        Next
+
+        If Me.boundsField Is Nothing Then
+            Me.boundsField = New clsGPXbounds
+            For Each lWaypoint As clsGPXwaypoint In wpt
+                Me.boundsField.Expand(lWaypoint.lat, lWaypoint.lon)
+            Next
+            For Each lTrack As clsGPXtrack In trk
+                For Each lTrackSegment As clsGPXtracksegment In lTrack.trkseg
+                    For Each lTrackPoint As clsGPXwaypoint In lTrackSegment.trkpt
+                        Me.boundsField.Expand(lTrackPoint.lat, lTrackPoint.lon)
+                    Next
+                Next
+            Next
+            For Each lTrackSegment As clsGPXroute In rte
+                For Each lTrackPoint As clsGPXwaypoint In lTrackSegment.rtept
+                    Me.boundsField.Expand(lTrackPoint.lat, lTrackPoint.lon)
+                Next
+            Next
+        End If
+
+        'Debugging: if folder "rewrite" exists in same folder with our .gpx, rewrite it in there
+        'Dim lWriteIn As String = IO.Path.Combine(IO.Path.GetDirectoryName(aFilename), "rewrite")
+        'If IO.Directory.Exists(lWriteIn) Then
+        '    WriteTextFile(IO.Path.Combine(lWriteIn, IO.Path.GetFileName(aFilename)), Me.ToString)
+        'End If
     End Sub
 
     Private Sub LoadChildNodes(ByVal aNodeList As XmlNodeList)
@@ -358,10 +382,13 @@ LoadedXML:
         End Set
     End Property
 
+End Class
 
 #Region "LeafSpy"
+Friend Class clsLeafSpy
+    Inherits clsGPX
 
-    Private Sub LoadLeafSpyFile(ByVal aFilename As String)
+    Overrides Sub LoadFile(ByVal aFilename As String)
         Dim lDateField As Integer = 0
         Dim lLatField As Integer = 1
         Dim lLonField As Integer = 2
@@ -380,7 +407,7 @@ LoadedXML:
             If lValues.Length > 2 Then
                 If lNeedFields Then
                     lNeedFields = False
-                    Fields = lValues
+                    Fields = lValues 'Values on first line are field labels
                     Dim lFieldIndex As Integer = 0
                     For Each lFieldName As String In Fields
                         Select Case lFieldName.ToLower
@@ -396,7 +423,7 @@ LoadedXML:
                     'pValues = New Generic.List(Of String())
                     trk = New Generic.List(Of clsGPXtrack)
                     trk.Add(lCurrentTrack)
-                    boundsField = New clsGPXbounds
+                    bounds = New clsGPXbounds
                 Else
                     lLongitude = Double.NaN
                     lLatitude = Double.NaN
@@ -407,7 +434,7 @@ LoadedXML:
                         If lLatField > -1 AndAlso lLatField < lValues.Length Then
                             lLatitude = ParseLeafSpyCoordinate(lValues(lLatField))
                         End If
-                        boundsField.Expand(lLatitude, lLongitude)
+                        bounds.Expand(lLatitude, lLongitude)
                     Catch ex As Exception
                         Dbg(ex.Message)
                     End Try
@@ -467,10 +494,81 @@ LoadedXML:
             Return Double.Parse(aCoordinate)
         End If
     End Function
-
+End Class
 #End Region
 
+
+#Region "KML"
+Friend Class clsKML
+    Inherits clsGPX
+
+    ''' <summary>
+    ''' Load a KML file containing tracks that use "when" tag for time and "gx:coord" tag for coordinates into the same structure used by GPX files
+    ''' </summary>
+    ''' <param name="aFilename">file to load</param>
+    ''' <remarks></remarks>
+    Overrides Sub LoadFile(ByVal aFilename As String)
+        Dim lValues() As String
+        Dim lCurrentTrack As New clsGPXtrack(aFilename)
+        Dim lCurrentTrackSegment As clsGPXtracksegment = Nothing
+        Dim lCurrentWaypoint As clsGPXwaypoint
+        Dim lPreviousWaypoint As clsGPXwaypoint = Nothing
+        Dim lDate As Date
+        Dim lWhenPos As Integer
+        Dim lCoordPos As Integer
+        Dim lTrackPos As Integer
+        Dim lLongitude As Double = Double.NaN, lLatitude As Double = Double.NaN
+
+        Clear()
+        Filename = aFilename
+
+        For Each lLine As String In ReadTextFile(aFilename).Replace(vbCr, vbLf).Replace(vbLf & vbLf, vbLf).Split(vbLf)
+            Try
+                lWhenPos = lLine.IndexOf("<when>")
+                If lWhenPos > -1 Then
+                    lDate = Date.Parse(lLine.Substring(lWhenPos + 6, lLine.IndexOf("<", lWhenPos + 6) - lWhenPos - 6))
+                Else
+                    lCoordPos = lLine.IndexOf("<gx:coord>")
+                    If lCoordPos > -1 Then
+                        lValues = lLine.Substring(lCoordPos + 10, lLine.Length - 21).Split(" "c)
+                        lLongitude = Double.Parse(lValues(0))
+                        lLatitude = Double.Parse(lValues(1))
+                        lCurrentWaypoint = New clsGPXwaypoint("trkpt", lLatitude, lLongitude)
+                        lCurrentWaypoint.time = lDate
+
+                        If lCurrentTrackSegment Is Nothing OrElse lPreviousWaypoint IsNot Nothing AndAlso _
+            lCurrentWaypoint.timeSpecified AndAlso lPreviousWaypoint.timeSpecified AndAlso _
+            lCurrentWaypoint.time.Subtract(lPreviousWaypoint.time).TotalHours > 2 Then
+                            lCurrentTrackSegment = New clsGPXtracksegment
+                            lCurrentTrack.trkseg.Add(lCurrentTrackSegment)
+                        End If
+
+                        lCurrentTrackSegment.trkpt.Add(lCurrentWaypoint)
+                        lPreviousWaypoint = lCurrentWaypoint
+
+                        If trk Is Nothing Then
+                            trk = New Generic.List(Of clsGPXtrack)
+                        End If
+                        If trk.Count = 0 Then
+                            trk.Add(lCurrentTrack)
+                            bounds = New clsGPXbounds
+                        End If
+                        bounds.Expand(lLatitude, lLongitude)
+                    Else
+                        lTrackPos = lLine.IndexOf("<gx:Track>")
+                        If lTrackPos > -1 Then
+                            If lCurrentTrackSegment IsNot Nothing AndAlso lCurrentTrackSegment.trkpt.Count > 0 Then
+                                lCurrentTrackSegment = Nothing
+                            End If
+                        End If
+                    End If
+                End If
+            Catch
+            End Try
+        Next
+    End Sub
 End Class
+#End Region
 
 Public Class clsGPXtracksegment
     Inherits clsGPXbase

@@ -1687,11 +1687,13 @@ Public Class ctlMap
     ''' <param name="aBounds">Bounds to center on</param>
     ''' <remarks>Does not redraw</remarks>
     Public Sub PanTo(ByVal aBounds As clsGPXbounds)
-        With aBounds
-            CenterLat = .minlat + (.maxlat - .minlat) / 2
-            CenterLon = .minlon + (.maxlon - .minlon) / 2
-            SanitizeCenterLatLon()
-        End With
+        If aBounds IsNot Nothing Then
+            With aBounds
+                CenterLat = .minlat + (.maxlat - .minlat) / 2
+                CenterLon = .minlon + (.maxlon - .minlon) / 2
+                SanitizeCenterLatLon()
+            End With
+        End If
     End Sub
 
     ''' <summary>

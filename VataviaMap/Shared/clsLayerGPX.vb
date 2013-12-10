@@ -36,9 +36,10 @@ Public Class clsLayerGPX
     Public Sub New(ByVal aFilename As String, ByVal aMap As ctlMap)
         MyBase.New(aFilename, aMap)
         SetDefaults()
-        GPX = New clsGPX
         If IO.File.Exists(aFilename) Then
-            GPX.LoadFile(aFilename)
+            GPX = clsGPX.FromFile(aFilename)
+        Else
+            GPX = New clsGPX
         End If
     End Sub
 

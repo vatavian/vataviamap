@@ -127,8 +127,7 @@ Public Class frmOpenCellID
         Dim lCells As New clsCellLayer(pMap)
         For Each lFilename As String In aFilenames
             Me.Text = "Loading " & lCurFile & "/" & lNumFiles & " '" & IO.Path.GetFileNameWithoutExtension(lFilename) & "'"
-            Dim lGPX As New clsGPX
-            lGPX.LoadFile(lFilename)
+            Dim lGPX As clsGPX = clsGPX.FromFile(lFilename)
             lCells.LoadGPX(lGPX, txtMCC.Text.Split(","))
             lCurFile += 1
         Next

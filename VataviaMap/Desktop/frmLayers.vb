@@ -48,7 +48,7 @@ Public Class frmLayers
             Dim lColor As Color = lLayer.LegendColor
             btnColor.BackColor = Color.FromArgb(255, lColor.R, lColor.G, lColor.B)
             txtOpacity.Text = CInt(lColor.A / 2.55)
-            If lLayer.GetType.Name = "clsLayerGPX" Then
+            If TypeOf lLayer Is clsLayerGPX Then
                 Dim lGPX As clsLayerGPX = lLayer
                 txtWidth.Text = lGPX.PenTrack.Width
                 txtArrowSize.Text = lGPX.ArrowSize
@@ -124,11 +124,9 @@ Public Class frmLayers
     Private Sub txtWidth_TextChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles txtWidth.TextChanged
         If Not pPopulating AndAlso IsNumeric(txtWidth.Text) Then
             Dim lWidth As Integer = CInt(txtWidth.Text)
-            Dim lGPX As clsLayerGPX
             For Each lLayer As clsLayer In pLayers
-                If lLayer.GetType.Name = "clsLayerGPX" Then
-                    lGPX = lLayer
-                    lGPX.PenTrack.Width = lWidth
+                If TypeOf lLayer Is clsLayerGPX Then
+                    CType(lLayer, clsLayerGPX).PenTrack.Width = lWidth
                 End If
             Next
             RaiseEvent Apply()
@@ -138,11 +136,9 @@ Public Class frmLayers
     Private Sub txtArrowSize_TextChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles txtArrowSize.TextChanged
         If Not pPopulating AndAlso IsNumeric(txtArrowSize.Text) Then
             Dim lArrowSize As Integer = CInt(txtArrowSize.Text)
-            Dim lGPX As clsLayerGPX
             For Each lLayer As clsLayer In pLayers
-                If lLayer.GetType.Name = "clsLayerGPX" Then
-                    lGPX = lLayer
-                    lGPX.ArrowSize = lArrowSize
+                If TypeOf lLayer Is clsLayerGPX Then
+                    CType(lLayer, clsLayerGPX).ArrowSize = lArrowSize
                 End If
             Next
             RaiseEvent Apply()
